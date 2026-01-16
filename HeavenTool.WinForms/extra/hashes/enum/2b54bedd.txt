@@ -1,0 +1,11 @@
+0
+SchoolTeacher
+HospitalReception
+HospitalDoctor
+HospitalInpatient
+RestaurantCashier
+RestaurantCook
+CafeWaiter
+TailorClerk
+RestaurantCustomer2F
+CafeCustomer2F

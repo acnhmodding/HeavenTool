@@ -1,0 +1,6 @@
+Unknown
+MailBoxTypeA
+MailBoxTypeB
+MailBoxTypeC
+MailBoxTypeD
+MailBoxTypeE

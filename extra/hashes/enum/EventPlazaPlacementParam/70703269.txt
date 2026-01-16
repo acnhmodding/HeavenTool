@@ -1,4 +1,0 @@
-PermanentObj
-CalendarEvent
-VisitorNpc
-NpcGroupActivity

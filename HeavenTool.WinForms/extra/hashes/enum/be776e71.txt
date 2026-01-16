@@ -1,0 +1,10 @@
+IdrMuseumArt_0
+IdrMuseumFossil_1
+IdrMuseumFossil_0
+IdrMuseumFossil_2
+IdrMuseumFish_2
+IdrMuseumInsect_0
+IdrMuseumInsect_1
+IdrMuseumFish_0
+IdrMuseumFish_1
+IdrMuseumInsect_2

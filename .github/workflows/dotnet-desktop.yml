@@ -33,30 +33,44 @@ jobs:
           Compress-Archive -Path publish\* -DestinationPath HeavenTool-Windows.zip
         shell: pwsh
 
+      - name: Publish application (self-contained)
+        run: dotnet publish HeavenTool.WinForms/HeavenTool.WinForms.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o selfcontained
+
+      - name: Compress artifacts (self-contained)
+        run: |
+          Compress-Archive -Path selfcontained\* -DestinationPath HeavenTool-Windows-selfcontained.zip
+        shell: pwsh
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: HeavenTool-Windows
           path: HeavenTool-Windows.zip
 
+      - name: Upload self-contained artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeavenTool-Windows-selfcontained
+          path: HeavenTool-Windows-selfcontained.zip
+
       - name: Extract version from project file
         id: get_version
         shell: pwsh
         run: |
-          $projectPath = "Heaven Tool.csproj"
-          if (-Not (Test-Path $projectPath)) {
-              Write-Error "Project file not found: $projectPath"
-              exit 1
+          $projectPath = "HeavenTool.WinForms\HeavenTool.WinForms.csproj"
+          if (!(Test-Path $projectPath)) {
+            throw "Project file not found: $projectPath"
           }
+
           [xml]$projXml = Get-Content $projectPath
-          $versionNode = $projXml.SelectSingleNode("//Version")
-          if ($versionNode -and $versionNode.InnerText) {
-              $version = $versionNode.InnerText.Trim()
-              Write-Output "Found version: $version"
-              echo "version=$version" >> $env:GITHUB_OUTPUT
-          } else {
-              Write-Error "Version element not found or empty in $projectPath"
+          $version = $projXml.Project.PropertyGroup.Version
+
+          if (-not $version) {
+            throw "Version element not found in $projectPath"
           }
+
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Found version: $version"
 
   release:
     needs: build
@@ -66,6 +80,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: HeavenTool-Windows
+
+      - name: Download self-contained artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: HeavenTool-Windows-selfcontained
 
       - name: Create GitHub Release
         id: create_release
@@ -88,3 +107,14 @@ jobs:
           asset_path: ./HeavenTool-Windows.zip
           asset_name: HeavenTool-Windows.zip
           asset_content_type: application/zip
+
+      - name: Upload Release Asset (Self-Contained)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./HeavenTool-Windows-selfcontained.zip
+          asset_name: HeavenTool-Windows-selfcontained.zip
+          asset_content_type: application/zip
+

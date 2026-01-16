@@ -1,0 +1,17 @@
+
+Teacher_Book_Explain
+Student_Sleep
+Reception_Wait
+HospitalPatient_Sit
+HospitalDoctor
+HospitalExamination_Sit
+HospitalPatient_Bed
+RestaurantCashier_Wait
+Waiter_Walk
+Drink_GlassJuice
+RestaurantCook_Cooking
+RestaurantApprentice_Dish
+SpaceOut
+WalkShopping
+Wait
+Walk

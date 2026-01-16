@@ -1,9 +1,0 @@
-None
-SwitchRepeat
-FtrSwitchOn
-FtrAccess
-PlayMusic
-StayOn
-LongSwitch
-Sit
-Wander

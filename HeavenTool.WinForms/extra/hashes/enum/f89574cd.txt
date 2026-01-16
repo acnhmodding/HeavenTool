@@ -1,0 +1,16 @@
+
+Teacher_Walk
+Student_Book
+Reception_Looking
+Book
+HospitalDoctorStand
+Bed
+RestaurantCashier_OrderList
+Waiter_StandBy
+RestaurantCustome_Forks
+SitConversationAnswer
+RestaurantCook_Walking
+RestaurantApprentice_Cooking
+RestaurantCustome_Drink_Coffee
+Cafe_Watching
+WalkShopping

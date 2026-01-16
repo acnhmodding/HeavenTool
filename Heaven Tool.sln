@@ -2,7 +2,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.34928.147
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Heaven Tool", "Heaven Tool.csproj", "{6D35A83B-F96F-424C-9655-701D8080A698}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HeavenTool.WinForms", "HeavenTool.WinForms\HeavenTool.WinForms.csproj", "{6D35A83B-F96F-424C-9655-701D8080A698}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeavenTool.ModManager", "HeavenTool.ModManager\HeavenTool.ModManager.csproj", "{DA4F0985-0C1B-4E4B-90B0-290B40338846}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeavenTool.IO", "HeavenTool.IO\HeavenTool.IO.csproj", "{5460BEAA-4857-425B-B761-5545948B0208}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeavenTool.ModManager.CLI", "HeavenTool.ModManager.CLI\HeavenTool.ModManager.CLI.csproj", "{A831CD4B-8E3C-45BD-BDE8-09FE305F1259}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AltUI", "AltUI\AltUI.csproj", "{8C4BC546-AF71-7A9E-A51B-B1DA856EBC9B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,6 +22,22 @@ Global
 		{6D35A83B-F96F-424C-9655-701D8080A698}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6D35A83B-F96F-424C-9655-701D8080A698}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6D35A83B-F96F-424C-9655-701D8080A698}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA4F0985-0C1B-4E4B-90B0-290B40338846}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA4F0985-0C1B-4E4B-90B0-290B40338846}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA4F0985-0C1B-4E4B-90B0-290B40338846}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA4F0985-0C1B-4E4B-90B0-290B40338846}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5460BEAA-4857-425B-B761-5545948B0208}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5460BEAA-4857-425B-B761-5545948B0208}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5460BEAA-4857-425B-B761-5545948B0208}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5460BEAA-4857-425B-B761-5545948B0208}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A831CD4B-8E3C-45BD-BDE8-09FE305F1259}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A831CD4B-8E3C-45BD-BDE8-09FE305F1259}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A831CD4B-8E3C-45BD-BDE8-09FE305F1259}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A831CD4B-8E3C-45BD-BDE8-09FE305F1259}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C4BC546-AF71-7A9E-A51B-B1DA856EBC9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C4BC546-AF71-7A9E-A51B-B1DA856EBC9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C4BC546-AF71-7A9E-A51B-B1DA856EBC9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C4BC546-AF71-7A9E-A51B-B1DA856EBC9B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

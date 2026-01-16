@@ -1,0 +1,115 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows7.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <SccProjectName></SccProjectName>
+    <SccLocalPath></SccLocalPath>
+    <SccAuxPath></SccAuxPath>
+    <SccProvider></SccProvider>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
+    <Configurations>Debug;Release;Main;Main-Debug</Configurations>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1701;1702;CA1416</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>1701;1702;CA1416</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Main|AnyCPU'">
+    <NoWarn>1701;1702;CA1416</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Main-Debug|AnyCPU'">
+    <NoWarn>1701;1702;CA1416</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="9.0.7" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="ColorPicker\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\DarkComboBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkGroupBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkListBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkNumericUpDown.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkProgressBar.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkRadioButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkRichTextBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkTitle.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkTreeView.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkListView.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkScrollBase.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkContextMenu.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkLabel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkMenuStrip.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkScrollBar.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkScrollView.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkSectionPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkSeparator.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkStatusStrip.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkTextBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="Controls\DarkToolStrip.cs">
+      <SubType>Component</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="ColorPicker\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <CustomToolNamespace>AltUI.ColorPicker</CustomToolNamespace>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Resources\cellbackground.png">
+      <CustomToolNamespace></CustomToolNamespace>
+    </None>
+  </ItemGroup>
+</Project>

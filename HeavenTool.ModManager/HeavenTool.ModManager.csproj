@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NintendoTools" Version="2.28.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HeavenTool.IO\HeavenTool.IO.csproj" />
+  </ItemGroup>
+
+</Project>

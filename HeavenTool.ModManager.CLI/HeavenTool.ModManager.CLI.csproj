@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <ApplicationIcon>leaf.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="leaf.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HeavenTool.ModManager\HeavenTool.ModManager.csproj" />
+  </ItemGroup>
+
+  <Target Name="BuildVanillaZip-build" AfterTargets="Build">
+    <ZipDirectory SourceDirectory="$(ProjectDir)Vanilla" DestinationFile="$(OutputPath)vanilla.zip" Overwrite="true" />
+  </Target>
+
+  <Target Name="CopyVanillaZipToPublish" AfterTargets="Publish">
+    <Copy SourceFiles="$(OutputPath)vanilla.zip" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

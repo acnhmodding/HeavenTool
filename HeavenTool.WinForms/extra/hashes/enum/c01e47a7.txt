@@ -1,0 +1,9 @@
+River
+Cliff
+Fall
+Road
+House
+Facility
+Bridge
+Slope
+WherearenFacility

@@ -1,0 +1,182 @@
+MoveSpot1 u32
+MoveSpot2 u32
+MoveSpot3 u32
+MoveSpot4 u32
+NpcFtrActionTool2 u16
+NpcFtrActionTool3 u16
+OutdoorFtr1 u16
+OutdoorFtr2 u16
+OrderID1 u16
+MustFtr1 u16
+MustFtr2 u16
+MustFtr3 u16
+MoveTool1 u16
+MoveTool2 u16
+MoveTool3 u16
+SNpcID0 u16
+SNpcID1 u16
+SNpcID2 u16
+SNpcID3 u16
+FtrType0 u8
+FtrType1 u8
+FtrType2 u8
+FtrType3 u8
+NpcRole1 u8
+NpcRole2 u8
+NpcRole3 u8
+ActionSet0.hshCstringRef
+ActionSet1.hshCstringRef
+ActionSet2.hshCstringRef
+NpcRole0.hshCstringRef
+ReBodyID u16
+GradeID u16
+Depth f32
+NpcLabel2 string32
+RemakeFabricID s16
+NpcRoleNum0 s8
+NpcRoleNum1 s8
+NpcRoleNum2 s8
+NpcRoleNum3 s8
+NpcRoleSetID u16
+NpcRoleSet.hshCstringRef
+RebodyNum1 s8
+RebodyNum2 s8
+RebodyNum3 s8
+PointIndex s16
+RailIndex s8
+RequestNum0 s8
+RequestNum1 s8
+RequestNum2 s8
+RequestNum3 s8
+LimitNum0 s8
+LimitNum1 s8
+LimitNum2 s8
+LimitNum3 s8
+SaveIndex u16
+RefabricNum1 s8
+RefabricNum2 s8
+RefabricNum3 s8
+AreaUniqueID u16
+EnvMapUniqueID u16
+FgUniqueID u16
+RailIndex s16
+ObjectUniqueID u16
+ActionFlags u8
+QuotaNum u16
+QuotaNum u8
+AchievableNum u16
+NpcCanSit u8
+SortIdUSen u16
+SortIdUSes u16
+SortIdUSfr u16
+SortIdEUes u16
+SortIdEUfr u16
+SortIdEUit u16
+SortIdEUnl u16
+SortIdEUru u16
+SortIdJPja u16
+SortIdKRko u16
+SortIdTWzh u16
+SortIdCNzh u16
+SortIdEUde u16
+SortIdEUen u16
+CapOff u8
+GroupNumber s32
+NpcReleaseType u32
+Rate0_0 s8
+Rate0_1 s8
+Rate0_2 s8
+Rate0_3 s8
+Rate0_4 s8
+Rate0_5 s8
+Rate0_6 s8
+Rate0_7 s8
+Rate0_8 s8
+Rate1_0 s8
+Rate1_1 s8
+Rate1_2 s8
+Rate1_3 s8
+Rate1_4 s8
+Rate1_5 s8
+Rate1_6 s8
+Rate1_7 s8
+Rate1_8 s8
+Rate2_0 s8
+Rate2_1 s8
+Rate2_2 s8
+Rate2_3 s8
+Rate2_4 s8
+Rate2_5 s8
+Rate2_6 s8
+Rate2_7 s8
+Rate2_8 s8
+Rate3_0 s8
+Rate3_1 s8
+Rate3_2 s8
+Rate3_3 s8
+Rate3_4 s8
+Rate3_5 s8
+Rate3_6 s8
+Rate3_7 s8
+Rate3_8 s8
+Action0_0.hshCstringRef
+Action0_1.hshCstringRef
+Action0_2.hshCstringRef
+Action0_3.hshCstringRef
+Action0_4.hshCstringRef
+Action0_5.hshCstringRef
+Action0_6.hshCstringRef
+Action0_7.hshCstringRef
+Action0_8.hshCstringRef
+Action0_9.hshCstringRef
+Action1_0.hshCstringRef
+Action1_1.hshCstringRef
+Action1_2.hshCstringRef
+Action1_3.hshCstringRef
+Action1_4.hshCstringRef
+Action1_5.hshCstringRef
+Action1_6.hshCstringRef
+Action1_7.hshCstringRef
+Action1_8.hshCstringRef
+Action1_9.hshCstringRef
+Action2_0.hshCstringRef
+Action2_1.hshCstringRef
+Action2_2.hshCstringRef
+Action2_3.hshCstringRef
+Action2_4.hshCstringRef
+Action2_5.hshCstringRef
+Action2_6.hshCstringRef
+Action2_7.hshCstringRef
+Action2_8.hshCstringRef
+Action3_0.hshCstringRef
+Action3_1.hshCstringRef
+Action3_2.hshCstringRef
+Action3_3.hshCstringRef
+Action3_4.hshCstringRef
+Action3_5.hshCstringRef
+Action3_6.hshCstringRef
+Action3_7.hshCstringRef
+Action3_8.hshCstringRef
+PrioLevel u8
+RecommendPattern u8
+ActionPattern1 u32
+ActionPattern2 u32
+ActionPattern3 u32
+AudioMusicCategory.hshCstringRef
+KappeiTourCategory.hshCstringRef
+ToolCategory u8
+RegionEventItem u8
+WherearenCatalogOpenItem u16
+NpcSetType.hshCstringRef
+FloorCommonFabricID
+WallCommonFabricID
+::Game::SaveWherearenMainIsland::ItemSwitch
+::Game::SavePlayerHouseRoom::ItemSwitch
+::Game::SaveFishCollection::NewFishFlag
+::Game::SaveInsectCollection::NewInsectFlag
+::Game::SavePostStock::SaveMailStock
+::Game::SavePostStock::TextMailStock
+::Game::SaveItemCollectBit::CollectBitFlag
+::Game::SaveWherearenMainIsland::ItemLayer
+::Game::Net::PlayerProfileReportInfo
+::Game::Net::WherearenAuthorID
