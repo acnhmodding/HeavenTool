@@ -72,6 +72,8 @@ jobs:
             throw "Version element not found in $projectPath"
           }
 
+          $version = $version.Trim()
+
           echo "version=$version" >> $env:GITHUB_OUTPUT
           Write-Host "Found version: $version"
 
