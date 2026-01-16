@@ -10,7 +10,6 @@
     <PackageReference Include="AeonSake.NintendoTools" Version="3.2.1" />
     <PackageReference Include="Crc32.NET" Version="1.2.0" />
     <PackageReference Include="JeremyEspresso.MurmurHash" Version="0.0.1" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.10" />
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
 
