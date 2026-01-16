@@ -1,7 +1,0 @@
-Teacher_ConversationAnswer
-Walk
-SpaceOut
-WaitConversationAnswer
-SitConversationAnswer
-RestaurantCustome_Forks
-Book

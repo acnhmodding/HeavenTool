@@ -1,4 +1,5 @@
-﻿using HeavenTool.Forms.Pack;
+﻿using HeavenTool.Forms.BARS;
+using HeavenTool.Forms.Pack;
 using HeavenTool.Forms.RSTB;
 using HeavenTool.Forms.SARC;
 using HeavenTool.IO;
@@ -23,7 +24,7 @@ public partial class HeavenMain : Form
     }
 
     // Forms
-  
+
     private void BcsvEditorButton_Click(object sender, EventArgs e)
     {
         var bcsvEditor = new BCSVForm();
@@ -38,7 +39,7 @@ public partial class HeavenMain : Form
 
         rstbEditor.Show();
         rstbEditor.BringToFront();
-    }   
+    }
 
     private void SarcEditorButton_Click(object sender, EventArgs e)
     {
@@ -64,7 +65,7 @@ public partial class HeavenMain : Form
         bcsvRework.BringToFront();
     }
 
-    private void yaz0DecompressToolStripMenuItem_Click(object sender, EventArgs e)
+    private void Yaz0DecompressToolStripMenuItem_Click(object sender, EventArgs e)
     {
         var openFileDialog = new OpenFileDialog()
         {
@@ -162,23 +163,28 @@ public partial class HeavenMain : Form
                     var hashedFields = bcsvFile.Fields.Where(x => x.DataType == DataType.CRC32).ToList();
                     if (bcsvFile.Entries.Count > 0 && hashedFields.Count > 0)
                     {
-                        var directoryPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(file));
-                        Directory.CreateDirectory(directoryPath);
+                        //var directoryPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(file));
+                        //Directory.CreateDirectory(directoryPath);
+                        Directory.CreateDirectory(outputDirectory);
 
                         foreach (var field in hashedFields)
                         {
-                            var outputFile = Path.Combine(directoryPath, $"{field.HEX}.txt");
+                            var outputFile = Path.Combine(outputDirectory, $"{field.HEX}.txt");
+                            //var outputFile = Path.Combine(directoryPath, $"{field.HEX}.txt");
                             var parsedList = new List<uint>();
                             var registers = new List<string>();
+
+                            if (File.Exists(outputFile))
+                                registers = [.. File.ReadAllLines(outputFile)];
+
                             var fieldIndex = Array.IndexOf(bcsvFile.Fields, field);
 
                             foreach (var entry in bcsvFile.Entries)
                             {
                                 if (entry[fieldIndex] is uint fieldHash && !parsedList.Contains(fieldHash))
                                 {
-                                    if (HashManager.CRC32_Hashes.TryGetValue(fieldHash, out string value))
+                                    if (HashManager.GetHashTranslationOrNull(fieldHash) is string value && !registers.Contains(value))
                                         registers.Add(value);
-
 
                                     parsedList.Add(fieldHash);
                                 }
@@ -194,7 +200,7 @@ public partial class HeavenMain : Form
         }
     }
 
-    private void exportUsedHashesToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ExportUsedHashesToolStripMenuItem_Click(object sender, EventArgs e)
     {
         var folderBrowserDialog = new FolderBrowserDialog();
 
@@ -216,7 +222,7 @@ public partial class HeavenMain : Form
                 var bcsvFile = new BinaryCSV(stream.ToArray());
 
                 foreach (var item in bcsvFile.Fields)
-                    if (HashManager.CRC32_Hashes.TryGetValue(item.Hash, out string hashName) && !usedHashesHeaders.Contains(hashName))
+                    if (HashManager.GetHashTranslationOrNull(item.Hash) is string hashName && !usedHashesHeaders.Contains(hashName))
                         usedHashesHeaders.Add(hashName);
 
 
@@ -224,7 +230,7 @@ public partial class HeavenMain : Form
                     foreach (var entryField in entry)
                         if (entryField is uint hashValue && (hashValue > 100000))
                         {
-                            if (HashManager.CRC32_Hashes.TryGetValue(hashValue, out string hashName) && !usedHashesValues.Contains(hashName))
+                            if (HashManager.GetHashTranslationOrNull(hashValue) is string hashName && !usedHashesValues.Contains(hashName))
                                 usedHashesValues.Add(hashName);
                         }
 
@@ -236,6 +242,74 @@ public partial class HeavenMain : Form
 
             // Open directory
             Process.Start(dir);
+        }
+    }
+
+    private void BarsEditorButton_Click(object sender, EventArgs e)
+    {
+        var barsWindow = new BARSWindow();
+
+        barsWindow.Show();
+    }
+
+    private void findBCSVToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        var folderBrowserDialog = new FolderBrowserDialog();
+
+        var result = folderBrowserDialog.ShowDialog();
+
+        if (result == DialogResult.OK)
+        {
+            var path = folderBrowserDialog.SelectedPath;
+            if (Directory.Exists(path))
+            {
+                foreach (var file in Directory.GetFiles(path))
+                {
+                    if (Path.GetExtension(file) != ".bcsv") continue;
+
+                    using var stream = File.OpenRead(file);
+                    var bcsvFile = new BinaryCSV(stream.ToArray());
+
+                    if (bcsvFile.Entries.Count > 10 && bcsvFile.Entries.Count < 13)
+                    {
+                        Console.WriteLine($"Possible bcsv: {file}");
+                    }
+                }
+            }
+
+        }
+
+    }
+
+    private void yaz0CompressToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        var openFileDialog = new OpenFileDialog()
+        {
+            Multiselect = false
+        };
+
+        var selectedFile = openFileDialog.ShowDialog();
+
+        if (selectedFile == DialogResult.OK
+            && !string.IsNullOrEmpty(openFileDialog.FileName)
+            && File.Exists(openFileDialog.FileName))
+        {
+            using var fileStream = File.OpenRead(openFileDialog.FileName);
+
+            byte[] compressedBytes = Yaz0CompressionAlgorithm.Compress(fileStream)?.ToArray();
+
+            if (compressedBytes == null || compressedBytes.Length == 0) return;
+
+            var saveFileDialog = new SaveFileDialog()
+            {
+                FileName = openFileDialog.FileName,
+            };
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                var savePath = saveFileDialog.FileName;
+                File.WriteAllBytes(savePath, compressedBytes);
+            }
         }
     }
 }

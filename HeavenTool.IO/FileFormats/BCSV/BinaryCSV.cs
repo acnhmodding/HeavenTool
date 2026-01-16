@@ -66,6 +66,32 @@ public class BinaryCSV : IDisposable
     /// </summary>
     public List<object[]> Entries { get; set; }
 
+    private bool _uniqueFieldSearched = false;
+    private Field _uniqueField = null;
+
+    /// <summary>
+    /// Get the Unique Field for the current file
+    /// </summary>
+    public Field UniqueField { 
+        get
+        {
+            if (_uniqueField == null && !_uniqueFieldSearched)
+            {
+                _uniqueFieldSearched = true;
+                var uniqueHeader = UniqueHashes.FirstOrNull(x => Fields.Any(f => f.Hash == x));
+
+                foreach (var f in Fields)
+                    if (f.Hash == uniqueHeader)
+                    {
+                        _uniqueField = f;
+                        break;
+                    }
+            }
+
+            return _uniqueField;
+        }
+    }
+
     public int Length => Entries.Count;
 
     internal byte HasExtendedHeader { get; private set; }
@@ -343,6 +369,10 @@ public class BinaryCSV : IDisposable
                         writer.Write((float)entryValue);
                         break;
 
+                    case DataType.Float64:
+                        writer.Write((double)entryValue);
+                        break;
+
                     case DataType.Int16:
                         writer.Write((short)entryValue);
                         break;
@@ -395,8 +425,9 @@ public class BinaryCSV : IDisposable
         {
             if (disposing)
             {
-                Fields = [];
-                Entries = [];
+                Fields = null;
+                Entries.Clear();
+                Entries = null;
             }
 
             // Indicate that the instance has been disposed.

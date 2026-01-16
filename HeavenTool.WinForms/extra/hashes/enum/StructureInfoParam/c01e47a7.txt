@@ -1,5 +1,0 @@
-House
-Facility
-Bridge
-Slope
-WherearenFacility

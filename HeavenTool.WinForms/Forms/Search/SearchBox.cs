@@ -8,20 +8,18 @@ namespace HeavenTool.Forms
     {
         // TODO: Update this form to be compatible with any file type (form)
 
-        private Form CallerForm;
-        private ISearchable SearchableForm;
+        private Form callerForm;
+        private readonly ISearchable searchableForm;
 
         public SearchBox(Form caller)
         {
             InitializeComponent();
 
-            CallerForm = caller;
+            callerForm = caller;
             Owner = caller;
 
             if (caller is ISearchable searchable)
-                SearchableForm = searchable;
-            else
-                MessageBox.Show("fodase");
+                searchableForm = searchable;
 
             CenterToParent();
         }
@@ -29,13 +27,13 @@ namespace HeavenTool.Forms
         public new void Show()
         {
             // Return original form ownership
-            Owner = CallerForm;
+            Owner = callerForm;
             base.Show();
         }
 
-        private void BCSVSearchBox_FormClosing(object sender, FormClosingEventArgs e)
+        private void SearchBox_FormClosing(object sender, FormClosingEventArgs e)
         {
-            SearchableForm.SearchClosing();
+            searchableForm.SearchClosing();
 
             // Remove original form ownership, so it can actually close without any issue
             Owner = null;
@@ -46,19 +44,19 @@ namespace HeavenTool.Forms
             Hide();
         }
 
-        private void BCSVSearchBox_Activated(object sender, EventArgs e)
+        private void SearchBox_Activated(object sender, EventArgs e)
         {
-            this.Opacity = 1;
+            Opacity = 1;
         }
 
-        private void BCSVSearchBox_Deactivate(object sender, EventArgs e)
+        private void SearchBox_Deactivate(object sender, EventArgs e)
         {
-            this.Opacity = 0.5d;
+            Opacity = 0.5d;
         }
 
-        private void findButton_Click(object sender, EventArgs e)
+        private void FindButton_Click(object sender, EventArgs e)
         {
-            SearchableForm.Search(searchValue.Text, exactlyButton.Checked ? SearchType.Exactly : SearchType.Contains, reverseDirectionCheckbox.Checked, caseSensitivivtyCheckbox.Checked);
+            searchableForm.Search(searchValue.Text, exactlyButton.Checked ? SearchType.Exactly : SearchType.Contains, reverseDirectionCheckbox.Checked, caseSensitivivtyCheckbox.Checked);
         }
 
         public void UpdateMatchesFound(int quantity, int currentIndex)
@@ -71,7 +69,7 @@ namespace HeavenTool.Forms
                 matchesCount.Text = "No matches found";
         }
 
-        private void searchValue_TextChanged(object sender, EventArgs e)
+        private void SearchValue_TextChanged(object sender, EventArgs e)
         {
             findButton.Enabled = !string.IsNullOrEmpty(searchValue.Text);
         }

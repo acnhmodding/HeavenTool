@@ -1,4 +1,8 @@
 ﻿
+
+using HeavenTool.IO;
+using Newtonsoft.Json;
+
 namespace HeavenTool.ModManager
 {
     public abstract class ModFile
@@ -19,12 +23,23 @@ namespace HeavenTool.ModManager
         }
 
         public string Name { get; set; }
-        //public string Extension { get; set; }
+
+        [JsonIgnore]
         public Stream Content { get; set; }
         public Compression Compression { get; set; }
 
         public abstract byte[] SaveFile();
         public abstract void DoDiff(ModFile otherFile);
+
+        public virtual void ExportToJson(string outputPath)
+        {
+            ConsoleUtilities.WriteLine($"Exporting: {Name}", ConsoleColor.Gray);
+            var path = Path.Combine(outputPath, Name);
+            var json = JsonConvert.SerializeObject(this);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            File.WriteAllText(path, json);
+        }
     }
 
     public enum Compression

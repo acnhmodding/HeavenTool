@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows7.0</TargetFramework>
     <AllowedReferenceRelatedFileExtensions>
     </AllowedReferenceRelatedFileExtensions>
     <GenerateAssemblyInfo>True</GenerateAssemblyInfo>
@@ -82,6 +82,33 @@
     <Compile Update="Forms\BCSV\BCSVForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="Forms\BCSV\Controls\Entries\BitFieldEntry.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\BCSV\Controls\Entries\Float64Entry.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\BCSV\Controls\Entries\Float32Entry.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\BCSV\Controls\Entries\SbyteEntry.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\BCSV\Controls\Entries\ByteEntry.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\BCSV\Controls\Entries\Int16Entry.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\BCSV\Controls\Entries\UInt16Entry.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\BCSV\Controls\Entries\UInt32Entry.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\BCSV\Controls\Entries\Int32Entry.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Update="Forms\Components\DarkToolstripRenderer.cs" />
     <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -114,11 +141,12 @@
   <ItemGroup>
     <PackageReference Include="Crc32.NET" Version="1.2.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="NintendoTools" Version="2.27.0" />
+    <PackageReference Include="NintendoTools" Version="2.28.9" />
     <PackageReference Include="YamlConvert" Version="3.1.0" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AltUI\AltUI.csproj" />
     <ProjectReference Include="..\HeavenTool.IO\HeavenTool.IO.csproj" />
   </ItemGroup>
   <ItemGroup>

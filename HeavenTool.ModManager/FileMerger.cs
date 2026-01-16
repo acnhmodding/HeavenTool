@@ -6,11 +6,13 @@ using NintendoTools.FileFormats.Bcsv;
 using NintendoTools.FileFormats.Msbt;
 using NintendoTools.FileFormats.Sarc;
 using System.Data;
+using System.IO;
 using System.IO.Compression;
 
 namespace HeavenTool.ModManager
 {
-    public class FileMerger {
+    public class FileMerger(string modsFolder, string outputDirectory)
+    {
 
         #region Decompressors
         public static readonly ZstdCompressor ZstdCompressor = new()
@@ -20,14 +22,8 @@ namespace HeavenTool.ModManager
         public static readonly ZstdDecompressor ZstdDecompressor = new();
         #endregion
 
-        public string ModsFolder { get; set; }
-        public string OutputDirectory { get; set; }
-
-        public FileMerger(string modsFolder, string outputDirectory)
-        {
-            ModsFolder = modsFolder;
-            OutputDirectory = outputDirectory;
-        }
+        public string ModsFolder { get; set; } = modsFolder;
+        public string OutputDirectory { get; set; } = outputDirectory;
 
         public List<string> ModsUsedPaths = [];
 
@@ -155,67 +151,137 @@ namespace HeavenTool.ModManager
             }
         }
 
-        public void PatchAndExport()
-        {
-            Directory.CreateDirectory(OutputDirectory);
+        //public void PatchAndExport()
+        //{
+        //    Directory.CreateDirectory(OutputDirectory);
 
-            foreach (var file in ModsUsedPaths)
+        //    foreach (var file in ModsUsedPaths)
+        //    {
+        //        ModFile baseFile = LoadVanillaContent(file);
+
+        //        foreach (var modZip in Directory.GetFiles(ModsFolder, "*.zip", SearchOption.TopDirectoryOnly))
+        //        {
+        //            var zipName = Path.GetFileName(modZip);
+
+        //            using var zipFile = ZipFile.OpenRead(modZip);
+
+        //            bool predicate(ZipArchiveEntry entry) {
+        //                var path = PathUtilities.GetRelativePathFromTarget(entry.FullName, "romfs");
+        //                if (path == null) return false;
+
+        //                return PathUtilities.ArePathsEqual(path, file);
+        //            }
+
+        //            if (zipFile.Entries.Any(predicate))
+        //            {
+        //                FileChanged?.Invoke(zipName, file);
+
+        //                var entry = zipFile.Entries.Single(predicate);
+        //                using var stream = entry.Open();
+
+        //                using var memoryStream = new MemoryStream();
+        //                stream.CopyTo(memoryStream);
+
+        //                var loadedFile = LoadModFile(memoryStream.ToArray(), file);
+        //                if (baseFile != null)                           
+        //                    baseFile.DoDiff(loadedFile);
+
+        //                else
+        //                    baseFile = loadedFile; // it's a new file, use as base file instead of a vanilla one
+        //            }
+
+        //        }
+
+        //        if (baseFile != null) {
+
+        //            var fileBytes = baseFile.SaveFile();
+
+        //            switch (baseFile.Compression)
+        //            {
+        //                case Compression.Zstd:
+        //                    ConsoleUtilities.WriteLine($"Compressing {baseFile.Name} to ZSTD", ConsoleColor.Blue);
+        //                    var compressionStream = new MemoryStream();
+        //                    ZstdCompressor.Compress(new MemoryStream(fileBytes), compressionStream);
+        //                    fileBytes = compressionStream.ToArray();
+        //                    break;
+        //            }
+
+        //            var outputPath = Path.Combine(OutputDirectory, file);
+
+        //            Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+        //            File.WriteAllBytes(outputPath, fileBytes);
+
+        //        }
+        //    }
+        //}
+        private readonly Dictionary<string, ModFile> _patchedFiles = [];
+
+        public void Patch()
+        {
+            _patchedFiles.Clear(); // Clear any previous state
+
+            foreach (var filePath in ModsUsedPaths)
             {
-                ModFile baseFile = LoadVanillaContent(file);
+                ModFile baseFile = LoadVanillaContent(filePath);
 
                 foreach (var modZip in Directory.GetFiles(ModsFolder, "*.zip", SearchOption.TopDirectoryOnly))
                 {
                     var zipName = Path.GetFileName(modZip);
 
                     using var zipFile = ZipFile.OpenRead(modZip);
-                   
-                    bool predicate(ZipArchiveEntry entry) {
-                        var path = PathUtilities.GetRelativePathFromTarget(entry.FullName, "romfs");
-                        if (path == null) return false;
 
-                        return PathUtilities.ArePathsEqual(path, file);
+                    bool predicate(ZipArchiveEntry entry)
+                    {
+                        var path = PathUtilities.GetRelativePathFromTarget(entry.FullName, "romfs");
+                        return path != null && PathUtilities.ArePathsEqual(path, filePath);
                     }
 
                     if (zipFile.Entries.Any(predicate))
                     {
-                        FileChanged?.Invoke(zipName, file);
+                        FileChanged?.Invoke(zipName, filePath);
 
                         var entry = zipFile.Entries.Single(predicate);
                         using var stream = entry.Open();
-
                         using var memoryStream = new MemoryStream();
                         stream.CopyTo(memoryStream);
 
-                        var loadedFile = LoadModFile(memoryStream.ToArray(), file);
-                        if (baseFile != null)                           
+                        var loadedFile = LoadModFile(memoryStream.ToArray(), filePath);
+                        if (baseFile != null)
                             baseFile.DoDiff(loadedFile);
-                        
                         else
-                            baseFile = loadedFile; // it's a new file, use as base file instead of a vanilla one
+                            baseFile = loadedFile; // use as base if no vanilla
                     }
-                    
                 }
 
-                if (baseFile != null) {
+                if (baseFile != null)
+                    _patchedFiles[filePath] = baseFile;
+            }
+        }
 
-                    var fileBytes = baseFile.SaveFile();
+        public void SaveChanges()
+        {
+            Directory.CreateDirectory(OutputDirectory);
 
-                    switch (baseFile.Compression)
-                    {
-                        case Compression.Zstd:
-                            ConsoleUtilities.WriteLine($"Compressing {baseFile.Name} to ZSTD", ConsoleColor.Blue);
-                            var compressionStream = new MemoryStream();
+            foreach (var (path, file) in _patchedFiles)
+            {
+                var fileBytes = file.SaveFile();
+
+                // Recompress files if it was compressed before patching
+                switch (file.Compression)
+                {
+                    case Compression.Zstd:
+                        ConsoleUtilities.WriteLine($"Compressing {file.Name} to ZSTD", ConsoleColor.Blue);
+                        using (var compressionStream = new MemoryStream())
+                        {
                             ZstdCompressor.Compress(new MemoryStream(fileBytes), compressionStream);
                             fileBytes = compressionStream.ToArray();
-                            break;
-                    }
-
-                    var outputPath = Path.Combine(OutputDirectory, file);
-
-                    Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-                    File.WriteAllBytes(outputPath, fileBytes);
- 
+                        }
+                        break;
                 }
+
+                var outputPath = Path.Combine(OutputDirectory, path);
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+                File.WriteAllBytes(outputPath, fileBytes);
             }
         }
 
@@ -268,6 +334,17 @@ namespace HeavenTool.ModManager
             else
             {
                 ConsoleUtilities.WriteLine("Failed to create RSTB file: Vanilla ResourceSizeTable was not found in vanilla.zip", ConsoleColor.Red);
+            }
+        }
+
+        public void ExportChangesToJson()
+        {
+            var diffPath = Path.Combine(OutputDirectory, "diff");
+
+            foreach (var (path, file) in _patchedFiles)
+            {
+                var outputPath = Path.Combine(diffPath, path);
+                file.ExportToJson(outputPath);
             }
         }
     }

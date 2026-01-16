@@ -29,30 +29,30 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ItemIDHelper));
-            encodedIdInput = new Components.UInt64TextBox();
+            encodedIdInput = new HeavenTool.Forms.Components.UInt64TextBox();
             panel1 = new System.Windows.Forms.Panel();
             copyIdButton = new System.Windows.Forms.Button();
             label1 = new System.Windows.Forms.Label();
             panel2 = new System.Windows.Forms.Panel();
             copyItemIdButton = new System.Windows.Forms.Button();
-            itemIdBox = new Components.UInt64TextBox();
+            itemIdBox = new HeavenTool.Forms.Components.UInt64TextBox();
             panel3 = new System.Windows.Forms.Panel();
-            itemRotationBox = new Components.UInt16TextBox();
+            itemRotationBox = new HeavenTool.Forms.Components.UInt16TextBox();
             itemRotationLabel = new System.Windows.Forms.Label();
             panel4 = new System.Windows.Forms.Panel();
-            itemStateInput = new Components.UInt16TextBox();
+            itemStateInput = new HeavenTool.Forms.Components.UInt16TextBox();
             itemStateLabel = new System.Windows.Forms.Label();
             panel5 = new System.Windows.Forms.Panel();
-            reFabricInput = new Components.ByteTextBox();
+            reFabricInput = new HeavenTool.Forms.Components.ByteTextBox();
             reFabricLabel = new System.Windows.Forms.Label();
             panel6 = new System.Windows.Forms.Panel();
-            reFabricPatternInput = new Components.ByteTextBox();
+            reFabricPatternInput = new HeavenTool.Forms.Components.ByteTextBox();
             reFabricPatternLabel = new System.Windows.Forms.Label();
             reBodyPatternLabel = new System.Windows.Forms.Label();
             panel7 = new System.Windows.Forms.Panel();
-            reBodyPatternInput = new Components.ByteTextBox();
+            reBodyPatternInput = new HeavenTool.Forms.Components.ByteTextBox();
             panel8 = new System.Windows.Forms.Panel();
-            reBodyInput = new Components.ByteTextBox();
+            reBodyInput = new HeavenTool.Forms.Components.ByteTextBox();
             reBodyLabel = new System.Windows.Forms.Label();
             panel1.SuspendLayout();
             panel2.SuspendLayout();
@@ -66,7 +66,7 @@
             // 
             // encodedIdInput
             // 
-            encodedIdInput.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            encodedIdInput.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             encodedIdInput.BorderStyle = System.Windows.Forms.BorderStyle.None;
             encodedIdInput.Font = new System.Drawing.Font("Segoe UI", 16F);
             encodedIdInput.ForeColor = System.Drawing.Color.Gainsboro;
@@ -79,7 +79,7 @@
             // 
             // panel1
             // 
-            panel1.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            panel1.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             panel1.Controls.Add(copyIdButton);
             panel1.Controls.Add(encodedIdInput);
             panel1.Location = new System.Drawing.Point(12, 13);
@@ -90,7 +90,7 @@
             // 
             // copyIdButton
             // 
-            copyIdButton.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            copyIdButton.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             copyIdButton.FlatAppearance.BorderSize = 0;
             copyIdButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             copyIdButton.Image = Properties.Resources.copy;
@@ -113,7 +113,7 @@
             // 
             // panel2
             // 
-            panel2.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            panel2.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             panel2.Controls.Add(copyItemIdButton);
             panel2.Controls.Add(itemIdBox);
             panel2.Location = new System.Drawing.Point(12, 92);
@@ -125,7 +125,7 @@
             // copyItemIdButton
             // 
             copyItemIdButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
-            copyItemIdButton.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            copyItemIdButton.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             copyItemIdButton.FlatAppearance.BorderSize = 0;
             copyItemIdButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             copyItemIdButton.Image = Properties.Resources.copy;
@@ -139,7 +139,7 @@
             // itemIdBox
             // 
             itemIdBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            itemIdBox.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            itemIdBox.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             itemIdBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
             itemIdBox.Font = new System.Drawing.Font("Segoe UI", 11F);
             itemIdBox.ForeColor = System.Drawing.Color.Gainsboro;
@@ -152,7 +152,7 @@
             // 
             // panel3
             // 
-            panel3.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            panel3.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             panel3.Controls.Add(itemRotationBox);
             panel3.Location = new System.Drawing.Point(264, 92);
             panel3.Name = "panel3";
@@ -163,7 +163,7 @@
             // itemRotationBox
             // 
             itemRotationBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            itemRotationBox.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            itemRotationBox.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             itemRotationBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
             itemRotationBox.Font = new System.Drawing.Font("Segoe UI", 11F);
             itemRotationBox.ForeColor = System.Drawing.Color.Gainsboro;
@@ -186,7 +186,7 @@
             // 
             // panel4
             // 
-            panel4.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            panel4.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             panel4.Controls.Add(itemStateInput);
             panel4.Location = new System.Drawing.Point(264, 213);
             panel4.Name = "panel4";
@@ -197,7 +197,7 @@
             // itemStateInput
             // 
             itemStateInput.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            itemStateInput.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            itemStateInput.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             itemStateInput.BorderStyle = System.Windows.Forms.BorderStyle.None;
             itemStateInput.Font = new System.Drawing.Font("Segoe UI", 11F);
             itemStateInput.ForeColor = System.Drawing.Color.Gainsboro;
@@ -220,7 +220,7 @@
             // 
             // panel5
             // 
-            panel5.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            panel5.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             panel5.Controls.Add(reFabricInput);
             panel5.Location = new System.Drawing.Point(12, 153);
             panel5.Name = "panel5";
@@ -231,7 +231,7 @@
             // reFabricInput
             // 
             reFabricInput.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            reFabricInput.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            reFabricInput.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             reFabricInput.BorderStyle = System.Windows.Forms.BorderStyle.None;
             reFabricInput.Font = new System.Drawing.Font("Segoe UI", 11F);
             reFabricInput.ForeColor = System.Drawing.Color.Gainsboro;
@@ -254,7 +254,7 @@
             // 
             // panel6
             // 
-            panel6.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            panel6.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             panel6.Controls.Add(reFabricPatternInput);
             panel6.Location = new System.Drawing.Point(157, 153);
             panel6.Name = "panel6";
@@ -265,7 +265,7 @@
             // reFabricPatternInput
             // 
             reFabricPatternInput.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            reFabricPatternInput.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            reFabricPatternInput.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             reFabricPatternInput.BorderStyle = System.Windows.Forms.BorderStyle.None;
             reFabricPatternInput.Font = new System.Drawing.Font("Segoe UI", 11F);
             reFabricPatternInput.ForeColor = System.Drawing.Color.Gainsboro;
@@ -298,7 +298,7 @@
             // 
             // panel7
             // 
-            panel7.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            panel7.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             panel7.Controls.Add(reBodyPatternInput);
             panel7.Location = new System.Drawing.Point(157, 213);
             panel7.Name = "panel7";
@@ -309,7 +309,7 @@
             // reBodyPatternInput
             // 
             reBodyPatternInput.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            reBodyPatternInput.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            reBodyPatternInput.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             reBodyPatternInput.BorderStyle = System.Windows.Forms.BorderStyle.None;
             reBodyPatternInput.Font = new System.Drawing.Font("Segoe UI", 11F);
             reBodyPatternInput.ForeColor = System.Drawing.Color.Gainsboro;
@@ -322,7 +322,7 @@
             // 
             // panel8
             // 
-            panel8.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            panel8.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             panel8.Controls.Add(reBodyInput);
             panel8.Location = new System.Drawing.Point(12, 213);
             panel8.Name = "panel8";
@@ -333,7 +333,7 @@
             // reBodyInput
             // 
             reBodyInput.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            reBodyInput.BackColor = System.Drawing.Color.FromArgb(70, 70, 70);
+            reBodyInput.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
             reBodyInput.BorderStyle = System.Windows.Forms.BorderStyle.None;
             reBodyInput.Font = new System.Drawing.Font("Segoe UI", 11F);
             reBodyInput.ForeColor = System.Drawing.Color.Gainsboro;
@@ -358,7 +358,7 @@
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            BackColor = System.Drawing.Color.FromArgb(51, 51, 51);
+            BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             ClientSize = new System.Drawing.Size(458, 259);
             Controls.Add(reBodyPatternLabel);
             Controls.Add(panel7);

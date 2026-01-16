@@ -4,10 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using DarkContextMenuStrip = HeavenTool.Forms.Components.DarkContextMenuStrip;
 using HeavenTool.Forms.PBC;
 using HeavenTool.IO;
 using NintendoTools.Compression.Zstd;
 using NintendoTools.FileFormats.Sarc;
+using AltUI.Controls;
 
 namespace HeavenTool.Forms.SARC;
 
@@ -26,7 +28,7 @@ public partial class SarcEditor : Form
     private string LoadedFileName { get; set; }
     private SarcFile LoadedFile;
 
-    private Dictionary<SarcContent, TreeNode> Nodes;
+    private Dictionary<SarcContent, DarkTreeNode> Nodes;
     private List<SarcContent> OpenedFiles;
     private List<Form> OpenedEditors;
 
@@ -83,7 +85,16 @@ public partial class SarcEditor : Form
             filesTreeView.Nodes.Clear();
 
             LoadedFileName = Path.GetFileName(path);
-            LoadedFile = SarcFileParser.Parse(fileStream);
+            try
+            {
+                LoadedFile = SarcFileParser.Parse(fileStream);
+            } 
+            catch(InvalidDataException)
+            {
+                MessageBox.Show("This is not a SARC file!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             OpenedFiles = [];
 
             if (OpenedEditors != null && OpenedEditors.Count > 0)
@@ -96,8 +107,9 @@ public partial class SarcEditor : Form
 
             foreach (var sarcContent in LoadedFile.Files)
             {
-                var treeNode = filesTreeView.Nodes.Add(sarcContent.Name);
-                var context = new ContextMenuStrip();
+                var treeNode = new DarkTreeNode(sarcContent.Name);
+                filesTreeView.Nodes.Add(treeNode);
+                var context = new DarkContextMenuStrip();
 
                 if (sarcContent.Name.EndsWith(".pbc"))
                 {
@@ -151,9 +163,8 @@ public partial class SarcEditor : Form
                         sarcContent.Data = stream.ToArray();
                     }
                 });
-
-                treeNode.ContextMenuStrip = context;
-
+                //treeNode.ContextMenuStrip = context;
+               
                 Nodes[sarcContent] = treeNode;
             }
 

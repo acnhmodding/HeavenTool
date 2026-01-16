@@ -1,5 +1,4 @@
 ﻿using HeavenTool.IO.FileFormats.BCSV;
-using System.Collections;
 using System.Globalization;
 
 namespace HeavenTool.IO;
@@ -11,12 +10,13 @@ public static class HashManager
     public static readonly Dictionary<string, DataType> KnownTypes = [];
     public static readonly Dictionary<uint, string> CRC32_Hashes = new()
     {
-        { 0, "" }
+        { 0, "" } // add a empty hash
     };
     public static readonly Dictionary<uint, string> MMH3_Hashes = [];
 
-    public static readonly Dictionary<uint, List<CRC32_Entry>> EnumListCRC32 = [];
-    public static readonly Dictionary<uint, List<MMH3_Entry>> EnumListMMH3 = [];
+    public static readonly Dictionary<uint, List<uint>> EnumListCRC32 = [];
+    //public static readonly Dictionary<uint, List<uint>> EnumListMMH3 = [];
+    public static Dictionary<uint, string[]> BitField { get; } = [];
 
     private static bool isInitialized;
     public static void InitializeHashes()
@@ -58,7 +58,28 @@ public static class HashManager
 
         LoadEnumHashes();
         LoadKnownTypes();
-        
+        LoadBitFields();
+    }
+
+    private static void LoadBitFields()
+    {
+        string enumFolder = Path.Combine(AppContext.BaseDirectory, "extra", "bitfields");
+        Directory.CreateDirectory(enumFolder);
+
+        foreach (var file in Directory.GetFiles(enumFolder, "*.txt", SearchOption.AllDirectories))
+        {
+            if (Path.GetExtension(file) != ".txt") continue;
+
+            var fileName = Path.GetFileNameWithoutExtension(file);
+            if (fileName.StartsWith("0x"))
+                fileName = fileName[2..];
+
+            if (uint.TryParse(fileName, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out uint enumHash))
+            {
+                if (!BitField.ContainsKey(enumHash))
+                    BitField.Add(enumHash, File.ReadAllLines(file));
+            }
+        }
     }
 
     private static void LoadKnownTypes()
@@ -83,7 +104,7 @@ public static class HashManager
     {
         // TODO: Make a single file with all enums, maybe a json?
         // We gonna need these hashes separated as enums to properly display an EnumSelector in the BCSV Editor
-        string enumFolder = Path.Combine(AppContext.BaseDirectory, "extra/hashes/enum");
+        string enumFolder = Path.Combine(AppContext.BaseDirectory, "extra", "hashes", "enum");
         Directory.CreateDirectory(enumFolder);
 
         foreach (var file in Directory.GetFiles(enumFolder, "*.txt", SearchOption.AllDirectories))
@@ -106,8 +127,8 @@ public static class HashManager
                 {
                     uint hash = hashStr.ToCRC32();
 
-                    if (!collection.Any(x => x.Value == hash))
-                        collection.Add(new CRC32_Entry(hash));
+                    if (!collection.Contains(hash))
+                        collection.Add(hash);
 
                     CRC32_Hashes.TryAdd(hash, hashStr);
                 }
@@ -124,24 +145,28 @@ public static class HashManager
             return $"{x.Key}={x.Value}";
         }));
     }
-}
 
-public class CRC32_Entry(uint val)
-{
-    public uint Value { get; private set; } = val;
-
-    public override string ToString()
+    public static string GetMurmurHashTranslationOrNull(this uint hash)
     {
-        return HashManager.CRC32_Hashes.TryGetValue(Value, out string value) ? value : Value.ToString("x");
+        if (MMH3_Hashes.TryGetValue(hash, out string value))
+            return value;
+
+        return null;
     }
-}
 
-public class MMH3_Entry(uint val)
-{
-    public uint Value { get; private set; } = val;
-
-    public override string ToString()
+    public static string GetHashTranslationOrNull(this uint hash)
     {
-        return HashManager.MMH3_Hashes.TryGetValue(Value, out string value) ? value : Value.ToString("x");
+        if (CRC32_Hashes.TryGetValue(hash, out string value))
+            return value;
+
+        return null;
+    }
+
+    public static string GetHashTranslation(this uint hash)
+    {
+        if (GetHashTranslationOrNull(hash) is string value)
+            return value;
+
+        return hash.ToString("X");
     }
 }

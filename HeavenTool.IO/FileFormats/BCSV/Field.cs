@@ -28,7 +28,7 @@ public class Field
 
     public string HEX => Hash.ToString("x");
 
-    public bool IsMissingHash => HashManager.CRC32_Hashes.ContainsKey(Hash) == false;
+    public bool IsMissingHash => !HashManager.CRC32_Hashes.ContainsKey(Hash);
     
 
     private string _displayName;
@@ -63,7 +63,7 @@ public class Field
 
     public string GetTranslatedNameOrNull()
     {
-        return HashManager.CRC32_Hashes.TryGetValue(Hash, out string value) ? value : null;
+        return HashManager.GetHashTranslationOrNull(Hash);
     }
 
     public override bool Equals(object obj)

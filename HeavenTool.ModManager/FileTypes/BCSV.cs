@@ -1,6 +1,6 @@
 ﻿using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
-using System.Xml;
+using Newtonsoft.Json;
 
 namespace HeavenTool.ModManager.FileTypes;
 
@@ -26,8 +26,6 @@ public sealed class BCSV : ModFile
             UniqueHeaderIndex = UniqueHeader.HasValue ? Array.FindIndex(LoadedFile.Fields, x => x.Hash == UniqueHeader) : -1;
         }
     }
-
-    //public Dictionary<object, object[]> Entries = [];
 
     internal Dictionary<object, object[]> Changes = [];
     internal Dictionary<object, object[]> Additions = [];

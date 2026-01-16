@@ -1,4 +1,5 @@
-﻿using HeavenTool.IO;
+﻿using AltUI.Controls;
+using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
 using System;
 using System.IO;
@@ -64,11 +65,11 @@ public partial class BCSVDirectorySearch : Form
             if ((containButton.Checked && name.Contains(searchField.Text, StringComparison.CurrentCultureIgnoreCase)) || name == searchField.Text)
             {
                 var key = Path.GetFileNameWithoutExtension(path);
-                if (!foundHits.Nodes.ContainsKey(key))
-                    foundHits.Nodes.Add(key, key);
+                if (!foundHits.Nodes.Any(x => x.Text == key))
+                    foundHits.Nodes.Add(new DarkTreeNode(key));
 
-                var node = foundHits.Nodes[key];
-                node.Nodes.Add($"Header: {name}");
+                var node = foundHits.Nodes.FirstOrDefault(x => x.Text == key);
+                node?.Nodes.Add(new DarkTreeNode($"Header: {name}"));
             }
         }
         
@@ -81,15 +82,15 @@ public partial class BCSVDirectorySearch : Form
                 if ((containButton.Checked && value.Contains(searchField.Text, StringComparison.CurrentCultureIgnoreCase)) || value == searchField.Text)
                 {
                     var key = Path.GetFileNameWithoutExtension(path);
-                    if (!foundHits.Nodes.ContainsKey(key))
-                        foundHits.Nodes.Add(key, key);
+                    if (!foundHits.Nodes.Any(x => x.Text == key))
+                        foundHits.Nodes.Add(new DarkTreeNode(key));
 
-                    var node = foundHits.Nodes[key];
+                    var node = foundHits.Nodes.FirstOrDefault(x => x.Text == key);
                     var entryField = bcsvFile.Fields[fieldIndex];
                     if (entryField != null)
-                        node.Nodes.Add($"Entry: {index} | Header: {entryField.GetTranslatedNameOrHash()} | {value} (value)");
+                        node?.Nodes.Add(new DarkTreeNode($"Entry: {index} | Header: {entryField.GetTranslatedNameOrHash()} | {value} (value)"));
                     else 
-                        node.Nodes.Add($"Entry: {index} | {value} (value)");
+                        node?.Nodes.Add(new DarkTreeNode($"Entry: {index} | {value} (value)"));
                 }
             }
         }

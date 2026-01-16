@@ -1,4 +1,4 @@
-﻿using HeavenTool.Forms.Components;
+﻿using AltUI.Controls;
 using System.Windows.Forms;
 
 namespace HeavenTool
@@ -38,7 +38,7 @@ namespace HeavenTool
             DataGridViewCellStyle dataGridViewCellStyle4 = new DataGridViewCellStyle();
             DataGridViewCellStyle dataGridViewCellStyle5 = new DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(BCSVForm));
-            topMenuStrip = new DarkMenuStrip();
+            topMenuStrip = new MenuStrip();
             fileToolStripMenuItem = new ToolStripMenuItem();
             openToolStripMenuItem = new ToolStripMenuItem();
             saveAsToolStripMenuItem = new ToolStripMenuItem();
@@ -54,6 +54,7 @@ namespace HeavenTool
             duplicateRowToolStripMenuItem = new ToolStripMenuItem();
             deleteRowsToolStripMenuItem = new ToolStripMenuItem();
             compareRowsToolStripMenuItem = new ToolStripMenuItem();
+            copyToolStripMenuItem1 = new ToolStripMenuItem();
             viewToolStripMenuItem = new ToolStripMenuItem();
             viewColumnsMenuItem = new ToolStripMenuItem();
             selectionTypeMenuItem = new ToolStripMenuItem();
@@ -63,11 +64,11 @@ namespace HeavenTool
             associateBcsvToolStripMenuItem = new ToolStripMenuItem();
             toolsToolStripMenuItem = new ToolStripMenuItem();
             searchOnFilesToolStripMenuItem = new ToolStripMenuItem();
+            hashFinderToolStripMenuItem = new ToolStripMenuItem();
             statusStripMenu = new StatusStrip();
             infoLabel = new ToolStripStatusLabel();
             versionNumberLabel = new ToolStripStatusLabel();
             mainDataGridView = new DataGridView();
-            openBCSVFile = new OpenFileDialog();
             validHeaderContextMenu = new ContextMenuStrip(components);
             hideColumnToolStripMenuItem = new ToolStripMenuItem();
             viewAsToolStripMenuItem = new ToolStripMenuItem();
@@ -89,21 +90,24 @@ namespace HeavenTool
             topMenuStrip.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, editToolStripMenuItem, viewToolStripMenuItem, devToolStripMenuItem, toolsToolStripMenuItem });
             topMenuStrip.Location = new System.Drawing.Point(0, 0);
             topMenuStrip.Name = "topMenuStrip";
-            topMenuStrip.Size = new System.Drawing.Size(684, 24);
+            topMenuStrip.Padding = new Padding(3, 2, 0, 2);
+            topMenuStrip.Size = new System.Drawing.Size(544, 24);
             topMenuStrip.TabIndex = 1;
             topMenuStrip.Text = "Top Menu";
             // 
             // fileToolStripMenuItem
             // 
+            fileToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             fileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { openToolStripMenuItem, saveAsToolStripMenuItem, toolStripSeparator2, importFromFileToolStripMenuItem, exportSelectionToolStripMenuItem, toolStripSeparator1, exportToCSVFileToolStripMenuItem, unloadFileToolStripMenuItem });
-            fileToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            fileToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
             fileToolStripMenuItem.Text = "File";
             // 
             // openToolStripMenuItem
             // 
-            openToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            openToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            openToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             openToolStripMenuItem.Image = Properties.Resources.open_file;
             openToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             openToolStripMenuItem.Name = "openToolStripMenuItem";
@@ -114,7 +118,8 @@ namespace HeavenTool
             // 
             // saveAsToolStripMenuItem
             // 
-            saveAsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            saveAsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            saveAsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             saveAsToolStripMenuItem.Image = Properties.Resources.save_as;
             saveAsToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             saveAsToolStripMenuItem.Name = "saveAsToolStripMenuItem";
@@ -125,12 +130,15 @@ namespace HeavenTool
             // 
             // toolStripSeparator2
             // 
+            toolStripSeparator2.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            toolStripSeparator2.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             toolStripSeparator2.Name = "toolStripSeparator2";
             toolStripSeparator2.Size = new System.Drawing.Size(189, 6);
             // 
             // importFromFileToolStripMenuItem
             // 
-            importFromFileToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            importFromFileToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            importFromFileToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             importFromFileToolStripMenuItem.Image = Properties.Resources.import;
             importFromFileToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             importFromFileToolStripMenuItem.Name = "importFromFileToolStripMenuItem";
@@ -141,7 +149,8 @@ namespace HeavenTool
             // 
             // exportSelectionToolStripMenuItem
             // 
-            exportSelectionToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            exportSelectionToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            exportSelectionToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportSelectionToolStripMenuItem.Image = Properties.Resources.export;
             exportSelectionToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             exportSelectionToolStripMenuItem.Name = "exportSelectionToolStripMenuItem";
@@ -152,12 +161,15 @@ namespace HeavenTool
             // 
             // toolStripSeparator1
             // 
+            toolStripSeparator1.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            toolStripSeparator1.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             toolStripSeparator1.Name = "toolStripSeparator1";
             toolStripSeparator1.Size = new System.Drawing.Size(189, 6);
             // 
             // exportToCSVFileToolStripMenuItem
             // 
-            exportToCSVFileToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            exportToCSVFileToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            exportToCSVFileToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportToCSVFileToolStripMenuItem.Image = Properties.Resources.export_csv;
             exportToCSVFileToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             exportToCSVFileToolStripMenuItem.Name = "exportToCSVFileToolStripMenuItem";
@@ -167,7 +179,8 @@ namespace HeavenTool
             // 
             // unloadFileToolStripMenuItem
             // 
-            unloadFileToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            unloadFileToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            unloadFileToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             unloadFileToolStripMenuItem.Image = Properties.Resources.cancel;
             unloadFileToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             unloadFileToolStripMenuItem.Name = "unloadFileToolStripMenuItem";
@@ -177,8 +190,9 @@ namespace HeavenTool
             // 
             // editToolStripMenuItem
             // 
-            editToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchToolStripMenuItem, newEntryToolStripMenuItem, duplicateRowToolStripMenuItem, deleteRowsToolStripMenuItem, compareRowsToolStripMenuItem });
-            editToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            editToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            editToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchToolStripMenuItem, newEntryToolStripMenuItem, duplicateRowToolStripMenuItem, deleteRowsToolStripMenuItem, compareRowsToolStripMenuItem, copyToolStripMenuItem1 });
+            editToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             editToolStripMenuItem.Name = "editToolStripMenuItem";
             editToolStripMenuItem.Size = new System.Drawing.Size(39, 20);
             editToolStripMenuItem.Text = "Edit";
@@ -186,7 +200,8 @@ namespace HeavenTool
             // 
             // searchToolStripMenuItem
             // 
-            searchToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            searchToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            searchToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             searchToolStripMenuItem.Image = Properties.Resources.search;
             searchToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             searchToolStripMenuItem.Name = "searchToolStripMenuItem";
@@ -198,7 +213,8 @@ namespace HeavenTool
             // 
             // newEntryToolStripMenuItem
             // 
-            newEntryToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            newEntryToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            newEntryToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             newEntryToolStripMenuItem.Image = Properties.Resources.new_entry;
             newEntryToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             newEntryToolStripMenuItem.Name = "newEntryToolStripMenuItem";
@@ -210,7 +226,8 @@ namespace HeavenTool
             // 
             // duplicateRowToolStripMenuItem
             // 
-            duplicateRowToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            duplicateRowToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            duplicateRowToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             duplicateRowToolStripMenuItem.Image = Properties.Resources.duplicate;
             duplicateRowToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             duplicateRowToolStripMenuItem.Name = "duplicateRowToolStripMenuItem";
@@ -222,7 +239,8 @@ namespace HeavenTool
             // 
             // deleteRowsToolStripMenuItem
             // 
-            deleteRowsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            deleteRowsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            deleteRowsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             deleteRowsToolStripMenuItem.Image = Properties.Resources.remove;
             deleteRowsToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             deleteRowsToolStripMenuItem.Name = "deleteRowsToolStripMenuItem";
@@ -234,8 +252,9 @@ namespace HeavenTool
             // 
             // compareRowsToolStripMenuItem
             // 
+            compareRowsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             compareRowsToolStripMenuItem.Enabled = false;
-            compareRowsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            compareRowsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(101, 101, 101);
             compareRowsToolStripMenuItem.Image = Properties.Resources.compare;
             compareRowsToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             compareRowsToolStripMenuItem.Name = "compareRowsToolStripMenuItem";
@@ -244,57 +263,75 @@ namespace HeavenTool
             compareRowsToolStripMenuItem.ToolTipText = "Compare selected rows in a new window (read-only)";
             compareRowsToolStripMenuItem.Click += CompareRowsToolStripMenuItem_Click;
             // 
+            // copyToolStripMenuItem1
+            // 
+            copyToolStripMenuItem1.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            copyToolStripMenuItem1.ForeColor = System.Drawing.Color.FromArgb(101, 101, 101);
+            copyToolStripMenuItem1.Name = "copyToolStripMenuItem1";
+            copyToolStripMenuItem1.ShortcutKeys = Keys.Control | Keys.C;
+            copyToolStripMenuItem1.Size = new System.Drawing.Size(213, 30);
+            copyToolStripMenuItem1.Text = "Copy";
+            copyToolStripMenuItem1.Click += CopyToolStripMenuItem_Click;
+            // 
             // viewToolStripMenuItem
             // 
+            viewToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             viewToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { viewColumnsMenuItem, selectionTypeMenuItem });
+            viewToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             viewToolStripMenuItem.Name = "viewToolStripMenuItem";
             viewToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             viewToolStripMenuItem.Text = "View";
             // 
             // viewColumnsMenuItem
             // 
-            viewColumnsMenuItem.ForeColor = System.Drawing.Color.White;
+            viewColumnsMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            viewColumnsMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             viewColumnsMenuItem.Name = "viewColumnsMenuItem";
-            viewColumnsMenuItem.Size = new System.Drawing.Size(180, 22);
+            viewColumnsMenuItem.Size = new System.Drawing.Size(150, 22);
             viewColumnsMenuItem.Text = "View Columns";
             // 
             // selectionTypeMenuItem
             // 
+            selectionTypeMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             selectionTypeMenuItem.DropDownItems.AddRange(new ToolStripItem[] { rowSelectToolStripMenuItem, cellSelectToolStripMenuItem });
-            selectionTypeMenuItem.ForeColor = System.Drawing.Color.White;
+            selectionTypeMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             selectionTypeMenuItem.Name = "selectionTypeMenuItem";
-            selectionTypeMenuItem.Size = new System.Drawing.Size(180, 22);
+            selectionTypeMenuItem.Size = new System.Drawing.Size(150, 22);
             selectionTypeMenuItem.Text = "Selection Type";
             // 
             // rowSelectToolStripMenuItem
             // 
+            rowSelectToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             rowSelectToolStripMenuItem.Checked = true;
             rowSelectToolStripMenuItem.CheckState = CheckState.Checked;
             rowSelectToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             rowSelectToolStripMenuItem.Name = "rowSelectToolStripMenuItem";
-            rowSelectToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            rowSelectToolStripMenuItem.Size = new System.Drawing.Size(131, 22);
             rowSelectToolStripMenuItem.Text = "Row Select";
             rowSelectToolStripMenuItem.Click += RowSelectToolStripMenuItem_Click;
             // 
             // cellSelectToolStripMenuItem
             // 
+            cellSelectToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             cellSelectToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             cellSelectToolStripMenuItem.Name = "cellSelectToolStripMenuItem";
-            cellSelectToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            cellSelectToolStripMenuItem.Size = new System.Drawing.Size(131, 22);
             cellSelectToolStripMenuItem.Text = "Cell Select";
             cellSelectToolStripMenuItem.Click += CellSelectToolStripMenuItem_Click;
             // 
             // devToolStripMenuItem
             // 
+            devToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             devToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { associateBcsvToolStripMenuItem });
-            devToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            devToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             devToolStripMenuItem.Name = "devToolStripMenuItem";
             devToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
             devToolStripMenuItem.Text = "Options";
             // 
             // associateBcsvToolStripMenuItem
             // 
-            associateBcsvToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            associateBcsvToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            associateBcsvToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             associateBcsvToolStripMenuItem.Name = "associateBcsvToolStripMenuItem";
             associateBcsvToolStripMenuItem.Size = new System.Drawing.Size(279, 22);
             associateBcsvToolStripMenuItem.Text = "Associate .BCSV files with this program";
@@ -302,15 +339,17 @@ namespace HeavenTool
             // 
             // toolsToolStripMenuItem
             // 
-            toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchOnFilesToolStripMenuItem });
-            toolsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            toolsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchOnFilesToolStripMenuItem, hashFinderToolStripMenuItem });
+            toolsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             toolsToolStripMenuItem.Size = new System.Drawing.Size(47, 20);
             toolsToolStripMenuItem.Text = "Tools";
             // 
             // searchOnFilesToolStripMenuItem
             // 
-            searchOnFilesToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            searchOnFilesToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            searchOnFilesToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             searchOnFilesToolStripMenuItem.Image = Properties.Resources.search;
             searchOnFilesToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             searchOnFilesToolStripMenuItem.Name = "searchOnFilesToolStripMenuItem";
@@ -318,19 +357,30 @@ namespace HeavenTool
             searchOnFilesToolStripMenuItem.Text = "Search on files";
             searchOnFilesToolStripMenuItem.Click += SearchOnFilesToolStripMenuItem_Click;
             // 
+            // hashFinderToolStripMenuItem
+            // 
+            hashFinderToolStripMenuItem.Name = "hashFinderToolStripMenuItem";
+            hashFinderToolStripMenuItem.Size = new System.Drawing.Size(158, 30);
+            hashFinderToolStripMenuItem.Text = "Hash Finder";
+            hashFinderToolStripMenuItem.Click += HashFinderToolStripMenuItem_Click;
+            // 
             // statusStripMenu
             // 
-            statusStripMenu.BackColor = System.Drawing.Color.Transparent;
+            statusStripMenu.AutoSize = false;
+            statusStripMenu.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            statusStripMenu.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             statusStripMenu.Items.AddRange(new ToolStripItem[] { infoLabel, versionNumberLabel });
             statusStripMenu.LayoutStyle = ToolStripLayoutStyle.HorizontalStackWithOverflow;
-            statusStripMenu.Location = new System.Drawing.Point(0, 365);
+            statusStripMenu.Location = new System.Drawing.Point(0, 306);
             statusStripMenu.Name = "statusStripMenu";
-            statusStripMenu.Size = new System.Drawing.Size(684, 22);
+            statusStripMenu.Padding = new Padding(0, 5, 0, 3);
+            statusStripMenu.Size = new System.Drawing.Size(544, 30);
             statusStripMenu.SizingGrip = false;
             statusStripMenu.TabIndex = 2;
             // 
             // infoLabel
             // 
+            infoLabel.BackColor = System.Drawing.Color.Transparent;
             infoLabel.Name = "infoLabel";
             infoLabel.Size = new System.Drawing.Size(28, 17);
             infoLabel.Text = "Info";
@@ -338,6 +388,7 @@ namespace HeavenTool
             // versionNumberLabel
             // 
             versionNumberLabel.Alignment = ToolStripItemAlignment.Right;
+            versionNumberLabel.BackColor = System.Drawing.Color.Transparent;
             versionNumberLabel.Name = "versionNumberLabel";
             versionNumberLabel.Size = new System.Drawing.Size(31, 17);
             versionNumberLabel.Text = "1.0.0";
@@ -352,7 +403,7 @@ namespace HeavenTool
             dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
             dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
             mainDataGridView.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
-            mainDataGridView.BackgroundColor = System.Drawing.Color.FromArgb(60, 60, 60);
+            mainDataGridView.BackgroundColor = System.Drawing.Color.FromArgb(31, 31, 31);
             mainDataGridView.BorderStyle = BorderStyle.None;
             mainDataGridView.ClipboardCopyMode = DataGridViewClipboardCopyMode.Disable;
             mainDataGridView.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
@@ -394,16 +445,9 @@ namespace HeavenTool
             dataGridViewCellStyle5.ForeColor = System.Drawing.Color.White;
             mainDataGridView.RowsDefaultCellStyle = dataGridViewCellStyle5;
             mainDataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            mainDataGridView.Size = new System.Drawing.Size(684, 341);
+            mainDataGridView.Size = new System.Drawing.Size(544, 282);
             mainDataGridView.StandardTab = true;
             mainDataGridView.TabIndex = 4;
-            // 
-            // openBCSVFile
-            // 
-            openBCSVFile.DefaultExt = "*.bcsv";
-            openBCSVFile.Filter = "BCSV|*.bcsv";
-            openBCSVFile.Title = "Select a BCSV file...";
-            openBCSVFile.FileOk += OpenBCSVFile_FileOk;
             // 
             // validHeaderContextMenu
             // 
@@ -461,13 +505,13 @@ namespace HeavenTool
             // 
             // dragInfo
             // 
-            dragInfo.BackColor = System.Drawing.Color.FromArgb(60, 60, 60);
+            dragInfo.BackColor = System.Drawing.Color.FromArgb(31, 31, 31);
             dragInfo.Font = new System.Drawing.Font("Microsoft Sans Serif", 12.25F);
-            dragInfo.ForeColor = System.Drawing.Color.White;
-            dragInfo.Location = new System.Drawing.Point(14, 291);
+            dragInfo.ForeColor = System.Drawing.Color.FromArgb(120, 120, 120);
+            dragInfo.Location = new System.Drawing.Point(13, 224);
             dragInfo.Margin = new Padding(4, 0, 4, 0);
             dragInfo.Name = "dragInfo";
-            dragInfo.Size = new System.Drawing.Size(212, 60);
+            dragInfo.Size = new System.Drawing.Size(211, 62);
             dragInfo.TabIndex = 5;
             dragInfo.Text = "Drag a file here\r\nor use File > Open";
             dragInfo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -477,8 +521,8 @@ namespace HeavenTool
             AllowDrop = true;
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackColor = System.Drawing.Color.FromArgb(51, 51, 51);
-            ClientSize = new System.Drawing.Size(684, 387);
+            BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            ClientSize = new System.Drawing.Size(544, 336);
             Controls.Add(dragInfo);
             Controls.Add(mainDataGridView);
             Controls.Add(statusStripMenu);
@@ -489,6 +533,7 @@ namespace HeavenTool
             Margin = new Padding(4, 3, 4, 3);
             Name = "BCSVForm";
             Text = "ACNH Heaven Tool | v1.0.0 | BCSV Editor";
+            TransparencyKey = System.Drawing.Color.Pink;
             FormClosing += MainFrm_FormClosing;
             DragDrop += MainFrm_DragDrop;
             DragEnter += MainFrm_DragEnter;
@@ -503,14 +548,13 @@ namespace HeavenTool
         }
         #endregion
 
-        private DarkMenuStrip topMenuStrip;
+        private MenuStrip topMenuStrip;
         private ToolStripMenuItem fileToolStripMenuItem;
         private ToolStripMenuItem openToolStripMenuItem;
         private ToolStripMenuItem saveAsToolStripMenuItem;
         private StatusStrip statusStripMenu;
         private ToolStripMenuItem toolsToolStripMenuItem;
         private DataGridView mainDataGridView;
-        private OpenFileDialog openBCSVFile;
         private ToolStripStatusLabel infoLabel;
         private ToolStripMenuItem searchOnFilesToolStripMenuItem;
         private ToolStripMenuItem editToolStripMenuItem;
@@ -541,6 +585,8 @@ namespace HeavenTool
         private ToolStripMenuItem selectionTypeMenuItem;
         private ToolStripMenuItem rowSelectToolStripMenuItem;
         private ToolStripMenuItem cellSelectToolStripMenuItem;
+        private ToolStripMenuItem hashFinderToolStripMenuItem;
+        private ToolStripMenuItem copyToolStripMenuItem1;
     }
 }
 

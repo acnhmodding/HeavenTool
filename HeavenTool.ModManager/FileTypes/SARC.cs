@@ -1,4 +1,5 @@
-﻿using NintendoTools.FileFormats.Msbt;
+﻿using HeavenTool.IO;
+using NintendoTools.FileFormats.Msbt;
 using NintendoTools.FileFormats.Sarc;
 
 namespace HeavenTool.ModManager.FileTypes;
@@ -26,15 +27,18 @@ public sealed class SARC : ModFile
                 HasFileNames = loadedFile.HasFileNames,
             };
 
-            foreach(SarcContent file in loadedFile.Files)
+            for (int i = 0; i < loadedFile.Files.Count; i++)
             {
+                SarcContent file = loadedFile.Files[i];
                 var fileData = new MemoryStream(file.Data);
 
+                var fileName = loadedFile.HasFileNames ? file.Name : i.ToString();
+
                 if (MsbtFileParser.CanParseStatic(fileData))
-                    Files.TryAdd(file.Name, new MSBT(fileData, file.Name));
+                    Files.TryAdd(fileName, new MSBT(fileData, file.Name));
 
                 else // if its not a mod-manager compatible, just add as SarcContent
-                    Files.Add(file.Name, file);
+                    Files.Add(fileName, file);
             }
         }
     }
@@ -96,33 +100,38 @@ public sealed class SARC : ModFile
             Default = 0x08,
         };
 
-        alignmentTable.Add(".bgenv", 0x04);
-        alignmentTable.Add(".bfcpx", 0x10);
-        alignmentTable.Add(".bflan", 0x10);
-        alignmentTable.Add(".bflyt", 0x10);
-        alignmentTable.Add(".bushvt", 0x10);
-        alignmentTable.Add(".glsl", 0x10);
-        alignmentTable.Add(".byml", 0x20);
-        alignmentTable.Add(".pbc", 0x80);
-        alignmentTable.Add(".belnk", 0x100);
-        alignmentTable.Add(".msbt", 0x100);
-        alignmentTable.Add(".barslist", 0x100);
-        alignmentTable.Add(".bnsh", 0x1000);
-        alignmentTable.Add(".bntx", 0x1000);
-        alignmentTable.Add(".sharcb", 0x1000);
-        alignmentTable.Add(".arc", 0x2000);
-        alignmentTable.Add(".baglmf", 0x2000);
-        alignmentTable.Add(".bffnt", 0x2000);
-        alignmentTable.Add(".bfotf", 0x2000);
-        alignmentTable.Add(".bfres", 0x2000);
-        alignmentTable.Add(".bfsha", 0x2000);
-        alignmentTable.Add(".bfttf", 0x2000);
-        alignmentTable.Add(".bphcw", 0x2000);
-        alignmentTable.Add(".bphlik", 0x2000);
-        alignmentTable.Add(".genvb", 0x2000);
-        alignmentTable.Add(".genvres", 0x2000);
-        alignmentTable.Add(".phive", 0x2000);
-        alignmentTable.Add(".ptcl", 0x4000);
+        (string, int)[] extensionAlignments = [
+            (".bgenv", 0x04),
+            (".bfcpx", 0x10),
+            (".bflan", 0x10),
+            (".bflyt", 0x10),
+            (".bushvt", 0x10),
+            (".glsl", 0x10),
+            (".byml", 0x20),
+            (".pbc", 0x80),
+            (".belnk", 0x100),
+            (".msbt", 0x100),
+            (".barslist", 0x100),
+            (".bnsh", 0x1000),
+            (".bntx", 0x1000),
+            (".sharcb", 0x1000),
+            (".arc", 0x2000),
+            (".baglmf", 0x2000),
+            (".bffnt", 0x2000),
+            (".bfotf", 0x2000),
+            (".bfres", 0x2000),
+            (".bfsha", 0x2000),
+            (".bfttf", 0x2000),
+            (".bphcw", 0x2000),
+            (".bphlik", 0x2000),
+            (".genvb", 0x2000),
+            (".genvres", 0x2000),
+            (".phive", 0x2000),
+            (".ptcl", 0x4000)
+        ];
+
+        foreach(var (extension, alignment) in extensionAlignments)
+            alignmentTable.Add(extension, alignment);
 
         var sarcFileCompiler = new SarcFileCompiler()
         {
@@ -133,5 +142,17 @@ public sealed class SARC : ModFile
         sarcFileCompiler.Compile(SarcFile, memoryStream);
 
         return memoryStream.ToArray();
+    }
+
+    public override void ExportToJson(string outputPath)
+    {
+        foreach (var (_, file) in Files) 
+        { 
+            if (file is MSBT msbtFile)
+            {
+                var path = Path.Combine(outputPath, Path.GetFileName(Name));
+                msbtFile.ExportToJson(path);
+            }
+        }
     }
 }

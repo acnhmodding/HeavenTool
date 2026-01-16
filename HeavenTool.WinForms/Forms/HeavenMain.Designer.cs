@@ -1,4 +1,4 @@
-﻿using HeavenTool.Forms.Components;
+﻿using AltUI.Controls;
 
 namespace HeavenTool
 {
@@ -31,7 +31,7 @@ namespace HeavenTool
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(HeavenMain));
-            bcsvEditorButton = new System.Windows.Forms.Button();
+            bcsvEditorButton = new DarkButton();
             topMenu = new DarkMenuStrip();
             toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             compressionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -43,9 +43,11 @@ namespace HeavenTool
             exportEnumsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportUsedHashesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             pictureBox1 = new System.Windows.Forms.PictureBox();
-            rstbEditorButton = new System.Windows.Forms.Button();
-            sarcEditorButton = new System.Windows.Forms.Button();
-            itemParamHelperButton = new System.Windows.Forms.Button();
+            rstbEditorButton = new DarkButton();
+            sarcEditorButton = new DarkButton();
+            itemParamHelperButton = new DarkButton();
+            barsEditorButton = new DarkButton();
+            yaz0CompressToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             topMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
@@ -53,24 +55,21 @@ namespace HeavenTool
             // bcsvEditorButton
             // 
             bcsvEditorButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            bcsvEditorButton.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
-            bcsvEditorButton.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(70, 70, 70);
-            bcsvEditorButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            bcsvEditorButton.BorderColour = System.Drawing.Color.Empty;
             bcsvEditorButton.Font = new System.Drawing.Font("Segoe UI", 10F);
-            bcsvEditorButton.ForeColor = System.Drawing.Color.White;
-            bcsvEditorButton.Location = new System.Drawing.Point(377, 44);
+            bcsvEditorButton.Location = new System.Drawing.Point(377, 32);
             bcsvEditorButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             bcsvEditorButton.Name = "bcsvEditorButton";
-            bcsvEditorButton.Size = new System.Drawing.Size(254, 41);
+            bcsvEditorButton.Padding = new System.Windows.Forms.Padding(5);
+            bcsvEditorButton.Size = new System.Drawing.Size(253, 38);
             bcsvEditorButton.TabIndex = 0;
             bcsvEditorButton.Text = "Open BCSV Editor";
-            bcsvEditorButton.UseVisualStyleBackColor = false;
             bcsvEditorButton.Click += BcsvEditorButton_Click;
             // 
             // topMenu
             // 
-            topMenu.BackColor = System.Drawing.Color.FromArgb(42, 42, 42);
-            topMenu.ForeColor = System.Drawing.Color.White;
+            topMenu.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            topMenu.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             topMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { toolsToolStripMenuItem, devToolsToolStripMenuItem });
             topMenu.Location = new System.Drawing.Point(0, 0);
             topMenu.Name = "topMenu";
@@ -81,54 +80,62 @@ namespace HeavenTool
             // 
             // toolsToolStripMenuItem
             // 
+            toolsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { compressionToolStripMenuItem });
-            toolsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            toolsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             toolsToolStripMenuItem.Size = new System.Drawing.Size(47, 20);
             toolsToolStripMenuItem.Text = "Tools";
             // 
             // compressionToolStripMenuItem
             // 
+            compressionToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             compressionToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { yaz0ToolStripMenuItem });
-            compressionToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            compressionToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             compressionToolStripMenuItem.Name = "compressionToolStripMenuItem";
-            compressionToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
+            compressionToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             compressionToolStripMenuItem.Text = "Compression";
             // 
             // yaz0ToolStripMenuItem
             // 
-            yaz0ToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { yaz0DecompressToolStripMenuItem });
-            yaz0ToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            yaz0ToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            yaz0ToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { yaz0DecompressToolStripMenuItem, yaz0CompressToolStripMenuItem });
+            yaz0ToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             yaz0ToolStripMenuItem.Name = "yaz0ToolStripMenuItem";
-            yaz0ToolStripMenuItem.Size = new System.Drawing.Size(97, 22);
+            yaz0ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             yaz0ToolStripMenuItem.Text = "Yaz0";
             // 
             // yaz0DecompressToolStripMenuItem
             // 
-            yaz0DecompressToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            yaz0DecompressToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            yaz0DecompressToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             yaz0DecompressToolStripMenuItem.Name = "yaz0DecompressToolStripMenuItem";
-            yaz0DecompressToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
+            yaz0DecompressToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             yaz0DecompressToolStripMenuItem.Text = "Decompress";
-            yaz0DecompressToolStripMenuItem.Click += yaz0DecompressToolStripMenuItem_Click;
+            yaz0DecompressToolStripMenuItem.Click += Yaz0DecompressToolStripMenuItem_Click;
             // 
             // devToolsToolStripMenuItem
             // 
+            devToolsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             devToolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { bCSVToolStripMenuItem });
+            devToolsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             devToolsToolStripMenuItem.Name = "devToolsToolStripMenuItem";
             devToolsToolStripMenuItem.Size = new System.Drawing.Size(70, 20);
             devToolsToolStripMenuItem.Text = "Dev Tools";
             // 
             // bCSVToolStripMenuItem
             // 
+            bCSVToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             bCSVToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { exportLabelsToolStripMenuItem, exportEnumsToolStripMenuItem, exportUsedHashesToolStripMenuItem });
-            bCSVToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            bCSVToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             bCSVToolStripMenuItem.Name = "bCSVToolStripMenuItem";
-            bCSVToolStripMenuItem.Size = new System.Drawing.Size(102, 22);
+            bCSVToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             bCSVToolStripMenuItem.Text = "BCSV";
             // 
             // exportLabelsToolStripMenuItem
             // 
-            exportLabelsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            exportLabelsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            exportLabelsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportLabelsToolStripMenuItem.Name = "exportLabelsToolStripMenuItem";
             exportLabelsToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
             exportLabelsToolStripMenuItem.Text = "Export Labels";
@@ -136,7 +143,8 @@ namespace HeavenTool
             // 
             // exportEnumsToolStripMenuItem
             // 
-            exportEnumsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            exportEnumsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            exportEnumsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportEnumsToolStripMenuItem.Name = "exportEnumsToolStripMenuItem";
             exportEnumsToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
             exportEnumsToolStripMenuItem.Text = "Export Enums";
@@ -144,19 +152,20 @@ namespace HeavenTool
             // 
             // exportUsedHashesToolStripMenuItem
             // 
-            exportUsedHashesToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            exportUsedHashesToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            exportUsedHashesToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportUsedHashesToolStripMenuItem.Name = "exportUsedHashesToolStripMenuItem";
             exportUsedHashesToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
             exportUsedHashesToolStripMenuItem.Text = "Export Used Hashes";
-            exportUsedHashesToolStripMenuItem.Click += exportUsedHashesToolStripMenuItem_Click;
+            exportUsedHashesToolStripMenuItem.Click += ExportUsedHashesToolStripMenuItem_Click;
             // 
             // pictureBox1
             // 
             pictureBox1.Image = Properties.Resources.logo;
-            pictureBox1.Location = new System.Drawing.Point(14, 44);
+            pictureBox1.Location = new System.Drawing.Point(14, 32);
             pictureBox1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new System.Drawing.Size(356, 234);
+            pictureBox1.Size = new System.Drawing.Size(355, 249);
             pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             pictureBox1.TabIndex = 7;
             pictureBox1.TabStop = false;
@@ -164,66 +173,81 @@ namespace HeavenTool
             // rstbEditorButton
             // 
             rstbEditorButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            rstbEditorButton.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
-            rstbEditorButton.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(70, 70, 70);
-            rstbEditorButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            rstbEditorButton.Font = new System.Drawing.Font("Segoe UI", 10F);
-            rstbEditorButton.ForeColor = System.Drawing.Color.White;
-            rstbEditorButton.Location = new System.Drawing.Point(377, 91);
+            rstbEditorButton.BorderColour = System.Drawing.Color.Empty;
+            rstbEditorButton.Location = new System.Drawing.Point(377, 76);
             rstbEditorButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             rstbEditorButton.Name = "rstbEditorButton";
-            rstbEditorButton.Size = new System.Drawing.Size(254, 41);
+            rstbEditorButton.Padding = new System.Windows.Forms.Padding(5);
+            rstbEditorButton.Size = new System.Drawing.Size(253, 38);
             rstbEditorButton.TabIndex = 8;
             rstbEditorButton.Text = "Open RSTB Editor";
-            rstbEditorButton.UseVisualStyleBackColor = false;
             rstbEditorButton.Click += RstbEditorButton_Click;
             // 
             // sarcEditorButton
             // 
             sarcEditorButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            sarcEditorButton.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
-            sarcEditorButton.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(70, 70, 70);
-            sarcEditorButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            sarcEditorButton.BorderColour = System.Drawing.Color.Empty;
             sarcEditorButton.Font = new System.Drawing.Font("Segoe UI", 10F);
-            sarcEditorButton.ForeColor = System.Drawing.Color.White;
-            sarcEditorButton.Location = new System.Drawing.Point(377, 138);
+            sarcEditorButton.Location = new System.Drawing.Point(377, 120);
             sarcEditorButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             sarcEditorButton.Name = "sarcEditorButton";
-            sarcEditorButton.Size = new System.Drawing.Size(254, 41);
+            sarcEditorButton.Padding = new System.Windows.Forms.Padding(5);
+            sarcEditorButton.Size = new System.Drawing.Size(253, 38);
             sarcEditorButton.TabIndex = 9;
             sarcEditorButton.Text = "Open SARC Editor";
-            sarcEditorButton.UseVisualStyleBackColor = false;
             sarcEditorButton.Click += SarcEditorButton_Click;
             // 
             // itemParamHelperButton
             // 
             itemParamHelperButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            itemParamHelperButton.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
-            itemParamHelperButton.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(70, 70, 70);
-            itemParamHelperButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            itemParamHelperButton.BorderColour = System.Drawing.Color.Empty;
             itemParamHelperButton.Font = new System.Drawing.Font("Segoe UI", 10F);
-            itemParamHelperButton.ForeColor = System.Drawing.Color.White;
-            itemParamHelperButton.Location = new System.Drawing.Point(377, 185);
+            itemParamHelperButton.Location = new System.Drawing.Point(377, 208);
             itemParamHelperButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             itemParamHelperButton.Name = "itemParamHelperButton";
-            itemParamHelperButton.Size = new System.Drawing.Size(254, 41);
+            itemParamHelperButton.Padding = new System.Windows.Forms.Padding(5);
+            itemParamHelperButton.Size = new System.Drawing.Size(253, 38);
             itemParamHelperButton.TabIndex = 10;
             itemParamHelperButton.Text = "Open ItemParam Helper";
-            itemParamHelperButton.UseVisualStyleBackColor = false;
             itemParamHelperButton.Click += ItemParamHelperButton_Click;
+            // 
+            // barsEditorButton
+            // 
+            barsEditorButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            barsEditorButton.BorderColour = System.Drawing.Color.Empty;
+            barsEditorButton.Font = new System.Drawing.Font("Segoe UI", 10F);
+            barsEditorButton.Location = new System.Drawing.Point(377, 164);
+            barsEditorButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            barsEditorButton.Name = "barsEditorButton";
+            barsEditorButton.Padding = new System.Windows.Forms.Padding(5);
+            barsEditorButton.Size = new System.Drawing.Size(253, 38);
+            barsEditorButton.TabIndex = 11;
+            barsEditorButton.Text = "Open BARS Editor";
+            barsEditorButton.Click += BarsEditorButton_Click;
+            // 
+            // yaz0CompressToolStripMenuItem
+            // 
+            yaz0CompressToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            yaz0CompressToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
+            yaz0CompressToolStripMenuItem.Name = "yaz0CompressToolStripMenuItem";
+            yaz0CompressToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            yaz0CompressToolStripMenuItem.Text = "Compress";
+            yaz0CompressToolStripMenuItem.Click += yaz0CompressToolStripMenuItem_Click;
             // 
             // HeavenMain
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            BackColor = System.Drawing.Color.FromArgb(51, 51, 51);
+            BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             ClientSize = new System.Drawing.Size(645, 293);
-            Controls.Add(itemParamHelperButton);
-            Controls.Add(sarcEditorButton);
-            Controls.Add(rstbEditorButton);
             Controls.Add(bcsvEditorButton);
+            Controls.Add(rstbEditorButton);
+            Controls.Add(sarcEditorButton);
+            Controls.Add(barsEditorButton);
+            Controls.Add(itemParamHelperButton);
             Controls.Add(pictureBox1);
             Controls.Add(topMenu);
+            FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
             MainMenuStrip = topMenu;
             Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -238,13 +262,13 @@ namespace HeavenTool
         }
 
         #endregion
-        private System.Windows.Forms.Button bcsvEditorButton;
+        private DarkButton bcsvEditorButton;
         private DarkMenuStrip topMenu;
         private System.Windows.Forms.ToolStripMenuItem toolsToolStripMenuItem;
         private System.Windows.Forms.PictureBox pictureBox1;
-        private System.Windows.Forms.Button rstbEditorButton;
-        private System.Windows.Forms.Button sarcEditorButton;
-        private System.Windows.Forms.Button itemParamHelperButton;
+        private DarkButton rstbEditorButton;
+        private DarkButton sarcEditorButton;
+        private DarkButton itemParamHelperButton;
         private System.Windows.Forms.ToolStripMenuItem compressionToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem yaz0ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem yaz0DecompressToolStripMenuItem;
@@ -253,5 +277,7 @@ namespace HeavenTool
         private System.Windows.Forms.ToolStripMenuItem exportLabelsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportEnumsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportUsedHashesToolStripMenuItem;
+        private DarkButton barsEditorButton;
+        private System.Windows.Forms.ToolStripMenuItem yaz0CompressToolStripMenuItem;
     }
 }

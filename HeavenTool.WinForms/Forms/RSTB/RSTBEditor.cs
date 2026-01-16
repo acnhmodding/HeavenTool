@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.ComponentModel;
 
 namespace HeavenTool.Forms.RSTB;
 
@@ -40,7 +41,7 @@ public partial class RSTBEditor : Form, ISearchable
 
         RefreshData();
 
-        DoubleBuffered = true;
+        //DoubleBuffered = true;
         associateRstbToolStripMenuItem.Checked = ProgramAssociation.GetAssociatedProgram(".srsizetable") == Application.ExecutablePath;
     }
 
@@ -74,6 +75,8 @@ public partial class RSTBEditor : Form, ISearchable
     }
 
     public Dictionary<int, long> DiffDictionary = [];
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public ResourceSizeTable LoadedFile { get; set; }
 
     private void OpenToolStripMenuItem_Click(object sender, EventArgs e)

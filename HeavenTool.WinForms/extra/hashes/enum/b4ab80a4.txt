@@ -1,0 +1,11 @@
+None
+SchoolClassRoom
+HospitalWaitingRoom
+HospitalExaminationRoom
+HospitalHostitalRoom
+RestaurantHallRoom
+RestaurantKitchenRoom
+CafeHallRoom
+TailorHallRoom
+Restaurant2F
+Cafe2F

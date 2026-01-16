@@ -1,4 +1,6 @@
-﻿namespace HeavenTool.Forms.PBC
+﻿using AltUI.Controls;
+
+namespace HeavenTool.Forms.PBC
 {
     partial class PBCEditor
     {
@@ -30,10 +32,10 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PBCEditor));
             propertyGrid = new System.Windows.Forms.PropertyGrid();
-            saveButton = new System.Windows.Forms.Button();
+            saveButton = new DarkButton();
             fileInfoBar = new System.Windows.Forms.StatusStrip();
             statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
-            darkMenuStrip1 = new Components.DarkMenuStrip();
+            darkMenuStrip1 = new System.Windows.Forms.MenuStrip();
             fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             currentZoomMenu = new System.Windows.Forms.ToolStripMenuItem();
@@ -46,7 +48,7 @@
             viewIDToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             gridToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             pbcPreview = new TileEditor();
-            colorList = new System.Windows.Forms.ListBox();
+            colorList = new DarkListBox();
             fileInfoBar.SuspendLayout();
             darkMenuStrip1.SuspendLayout();
             SuspendLayout();
@@ -74,27 +76,29 @@
             // saveButton
             // 
             saveButton.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
-            saveButton.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
-            saveButton.FlatAppearance.BorderSize = 0;
-            saveButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(10, 10, 10);
-            saveButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(10, 10, 10);
-            saveButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            saveButton.BorderColour = System.Drawing.Color.Empty;
+            saveButton.CustomColour = false;
+            saveButton.FlatBottom = false;
+            saveButton.FlatTop = false;
             saveButton.ForeColor = System.Drawing.SystemColors.ButtonFace;
             saveButton.Location = new System.Drawing.Point(531, 494);
             saveButton.Name = "saveButton";
+            saveButton.Padding = new System.Windows.Forms.Padding(5);
             saveButton.Size = new System.Drawing.Size(221, 30);
             saveButton.TabIndex = 3;
             saveButton.Text = "Save";
-            saveButton.UseVisualStyleBackColor = false;
             saveButton.Click += saveButton_Click;
             // 
             // fileInfoBar
             // 
-            fileInfoBar.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
+            fileInfoBar.AutoSize = false;
+            fileInfoBar.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            fileInfoBar.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             fileInfoBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { statusLabel });
-            fileInfoBar.Location = new System.Drawing.Point(0, 537);
+            fileInfoBar.Location = new System.Drawing.Point(0, 527);
             fileInfoBar.Name = "fileInfoBar";
-            fileInfoBar.Size = new System.Drawing.Size(764, 22);
+            fileInfoBar.Padding = new System.Windows.Forms.Padding(0, 5, 0, 3);
+            fileInfoBar.Size = new System.Drawing.Size(764, 32);
             fileInfoBar.SizingGrip = false;
             fileInfoBar.TabIndex = 4;
             fileInfoBar.Text = "Information";
@@ -102,7 +106,7 @@
             // statusLabel
             // 
             statusLabel.Name = "statusLabel";
-            statusLabel.Size = new System.Drawing.Size(121, 17);
+            statusLabel.Size = new System.Drawing.Size(121, 19);
             statusLabel.Text = "Width: -1 | Height: -1 ";
             // 
             // darkMenuStrip1
@@ -112,6 +116,7 @@
             darkMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { fileToolStripMenuItem, currentZoomMenu, viewToolStripMenuItem });
             darkMenuStrip1.Location = new System.Drawing.Point(0, 0);
             darkMenuStrip1.Name = "darkMenuStrip1";
+            darkMenuStrip1.Padding = new System.Windows.Forms.Padding(3, 2, 0, 2);
             darkMenuStrip1.Size = new System.Drawing.Size(764, 24);
             darkMenuStrip1.TabIndex = 5;
             darkMenuStrip1.Text = "darkMenuStrip1";
@@ -125,7 +130,6 @@
             // 
             // saveToolStripMenuItem
             // 
-            saveToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             saveToolStripMenuItem.Name = "saveToolStripMenuItem";
             saveToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             saveToolStripMenuItem.Text = "Save";
@@ -140,7 +144,8 @@
             // 
             // zoomPlusButton
             // 
-            zoomPlusButton.ForeColor = System.Drawing.Color.White;
+            zoomPlusButton.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            zoomPlusButton.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             zoomPlusButton.Name = "zoomPlusButton";
             zoomPlusButton.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Oemplus;
             zoomPlusButton.Size = new System.Drawing.Size(180, 22);
@@ -149,7 +154,8 @@
             // 
             // zoomMinusButton
             // 
-            zoomMinusButton.ForeColor = System.Drawing.Color.White;
+            zoomMinusButton.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            zoomMinusButton.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             zoomMinusButton.Name = "zoomMinusButton";
             zoomMinusButton.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.OemMinus;
             zoomMinusButton.Size = new System.Drawing.Size(180, 22);
@@ -165,7 +171,6 @@
             // 
             // collisionMapToolStripMenuItem
             // 
-            collisionMapToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             collisionMapToolStripMenuItem.Name = "collisionMapToolStripMenuItem";
             collisionMapToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             collisionMapToolStripMenuItem.Text = "Collision Map";
@@ -173,7 +178,6 @@
             // 
             // heightMapToolStripMenuItem
             // 
-            heightMapToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             heightMapToolStripMenuItem.Name = "heightMapToolStripMenuItem";
             heightMapToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             heightMapToolStripMenuItem.Text = "Height Map";
@@ -186,7 +190,6 @@
             // 
             // viewIDToolStripMenuItem
             // 
-            viewIDToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             viewIDToolStripMenuItem.Name = "viewIDToolStripMenuItem";
             viewIDToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             viewIDToolStripMenuItem.Text = "Show ID";
@@ -194,7 +197,6 @@
             // 
             // gridToolStripMenuItem
             // 
-            gridToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             gridToolStripMenuItem.Name = "gridToolStripMenuItem";
             gridToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             gridToolStripMenuItem.Text = "Show Grid";
@@ -204,17 +206,12 @@
             // 
             pbcPreview.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             pbcPreview.BackColor = System.Drawing.Color.Black;
-            pbcPreview.CurrentView = HeavenTool.IO.FileFormats.PBC.ViewType.Collision;
-            pbcPreview.DisplayGrid = true;
-            pbcPreview.HighlightedHeight = null;
-            pbcPreview.Location = new System.Drawing.Point(12, 27);
+            pbcPreview.CurrentView = IO.FileFormats.PBC.ViewType.Collision;
+            pbcPreview.Location = new System.Drawing.Point(12, 37);
             pbcPreview.Name = "pbcPreview";
-            pbcPreview.PBCFile = null;
-            pbcPreview.ShowType = true;
-            pbcPreview.Size = new System.Drawing.Size(513, 497);
+            pbcPreview.Size = new System.Drawing.Size(513, 487);
             pbcPreview.TabIndex = 6;
             pbcPreview.Text = "tileEditor1";
-            pbcPreview.Zoom = 10;
             // 
             // colorList
             // 
@@ -237,7 +234,7 @@
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            BackColor = System.Drawing.Color.FromArgb(51, 51, 51);
+            BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             ClientSize = new System.Drawing.Size(764, 559);
             Controls.Add(colorList);
             Controls.Add(pbcPreview);
@@ -249,7 +246,7 @@
             Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
             MainMenuStrip = darkMenuStrip1;
             Name = "PBCEditor";
-            Text = "PBCEditor";
+            Text = "PBC Editor";
             fileInfoBar.ResumeLayout(false);
             fileInfoBar.PerformLayout();
             darkMenuStrip1.ResumeLayout(false);
@@ -260,10 +257,10 @@
 
         #endregion
         private System.Windows.Forms.PropertyGrid propertyGrid;
-        private System.Windows.Forms.Button saveButton;
+        private DarkButton saveButton;
         private System.Windows.Forms.StatusStrip fileInfoBar;
         private System.Windows.Forms.ToolStripStatusLabel statusLabel;
-        private Components.DarkMenuStrip darkMenuStrip1;
+        private System.Windows.Forms.MenuStrip darkMenuStrip1;
         private System.Windows.Forms.ToolStripMenuItem currentZoomMenu;
         private System.Windows.Forms.ToolStripMenuItem zoomPlusButton;
         private System.Windows.Forms.ToolStripMenuItem zoomMinusButton;
@@ -276,6 +273,6 @@
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
         private TileEditor pbcPreview;
-        private System.Windows.Forms.ListBox colorList;
+        private DarkListBox colorList;
     }
 }

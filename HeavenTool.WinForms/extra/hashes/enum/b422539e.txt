@@ -1,0 +1,13 @@
+None
+FtrAccess
+FtrSwitchOn
+RhythmSound
+SingSong
+PlayMusic
+StayOn
+Haniwa
+SwitchRepeat
+LongSwitch
+Sit
+Wander
+Bed

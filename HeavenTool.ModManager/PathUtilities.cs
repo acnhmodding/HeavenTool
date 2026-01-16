@@ -29,7 +29,7 @@
             if (targetIndex == -1)
                 return null;
 
-            string relativePath = Path.Combine(parts.Skip(targetIndex).ToArray());
+            string relativePath = Path.Combine([.. parts.Skip(targetIndex)]);
             return relativePath;
         }
 

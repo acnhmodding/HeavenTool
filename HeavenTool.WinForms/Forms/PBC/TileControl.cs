@@ -3,12 +3,15 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using HeavenTool.IO.FileFormats.PBC;
+using System.ComponentModel;
 
 namespace HeavenTool.Forms.PBC;
 
 public class TileEditor : Control
 {
     private PBCFileReader _pbcFile;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public PBCFileReader PBCFile
     {
         get { return _pbcFile; }
@@ -27,15 +30,25 @@ public class TileEditor : Control
         }
     }
 
-    public int Zoom { get; set; } = 10;
-    public bool DisplayGrid { get; set; } = true;
-    public bool ShowType { get; set; } = true;
+    [DefaultValue(10)]
+    public int Zoom { get; set; }
+
+    [DefaultValue(true)]
+    public bool DisplayGrid { get; set; }
+
+    [DefaultValue(true)]
+    public bool ShowType { get; set; }
 
     public TileType? TileBrush = TileType.Custom1;
+
+    [DefaultValue(ViewType.HeightMap)]
     public ViewType CurrentView { get; set; }
 
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float? MinHeight { get; private set; }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float? MaxHeight { get; private set; }
 
     private void UpdateHeight()
@@ -186,6 +199,7 @@ public class TileEditor : Control
         }
     }
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float? HighlightedHeight { get; set; }
 
     protected override void OnMouseMove(MouseEventArgs e)

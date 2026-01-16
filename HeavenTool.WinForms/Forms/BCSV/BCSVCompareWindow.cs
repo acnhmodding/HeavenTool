@@ -1,12 +1,14 @@
-﻿using System.Windows.Forms;
+﻿using HeavenTool.Forms.Components;
+using System.Windows.Forms;
 
-namespace HeavenTool.Forms
+namespace HeavenTool.Forms;
+
+public partial class BCSVCompareWindow : Form
 {
-    public partial class BCSVCompareWindow : Form
+    public BCSVCompareWindow()
     {
-        public BCSVCompareWindow()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
+
+        compareDataGrid.EnableDarkModeScrollbar();
     }
 }

@@ -40,7 +40,7 @@ public class MMH3DataGridCell : DataGridViewTextBoxCell
                 && HashManager.EnumListCRC32.TryGetValue(enumHash, out var list))
             {
                 var source = new AutoCompleteStringCollection();
-                source.AddRange(list.Select(x => x.ToString()).ToArray());
+                source.AddRange([.. list.Select(x => x.GetHashTranslation())]);
 
                 txt.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
                 txt.AutoCompleteSource = AutoCompleteSource.CustomSource;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.ComponentModel;
 
 namespace HeavenTool.Forms.BCSV.Controls
 {
@@ -47,9 +48,11 @@ namespace HeavenTool.Forms.BCSV.Controls
             Text = $"#{_currentColor.R:X2}{_currentColor.G:X2}{_currentColor.B:X2}";
         }
 
+
         /// <summary>
         /// The color currently being edited
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Color CurrentColor
         {
             get => _currentColor;
@@ -61,7 +64,7 @@ namespace HeavenTool.Forms.BCSV.Controls
         }
 
         #region IDataGridViewEditingControl Members
-
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public object EditingControlFormattedValue
         {
             get => Text; // returns the hex string
@@ -84,12 +87,14 @@ namespace HeavenTool.Forms.BCSV.Controls
             Font = dataGridViewCellStyle.Font;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public int EditingControlRowIndex
         {
             get => _rowIndex;
             set => _rowIndex = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool EditingControlValueChanged
         {
             get => _valueChanged;
@@ -98,6 +103,7 @@ namespace HeavenTool.Forms.BCSV.Controls
 
         public bool RepositionEditingControlOnValueChange => false;
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public DataGridView EditingControlDataGridView
         {
             get => _dataGridView;

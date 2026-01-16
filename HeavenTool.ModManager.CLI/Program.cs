@@ -1,16 +1,47 @@
-﻿using HeavenTool.IO;
+﻿using CommandLine;
+using HeavenTool.IO;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace HeavenTool.ModManager.CLI
 {
+    public class Options
+    {
+        [Option('e', "export", Required = false, HelpText = "Export diff to a .json file instead of merging.")]
+        public bool ExportDiffOnly { get; set; }
+
+        [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
+        public bool Verbose { get; set; }
+    }
+
+
     internal class Program
     {
         public const string DEFAULT_OUTPUT_PATH = "output";
         public const string DEFAULT_MODS_FOLDER = "mods";
 
         static void Main(string[] args)
+        {   
+            Parser.Default.ParseArguments<Options>(args)
+               .WithParsed(RunOptions)
+               .WithNotParsed(HandleParseError);
+        }
+
+        private static void HandleParseError(IEnumerable<Error> enumerable)
         {
+            ConsoleUtilities.WriteLine("Failed to parse your command.", ConsoleColor.Red);
+
+            foreach (var item in enumerable)
+            {
+                ConsoleUtilities.WriteLine(item.Tag.ToString(), ConsoleColor.Red);
+
+            }
+        }
+
+        private static void RunOptions(Options options)
+        {
+            ConsoleUtilities.WriteLine($"Is exporting: {options.ExportDiffOnly}", ConsoleColor.Gray);
+
             var outputPath = DEFAULT_OUTPUT_PATH;
             var modsFolder = DEFAULT_MODS_FOLDER;
 
@@ -48,9 +79,9 @@ namespace HeavenTool.ModManager.CLI
 
             Console.WriteLine("Loading mods...");
             modMerger.SearchModsContentPaths();
-            
+
             ConsoleUtilities.WriteLine("Do you want to merge these mods? [y/n]", ConsoleColor.Gray);
-               
+
             if (!ConsoleUtilities.YesOrNo()) return;
 
             Console.WriteLine("Saving to output folder");
@@ -58,22 +89,36 @@ namespace HeavenTool.ModManager.CLI
 
             modMerger.FileChanged += (string modName, string modFile) =>
             {
-                ConsoleUtilities.WriteLine($"Merging {modFile} from {modName}", ConsoleColor.Cyan);
+                if (options.Verbose)
+                    ConsoleUtilities.WriteLine($"Merging {modFile} from {modName}", ConsoleColor.Cyan);
             };
-            modMerger.PatchAndExport();
-            ConsoleUtilities.WriteLine("Files have been patched!", ConsoleColor.Green);
+            //modMerger.PatchAndExport();
+            modMerger.Patch();
 
-            ConsoleUtilities.WriteLine("Generating ResourceSizeTable...", ConsoleColor.Cyan);
-            modMerger.CreateResourceSizeTable();
+            if (!options.ExportDiffOnly)
+            {
+                modMerger.SaveChanges();
 
-            ConsoleUtilities.WriteLine("\r\nProcess complete!", ConsoleColor.Green);
+                ConsoleUtilities.WriteLine("Files have been patched!", ConsoleColor.Green);
+
+                ConsoleUtilities.WriteLine("Generating ResourceSizeTable...", ConsoleColor.Cyan);
+
+                modMerger.CreateResourceSizeTable();
+            } 
+            else
+            {
+                modMerger.ExportChangesToJson();
+            }
+
+            ConsoleUtilities.WriteLine("#=-------------------------=#", ConsoleColor.Gray);
+            ConsoleUtilities.WriteLine("      Process complete!", ConsoleColor.Green);
             ConsoleUtilities.WriteLine($"Saved at: {outputDirectory.FullName}", ConsoleColor.Gray);
+            ConsoleUtilities.WriteLine("#=-------------------------=#", ConsoleColor.Gray);
 
             TryToOpenPath(outputDirectory.FullName);
 
             Console.ReadLine();
         }
-
 
         private static void TryToOpenPath(string path)
         {

@@ -23,6 +23,8 @@ internal static class Program
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            Application.SetColorMode(SystemColorMode.Dark);
+
 #if DEBUG
             WinConsole.Initialize();
 #endif

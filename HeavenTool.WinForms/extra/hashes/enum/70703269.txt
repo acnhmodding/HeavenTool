@@ -1,0 +1,10 @@
+None
+Global
+Term
+Other
+Region
+Totakeke
+PermanentObj
+CalendarEvent
+VisitorNpc
+NpcGroupActivity

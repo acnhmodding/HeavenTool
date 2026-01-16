@@ -24,7 +24,8 @@ public class ColorPickerCell : DataGridViewCell
 
     public override void InitializeEditingControl(int rowIndex, object initialFormattedValue, DataGridViewCellStyle dataGridViewCellStyle)
     {
-        if (DataGridView?.EditingControl is ColorPickerEditingControl colorPickerEditingControl) {
+        if (DataGridView?.EditingControl is ColorPickerEditingControl colorPickerEditingControl)
+        {
             colorPickerEditingControl.ShowColorDialog();
         }
         base.InitializeEditingControl(rowIndex, initialFormattedValue, dataGridViewCellStyle);

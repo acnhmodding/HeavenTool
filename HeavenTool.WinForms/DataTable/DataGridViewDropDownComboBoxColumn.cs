@@ -22,6 +22,8 @@ namespace HeavenTool.DataTable
         /// </summary>
         /// <returns>A <see cref="DataGridViewCell"/> that all other cells in the column are modeled after. The default value is a new <see cref="DataGridViewDropDownComboBoxCell"/>.</returns>
         /// <exception cref="InvalidCastException">When setting this property to a value that is not of type <see cref="DataGridViewDropDownComboBoxCell"/>.</exception>
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public override DataGridViewCell CellTemplate
         {
             get => base.CellTemplate;

@@ -1,11 +1,12 @@
-﻿using System;
+﻿using AltUI.Controls;
+using System;
 using System.ComponentModel;
 using System.Windows.Forms;
 
 namespace HeavenTool.Forms.Components;
 
 [ToolboxItem(false)]
-public class ValidatingTextBox : TextBox
+public class ValidatingTextBox : DarkTextBox
 {
     private string _validText;
     private int _selectionStart;

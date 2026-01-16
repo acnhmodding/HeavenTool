@@ -1,10 +1,12 @@
 ﻿using HeavenTool.IO;
+using Newtonsoft.Json;
 using NintendoTools.FileFormats.Msbt;
 
 namespace HeavenTool.ModManager.FileTypes;
 
 public sealed class MSBT : ModFile
 {
+    [JsonIgnore]
     public MsbtFile MsbtFile { get; set; }
 
     public MSBT(Stream stream, string name) : base(stream, name)
@@ -90,7 +92,7 @@ public sealed class MSBT : ModFile
 
         // Save msbt file into bytes
         var compiler = new MsbtFileCompiler();
-        var memoryStream = new MemoryStream();
+        using var memoryStream = new MemoryStream();
 
         compiler.Compile(MsbtFile, memoryStream);
 
