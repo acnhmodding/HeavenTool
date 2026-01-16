@@ -66,13 +66,11 @@ jobs:
           }
 
           [xml]$projXml = Get-Content $projectPath
-          $version = $projXml.Project.PropertyGroup.Version
+          $version = $projXml.Project.PropertyGroup.Version[0]
 
           if (-not $version) {
             throw "Version element not found in $projectPath"
           }
-
-          $version = $version.Trim()
 
           echo "version=$version" >> $env:GITHUB_OUTPUT
           Write-Host "Found version: $version"
