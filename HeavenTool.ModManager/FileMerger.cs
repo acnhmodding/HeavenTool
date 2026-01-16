@@ -1,10 +1,10 @@
 ﻿using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.ResourceSizeTable;
 using HeavenTool.ModManager.FileTypes;
-using NintendoTools.Compression.Zstd;
-using NintendoTools.FileFormats.Bcsv;
-using NintendoTools.FileFormats.Msbt;
-using NintendoTools.FileFormats.Sarc;
+using AeonSake.NintendoTools.Compression.Zstd;
+using AeonSake.NintendoTools.FileFormats.Bcsv;
+using AeonSake.NintendoTools.FileFormats.Msbt;
+using AeonSake.NintendoTools.FileFormats.Sarc;
 using System.Data;
 using System.IO;
 using System.IO.Compression;
@@ -60,11 +60,11 @@ namespace HeavenTool.ModManager
             }
 
             ModFile modFile;
-            if (MsbtFileParser.CanParseStatic(stream))
+            if (MsbtFileReader.CanReadStatic(stream))
                 modFile = new MSBT(stream, fileName);
-            else if (!fileName.StartsWith("romfs\\Model\\") && SarcFileParser.CanParseStatic(stream))
+            else if (!fileName.StartsWith("romfs\\Model\\") && SarcFileReader.CanReadStatic(stream))
                 modFile = new SARC(stream, fileName);
-            else if (fileName.EndsWith(".bcsv") && BcsvFileParser.CanParseStatic(stream))
+            else if (fileName.EndsWith(".bcsv") && BcsvFileReader.CanReadStatic(stream))
                 modFile = new BCSV(stream, fileName);
             else
             {

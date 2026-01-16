@@ -1,4 +1,4 @@
-﻿using NintendoTools.Compression.Zstd;
+﻿using AeonSake.NintendoTools.Compression.Zstd;
 
 namespace HeavenTool.IO.Compression;
 

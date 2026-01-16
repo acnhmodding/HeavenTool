@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using HeavenTool.IO.Compression;
-using NintendoTools.Compression.Yaz0;
+using AeonSake.NintendoTools.Compression.Yaz0;
 
 namespace HeavenTool.IO.FileFormats.ResourceSizeTable;
 

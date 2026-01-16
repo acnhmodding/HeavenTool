@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NintendoTools" Version="2.27.0" />
+    <PackageReference Include="AeonSake.NintendoTools" Version="3.2.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>

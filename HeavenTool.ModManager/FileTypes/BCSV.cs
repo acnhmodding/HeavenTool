@@ -1,6 +1,5 @@
 ﻿using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
-using Newtonsoft.Json;
 
 namespace HeavenTool.ModManager.FileTypes;
 

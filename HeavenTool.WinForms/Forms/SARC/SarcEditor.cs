@@ -7,8 +7,8 @@ using System.Windows.Forms;
 using DarkContextMenuStrip = HeavenTool.Forms.Components.DarkContextMenuStrip;
 using HeavenTool.Forms.PBC;
 using HeavenTool.IO;
-using NintendoTools.Compression.Zstd;
-using NintendoTools.FileFormats.Sarc;
+using AeonSake.NintendoTools.Compression.Zstd;
+using AeonSake.NintendoTools.FileFormats.Sarc;
 using AltUI.Controls;
 
 namespace HeavenTool.Forms.SARC;
@@ -22,8 +22,8 @@ public partial class SarcEditor : Form
 
     private static readonly ZstdCompressor Compressor = new();
     private static readonly ZstdDecompressor Decompressor = new();
-    private static readonly SarcFileParser SarcFileParser = new();
-    private static readonly SarcFileCompiler SarcCompiler = new();
+    private static readonly SarcFileReader SarcFileParser = new();
+    private static readonly SarcFileWriter SarcCompiler = new();
 
     private string LoadedFileName { get; set; }
     private SarcFile LoadedFile;
@@ -87,7 +87,7 @@ public partial class SarcEditor : Form
             LoadedFileName = Path.GetFileName(path);
             try
             {
-                LoadedFile = SarcFileParser.Parse(fileStream);
+                LoadedFile = SarcFileParser.Read(fileStream);
             } 
             catch(InvalidDataException)
             {
@@ -181,7 +181,7 @@ public partial class SarcEditor : Form
 
         var memoryStream = new MemoryStream();
 
-        SarcCompiler.Compile(LoadedFile, memoryStream);
+        SarcCompiler.Write(LoadedFile, memoryStream);
 
         var msg = MessageBox.Show("Do you want to compress with Zstd?", "ZSTD Compression", MessageBoxButtons.YesNo);
         bool isCompressed = false;

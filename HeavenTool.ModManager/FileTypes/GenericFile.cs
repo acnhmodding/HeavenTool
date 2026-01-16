@@ -1,5 +1,4 @@
-﻿using AuroraLib.Core.IO;
-using Newtonsoft.Json;
+﻿using HeavenTool.IO;
 
 namespace HeavenTool.ModManager.FileTypes;
 

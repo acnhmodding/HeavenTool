@@ -1,6 +1,6 @@
 ﻿using HeavenTool.IO;
 using Newtonsoft.Json;
-using NintendoTools.FileFormats.Msbt;
+using AeonSake.NintendoTools.FileFormats.Msbt;
 
 namespace HeavenTool.ModManager.FileTypes;
 
@@ -11,9 +11,9 @@ public sealed class MSBT : ModFile
 
     public MSBT(Stream stream, string name) : base(stream, name)
     {
-        if (Content != null && MsbtFileParser.CanParseStatic(Content))
+        if (Content != null && MsbtFileReader.CanReadStatic(Content))
         {
-            MsbtFile = new MsbtFileParser().Parse(Content);
+            MsbtFile = new MsbtFileReader().Read(Content);
             Content.Dispose(); // dispose content to free some memory
         }
     }
@@ -35,7 +35,7 @@ public sealed class MSBT : ModFile
         if (!MsbtFile.HasLbl1 || !otherMsbt.HasLbl1) return;
 
         // Files have different encoding
-        if (MsbtFile.Encoding != otherMsbt.Encoding ||
+        if (MsbtFile.EncodingType != otherMsbt.EncodingType ||
             MsbtFile.BigEndian != otherMsbt.BigEndian) return;
 
         // Dictionary based on Label
@@ -91,10 +91,10 @@ public sealed class MSBT : ModFile
         BakeFile();
 
         // Save msbt file into bytes
-        var compiler = new MsbtFileCompiler();
+        var compiler = new MsbtFileWriter();
         using var memoryStream = new MemoryStream();
 
-        compiler.Compile(MsbtFile, memoryStream);
+        compiler.Write(MsbtFile, memoryStream);
 
         return memoryStream.ToArray();
     }

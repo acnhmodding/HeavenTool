@@ -1,6 +1,6 @@
 ﻿using HeavenTool.IO;
-using NintendoTools.FileFormats.Msbt;
-using NintendoTools.FileFormats.Sarc;
+using AeonSake.NintendoTools.FileFormats.Msbt;
+using AeonSake.NintendoTools.FileFormats.Sarc;
 
 namespace HeavenTool.ModManager.FileTypes;
 
@@ -12,9 +12,9 @@ public sealed class SARC : ModFile
 
     public SARC(Stream stream, string name) : base(stream, name)
     {
-        if (Content != null && SarcFileParser.CanParseStatic(Content))
+        if (Content != null && SarcFileReader.CanReadStatic(Content))
         {
-            var loadedFile = new SarcFileParser().Parse(Content);
+            var loadedFile = new SarcFileReader().Read(Content);
           
             // we are not using Content ever again in this file, lets free some memory
             Content.Dispose();
@@ -34,7 +34,7 @@ public sealed class SARC : ModFile
 
                 var fileName = loadedFile.HasFileNames ? file.Name : i.ToString();
 
-                if (MsbtFileParser.CanParseStatic(fileData))
+                if (MsbtFileReader.CanReadStatic(fileData))
                     Files.TryAdd(fileName, new MSBT(fileData, file.Name));
 
                 else // if its not a mod-manager compatible, just add as SarcContent
@@ -95,7 +95,7 @@ public sealed class SARC : ModFile
 
         }
 
-        var alignmentTable = new NintendoTools.FileFormats.AlignmentTable()
+        var alignmentTable = new AeonSake.NintendoTools.FileFormats.AlignmentTable()
         {
             Default = 0x08,
         };
@@ -133,13 +133,13 @@ public sealed class SARC : ModFile
         foreach(var (extension, alignment) in extensionAlignments)
             alignmentTable.Add(extension, alignment);
 
-        var sarcFileCompiler = new SarcFileCompiler()
+        var sarcFileCompiler = new SarcFileWriter()
         {
             Alignment = alignmentTable
         };
         var memoryStream = new MemoryStream();
 
-        sarcFileCompiler.Compile(SarcFile, memoryStream);
+        sarcFileCompiler.Write(SarcFile, memoryStream);
 
         return memoryStream.ToArray();
     }

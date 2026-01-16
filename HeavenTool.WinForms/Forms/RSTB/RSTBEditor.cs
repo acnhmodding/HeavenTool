@@ -3,7 +3,7 @@ using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.ResourceSizeTable;
 using HeavenTool.Properties;
 using HeavenTool.Utility;
-using NintendoTools.Compression.Zstd;
+using AeonSake.NintendoTools.Compression.Zstd;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
