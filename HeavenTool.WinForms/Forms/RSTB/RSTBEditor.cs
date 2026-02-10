@@ -321,7 +321,7 @@ public partial class RSTBEditor : Form, ISearchable
 
             var files = Directory.GetFiles(selectedPath, "*", SearchOption.AllDirectories);
 
-            files = files.Select(x =>
+            files = [.. files.Select(x =>
             {
                 var text = Path.GetRelativePath(selectedPath, x).Replace('\\', '/');
 
@@ -332,10 +332,10 @@ public partial class RSTBEditor : Form, ISearchable
                     return null;
 
                 return text;
-            }).Where(x => x != null).ToArray();
+            }).Where(x => x != null)];
 
             // Save
-            // RomFsNameManager.Update(files);
+            RomFsNameManager.Update(files);
         }
     }
 

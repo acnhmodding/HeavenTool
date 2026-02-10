@@ -127,3 +127,5 @@ cb402a3=S8
 bb66872=U8
 e2bff7f5=U8
 9067bb0e=U8
+42f255d5=Int16
+ad0c787a=U8
