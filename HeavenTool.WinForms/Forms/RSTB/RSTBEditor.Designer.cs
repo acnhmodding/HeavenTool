@@ -58,6 +58,7 @@ namespace HeavenTool.Forms.RSTB
             statusBar = new System.Windows.Forms.StatusStrip();
             statusProgressBar = new System.Windows.Forms.ToolStripProgressBar();
             statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)dataGrid).BeginInit();
             TopMenu.SuspendLayout();
             statusBar.SuspendLayout();
@@ -233,7 +234,7 @@ namespace HeavenTool.Forms.RSTB
             // optionsToolStripMenuItem
             // 
             optionsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { searchToolStripMenuItem, associateRstbToolStripMenuItem, compareDifferenceToolStripMenuItem });
+            optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { searchToolStripMenuItem, associateRstbToolStripMenuItem, compareDifferenceToolStripMenuItem, copyToolStripMenuItem });
             optionsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
             optionsToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
@@ -281,7 +282,7 @@ namespace HeavenTool.Forms.RSTB
             updateHashListToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             updateHashListToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             updateHashListToolStripMenuItem.Name = "updateHashListToolStripMenuItem";
-            updateHashListToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            updateHashListToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             updateHashListToolStripMenuItem.Text = "Update Hash List";
             updateHashListToolStripMenuItem.Click += UpdateHashListToolStripMenuItem_Click;
             // 
@@ -318,6 +319,13 @@ namespace HeavenTool.Forms.RSTB
             statusLabel.Name = "statusLabel";
             statusLabel.Size = new System.Drawing.Size(58, 16);
             statusLabel.Text = "Loading...";
+            // 
+            // copyToolStripMenuItem
+            // 
+            copyToolStripMenuItem.Name = "copyToolStripMenuItem";
+            copyToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
+            copyToolStripMenuItem.Text = "Copy";
+            copyToolStripMenuItem.Click += copyToolStripMenuItem_Click;
             // 
             // RSTBEditor
             // 
@@ -364,5 +372,6 @@ namespace HeavenTool.Forms.RSTB
         private System.Windows.Forms.DataGridViewTextBoxColumn FileName;
         private System.Windows.Forms.DataGridViewTextBoxColumn FileSize;
         private System.Windows.Forms.DataGridViewTextBoxColumn DLC;
+        private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
     }
 }

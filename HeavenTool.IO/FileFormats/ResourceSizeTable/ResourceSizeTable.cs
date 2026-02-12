@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using HeavenTool.IO.Compression;
 using AeonSake.NintendoTools.Compression.Yaz0;
+using AeonSake.NintendoTools.Compression.Zstd;
 
 namespace HeavenTool.IO.FileFormats.ResourceSizeTable;
 
@@ -8,6 +9,8 @@ public class ResourceSizeTable : IDisposable
 {
     public static readonly Yaz0Decompressor Decompressor = new();
     public static readonly Yaz0Compressor Compressor = new();
+
+    public static readonly ZstdDecompressor ZstdDecompressor = new();
 
     public class ResourceTableEntry
     {
@@ -215,6 +218,8 @@ public class ResourceSizeTable : IDisposable
 
         var uniqueEntriesCount = reader.ReadUInt32();
         var repeatedEntriesCount = reader.ReadUInt32();
+        
+        ConsoleUtilities.WriteLine($"Loaded ResourceSize Table ({HEADER}) with {uniqueEntriesCount + repeatedEntriesCount} entries.", ConsoleColor.Red);
 
         Dictionary = [];
 
@@ -309,11 +314,7 @@ public class ResourceSizeTable : IDisposable
             memoryStream.Position = 0;
             memoryStream.Read(array, 0, array.Length);
 
-
-            using var compressedStream = new MemoryStream();
-            Compressor.Compress(memoryStream, compressedStream);
-
-            return compressedStream.ToArray();
+            return Yaz0CompressionAlgorithm.Compress(memoryStream.ToArray());
         }
         catch (Exception ex)
         {
@@ -342,10 +343,14 @@ public class ResourceSizeTable : IDisposable
             && !romfsName.StartsWith("Model/Layout_"))
             return -1;
 
+
+        var fileStream = new FileStream(entireFileName, FileMode.Open);
+
         long size;
-        if (entireFileName.EndsWith(".zs"))
+        if (entireFileName.EndsWith(".zs") || ZstdDecompressor.CanDecompress(fileStream))
         {
-            var decompressed = ZstdCompressionAlgorithm.Decompress(entireFileName);
+            var decompressed = new MemoryStream();
+            ZstdDecompressor.Decompress(fileStream, decompressed);
             size = decompressed.Length;
         }
         else size = new FileInfo(entireFileName).Length;

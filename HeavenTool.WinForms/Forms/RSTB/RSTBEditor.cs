@@ -1,18 +1,21 @@
-﻿using HeavenTool.Forms.Search;
+﻿using AeonSake.NintendoTools.Compression.Zstd;
+using HeavenTool.Forms.Search;
 using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.ResourceSizeTable;
 using HeavenTool.Properties;
 using HeavenTool.Utility;
-using AeonSake.NintendoTools.Compression.Zstd;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.ComponentModel;
 
 namespace HeavenTool.Forms.RSTB;
 
@@ -20,7 +23,7 @@ public partial class RSTBEditor : Form, ISearchable
 {
     private string OriginalText { get; }
 
-    private SearchBox searchBox;
+    private SearchBox? searchBox;
     public RSTBEditor()
     {
         InitializeComponent();
@@ -74,10 +77,10 @@ public partial class RSTBEditor : Form, ISearchable
         }
     }
 
-    public Dictionary<int, long> DiffDictionary = [];
+    public ConcurrentDictionary<int, long> DiffDictionary = [];
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public ResourceSizeTable LoadedFile { get; set; }
+    public ResourceSizeTable? LoadedFile { get; set; }
 
     private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
     {
@@ -129,45 +132,6 @@ public partial class RSTBEditor : Form, ISearchable
         Text = $"{OriginalText}: {LoadedFile.Length} ({LoadedFile.UniqueEntries.Count}/{LoadedFile.NonUniqueEntries.Count})";
     }
 
-    private void UpdateHashesToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        var choose = MessageBox.Show("This action need the entire RomFs dump! (Including game-updates and DLC)\nIf you don't have all these files CANCEL the operation.", "Attention", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
-        if (choose == DialogResult.Cancel) return;
-
-        using var openFolderDialog = new FolderBrowserDialog()
-        {
-            ShowNewFolderButton = false,
-            Description = "Select a RomFs directory",
-            SelectedPath = Settings.Default.LastSelectedRomFsDirectory ?? ""
-        };
-
-        if (openFolderDialog.ShowDialog() == DialogResult.OK)
-        {
-            var selectedPath = openFolderDialog.SelectedPath;
-            Settings.Default.LastSelectedRomFsDirectory = selectedPath;
-            Settings.Default.Save();
-
-            var files = Directory.GetFiles(selectedPath, "*", SearchOption.AllDirectories);
-
-            files = files.Select(x =>
-            {
-                var text = Path.GetRelativePath(selectedPath, x).Replace('\\', '/');
-                //text = text.Substring(selectedPath.Length + 1);
-
-                if (text.EndsWith(".zs"))
-                    text = text[..^3]; // Same as text.Substring(0, text.Length - 3);
-
-                if (text.EndsWith(".srsizetable"))
-                    return null;
-
-                return text;
-            }).Where(x => x != null).ToArray();
-
-            // Save
-            //RomFsNameManager.Update(files);
-        }
-    }
-
     private void SaveAsToolStripMenuItem_Click(object sender, EventArgs e)
     {
         if (LoadedFile == null) return;
@@ -211,8 +175,8 @@ public partial class RSTBEditor : Form, ISearchable
     {
         var allFiles = Directory.GetFiles(moddedRomFsPath, "*", SearchOption.AllDirectories);
 
-        List<string> changedFiles = [];
-        List<string> addedFiles = [];
+        int changedFiles = 0;
+        int addedFiles = 0;
         int skippedFiles = 0;
         int removedFiles = 0;
 
@@ -249,7 +213,7 @@ public partial class RSTBEditor : Form, ISearchable
                 if (path.EndsWith(".byml") && path != "EventFlow/Info/EventFlowInfoProduct.byml")
                     continue;
 
-
+                // Report progress to our progress bar
                 (progress as IProgress<(int, string)>).Report((currentPosition, path));
 
                 if (path.EndsWith(".zs"))
@@ -257,26 +221,20 @@ public partial class RSTBEditor : Form, ISearchable
 
                 var fileSize = ResourceSizeTable.GetFileSize(originalFile, path);
 
-                if (fileSize < 0)
+                if (fileSize < 0 || fileSize > uint.MaxValue)
                 {
-                    // remove unsupported file from rstb
-                    if (fileSize == -2)
-                        Console.WriteLine("Unsupported: {0}", path);
-
                     rstb.Dictionary.Remove(path);
                     removedFiles++;
                 }
-                else if (rstb.Dictionary.TryGetValue(path, out var result) && fileSize >= 0 && fileSize != result.FileSize)
+                else if (rstb.Dictionary.TryGetValue(path, out var entry) && fileSize != entry.FileSize)
                 {
-                    result.FileSize = (uint)fileSize;
-                    changedFiles.Add(path);
+                    entry.FileSize = (uint)fileSize;
+                    changedFiles++;
                 }
-
-                else if (!rstb.Dictionary.ContainsKey(path) && fileSize >= 0)
+                else if (!rstb.Dictionary.ContainsKey(path))
                 {
                     rstb.AddEntry(new ResourceSizeTable.ResourceTableEntry(path, (uint)fileSize, 0, false));
-
-                    addedFiles.Add(path);
+                    addedFiles++;
                 }
 
                 currentPosition++;
@@ -286,19 +244,18 @@ public partial class RSTBEditor : Form, ISearchable
 
         });
 
-        if (showResults)
+        
+        if (showResults && (changedFiles > 0 || addedFiles > 0 || removedFiles > 0))
         {
-            if (changedFiles.Count > 0 || addedFiles.Count > 0)
-            {
-                MessageBox.Show($"Successfully updated table values!" +
-                                (changedFiles.Count > 0 ? $"\nUpdated {changedFiles.Count} entries." : "") +
-                                (addedFiles.Count > 0 ? $"\nAdded {addedFiles.Count} entries." : "") +
-                                (skippedFiles > 0 ? $"\nSkipped {skippedFiles} entries." : "") +
-                                (removedFiles > 0 ? $"\nRemoved {removedFiles} entries." : "") +
-                                "\n\nYou need to manually save your file in File > Save as...",
-                    "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
+            MessageBox.Show($"Successfully updated table values!" +
+                            (changedFiles > 0 ? $"\nUpdated {changedFiles} entries." : "") +
+                            (addedFiles > 0 ? $"\nAdded {addedFiles} entries." : "") +
+                            (skippedFiles > 0 ? $"\nSkipped {skippedFiles} entries." : "") +
+                            (removedFiles > 0 ? $"\nRemoved {removedFiles} entries." : "") +
+                            "\n\nYou need to manually save your file in File > Save as...",
+                "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
+        
     }
 
     private void UpdateHashListToolStripMenuItem_Click(object sender, EventArgs e)
@@ -319,7 +276,7 @@ public partial class RSTBEditor : Form, ISearchable
             Settings.Default.LastSelectedRomFsDirectory = selectedPath;
             Settings.Default.Save();
 
-            var files = Directory.GetFiles(selectedPath, "*", SearchOption.AllDirectories);
+            var files = Directory.GetFiles(selectedPath, "*", SearchOption.AllDirectories).Where(x => !x.EndsWith(".srsizetable")).ToArray();
 
             files = [.. files.Select(x =>
             {
@@ -328,11 +285,8 @@ public partial class RSTBEditor : Form, ISearchable
                 if (text.EndsWith(".zs"))
                     text = text[..^3];
 
-                if (text.EndsWith(".srsizetable"))
-                    return null;
-
                 return text;
-            }).Where(x => x != null)];
+            })];
 
             // Save
             RomFsNameManager.Update(files);
@@ -341,7 +295,7 @@ public partial class RSTBEditor : Form, ISearchable
 
     private void CloseFileToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        LoadedFile.Dispose();
+        LoadedFile?.Dispose();
         LoadedFile = null;
 
         if (dataGrid.Columns.Contains("Diff"))
@@ -366,7 +320,7 @@ public partial class RSTBEditor : Form, ISearchable
             UseShellExecute = true
         });
 
-        process.WaitForExit();
+        process?.WaitForExit();
         associateRstbToolStripMenuItem.Checked = ProgramAssociation.GetAssociatedProgram(".srsizetable") == Application.ExecutablePath;
     }
 
@@ -417,7 +371,10 @@ public partial class RSTBEditor : Form, ISearchable
             var cells = rows.SelectMany(x => x.Cells.Cast<DataGridViewCell>())
                 .Where(cell =>
                 {
-                    var formattedValue = cell.FormattedValue.ToString();
+                    var formattedValue = cell.FormattedValue?.ToString();
+
+                    // Make sure the cell value can be formatted to a string, if not skip it
+                    if (formattedValue == null) return false;
 
                     if (!caseSensitive)
                     {
@@ -435,7 +392,7 @@ public partial class RSTBEditor : Form, ISearchable
             else
                 currentSearchIndex = 0;
 
-            searchBox.UpdateMatchesFound(searchCache.Length, currentSearchIndex);
+            searchBox?.UpdateMatchesFound(searchCache.Length, currentSearchIndex);
 
             if (searchCache.Length == 0)
             {
@@ -473,7 +430,7 @@ public partial class RSTBEditor : Form, ISearchable
                 lastSearchCell.Style.BackColor = HIGHLIGHT_COLOR;
             }
 
-            searchBox.UpdateMatchesFound(searchCache.Length, currentSearchIndex);
+            searchBox?.UpdateMatchesFound(searchCache.Length, currentSearchIndex);
 
             var current = searchCache[currentSearchIndex];
 
@@ -522,9 +479,9 @@ public partial class RSTBEditor : Form, ISearchable
     private bool lastCaseSensitive = false;
     private SearchType lastSearchType = SearchType.Contains;
     private int currentSearchIndex = -1;
-    private DataGridViewCell[] searchCache;
-    private DataGridViewCell lastSearchCell;
-    private Dictionary<DataGridViewCell, Color> oldColorCache = null;
+    private DataGridViewCell[]? searchCache;
+    private DataGridViewCell? lastSearchCell;
+    private Dictionary<DataGridViewCell, Color>? oldColorCache = null;
 
     public static readonly Color HIGHLIGHT_COLOR = Color.FromArgb(180, 180, 10);
     public static readonly Color HIGHLIGHT_COLOR_CURRENT = Color.YellowGreen;
@@ -548,6 +505,8 @@ public partial class RSTBEditor : Form, ISearchable
 
     private async void CompareDifferenceToolStripMenuItem_Click(object sender, EventArgs e)
     {
+        if (LoadedFile == null) return;
+
         using var openFolderDialog = new FolderBrowserDialog()
         {
             ShowNewFolderButton = false,
@@ -555,81 +514,118 @@ public partial class RSTBEditor : Form, ISearchable
             SelectedPath = Settings.Default.LastSelectedRomFsDirectory ?? ""
         };
 
-        if (openFolderDialog.ShowDialog() == DialogResult.OK)
+        if (openFolderDialog.ShowDialog() != DialogResult.OK)
+            return;
+
+        var selectedPath = openFolderDialog.SelectedPath;
+
+        if (string.IsNullOrEmpty(selectedPath) || !Directory.Exists(selectedPath))
+            return;
+
+        if (!dataGrid.Columns.Contains("Diff"))
         {
-            var selectedPath = openFolderDialog.SelectedPath;
-
-            if (selectedPath == null || !Directory.Exists(selectedPath)) return;
-
-            if (!dataGrid.Columns.Contains("Diff"))
-            {
-                dataGrid.Columns.Add("Diff", "Diff");
-                dataGrid.Columns["Diff"].ValueType = typeof(long);
-            }
-
-            var progress = new Progress<(int Index, string FileName)>(value =>
-            {
-                statusLabel.Text = $"Loading: {value.FileName} ({value.Index}/{dataGrid.RowCount})";
-                statusProgressBar.Value = value.Index;
-            });
-
-            statusBar.Visible = true;
-            statusProgressBar.Visible = true;
-            statusProgressBar.Maximum = dataGrid.RowCount;
-            statusProgressBar.Value = 0;
-
-            int zstdFiles = 0;
-            foreach (DataGridViewRow row in dataGrid.Rows)
-            {
-                await Task.Run(() =>
-                {
-                    var fileName = row.Cells["FileName"].Value.ToString();
-                    var actualPath = Path.Combine(selectedPath, fileName);
-                    long zstdSize = -1;
-
-                    (progress as IProgress<(int, string)>).Report((row.Index, fileName));
-
-                    if (!File.Exists(actualPath) && File.Exists(actualPath + ".zs"))
-                    {
-                        actualPath += ".zs";
-                        if (zstdFiles < 5000)
-                        {
-                            var decompressor = new ZstdDecompressor();
-                            using var file = File.OpenRead(actualPath);
-                            using var decompressedStream = new MemoryStream();
-                            decompressor.Decompress(file, decompressedStream);
-                            zstdSize = decompressedStream.Length;
-                            zstdSize = (zstdSize + 31) & -32;
-                            zstdFiles++;
-                        }
-                    }
-
-                    DiffDictionary[row.Index] = -1;
-
-                    if (row.Cells["FileSize"].Value is uint fileSize)
-                    {
-                        if (zstdSize >= 0)
-                            DiffDictionary[row.Index] = fileSize - zstdSize;
-
-                        else if (File.Exists(actualPath) && !actualPath.EndsWith(".zs"))
-                        {
-                            var roundSize = (new FileInfo(actualPath).Length + 31) & -32;
-                            DiffDictionary[row.Index] = fileSize - roundSize;
-                        }
-                    }
-                });
-
-            }
-
-            dataGrid.Invalidate();
-
-            statusBar.Visible = false;
-            statusProgressBar.Visible = false;
+            var column = dataGrid.Columns.Add("Diff", "Diff");
+            dataGrid.Columns[column].ValueType = typeof(long);
         }
+
+        statusBar.Visible = true;
+        statusProgressBar.Visible = true;
+        statusProgressBar.Maximum = dataGrid.RowCount;
+        statusProgressBar.Value = 0;
+
+        var rowCount = LoadedFile.Length;
+        var rowsData = new (int Index, string FileName, uint FileSize)[rowCount];
+        
+        for (int i = 0; i < rowCount; i++)
+        {
+            var row = LoadedFile[i];
+
+            rowsData[i] = (
+                i,
+                row.FileName,
+                row.FileSize
+            );
+        }
+
+        var rowsToColor = new ConcurrentBag<int>();
+
+        int processed = 0;
+
+        await Task.Run(() =>
+        {
+            Parallel.ForEach(rowsData, new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Environment.ProcessorCount,
+            },
+            row =>
+            {
+                if (string.IsNullOrEmpty(row.FileName)) return;
+
+                var actualPath = Path.Combine(selectedPath, row.FileName);
+
+                if (!File.Exists(actualPath) && File.Exists(actualPath + ".zs"))
+                    actualPath += ".zs";
+
+                long actualValue = -1;
+
+   
+                var generatedFileSize = ResourceSizeTable.GetFileSize(actualPath, row.FileName);
+                actualValue = generatedFileSize;
+
+                if (row.FileSize is uint fileSize)
+                {
+                    if (generatedFileSize != fileSize)
+                        rowsToColor.Add(row.Index);
+                }
+
+                DiffDictionary[row.Index] = actualValue;
+
+                int current = Interlocked.Increment(ref processed);
+
+                if (current % 50 == 0)
+                {
+                    BeginInvoke(() =>
+                    {
+                        statusProgressBar.Value = current;
+                        statusLabel.Text = $"Processing {current}/{rowsData.Length}";
+                    });
+                }
+            });
+        });
+
+        foreach (var index in rowsToColor)
+        {
+            dataGrid.Rows[index].DefaultCellStyle.BackColor = Color.Red;
+        }
+
+        statusProgressBar.Value = rowsData.Length;
+        statusLabel.Text = $"Completed ({rowsData.Length}/{rowsData.Length})";
+
+        dataGrid.Invalidate();
+
+        statusBar.Visible = false;
+        statusProgressBar.Visible = false;
     }
+
 
     private void mainDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
     {
+
+    }
+
+    private void copyToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        StringBuilder sb = new();
+
+
+        var rows = dataGrid.SelectedRows.Cast<DataGridViewRow>().OrderBy(x => x.Index);
+        foreach (var row in rows)
+        {
+            var text = string.Join(";", row.Cells.Cast<DataGridViewCell>().Where(y => y.OwningColumn.Name != "DLC").Select(x => x.FormattedValue?.ToString()));
+            sb.AppendLine(text);
+        }
         
+
+        Clipboard.SetText(sb.ToString());
     }
 }

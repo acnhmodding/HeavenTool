@@ -35,8 +35,11 @@ public static class Yaz0CompressionAlgorithm
 
     public static byte[] Compress(byte[] data)
     {
-        var decompressedStream = Compress(new MemoryStream(data));
+        var stream = new MemoryStream(data);
+        var decompressedStream = Compress(stream);
 
-        return decompressedStream?.ToArray();
+        if (decompressedStream != null)
+            return decompressedStream.ToArray();
+        else throw new Exception("Failed to compress to Yaz0");
     }
 }
