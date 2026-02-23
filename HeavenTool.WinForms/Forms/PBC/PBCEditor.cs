@@ -1,4 +1,6 @@
 ﻿using HeavenTool.IO.FileFormats.PBC;
+using HeavenTool.Utility;
+using HeavenTool.Utility.UndoSystem;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -9,17 +11,17 @@ public partial class PBCEditor : Form
 {
     public PBCFileReader CurrentPBC;
 
-    private Action<byte[]> SaveFunction = null;
+    private readonly Action<byte[]>? saveFunction;
+    public UndoManager UndoManager { get; } = new();
 
     public PBCEditor(byte[] fileContent, string fileName, Action<byte[]> saveFunction)
     {
         InitializeComponent();
-        SaveFunction = saveFunction;
+        this.saveFunction = saveFunction;
 
         pbcPreview.ZoomChanged += ZoomChanged;
-        pbcPreview.MouseMove += MouseMoved;
+        pbcPreview.MouseMove += (_, _) => UpdateStatusLabel();
         pbcPreview.QuadrantSelected += QuadrantSelected;
-        //pbcPreview.SizeMode = PictureBoxSizeMode.AutoSize;
 
         Text = $"PBC Editor: {fileName}";
         CurrentPBC = new PBCFileReader(fileContent);
@@ -28,14 +30,33 @@ public partial class PBCEditor : Form
         gridToolStripMenuItem.Checked = pbcPreview.DisplayGrid;
         viewIDToolStripMenuItem.Checked = pbcPreview.ShowType;
 
+        propertyGrid.PropertyValueChanged += PropertyGrid_PropertyValueChanged;
+
         ReloadPBCImage();
 
-        var colors = Enum.GetValues(typeof(TileType));
+        var colors = Enum.GetValues<TileType>();
         foreach (TileType color in colors)
             colorList.Items.Add(color);
 
         pbcPreview.TileBrush = TileType.Null;
         colorList.SelectedIndex = colorList.Items.IndexOf(TileType.Null);
+    }
+
+    private void PropertyGrid_PropertyValueChanged(object? s, PropertyValueChangedEventArgs e)
+    {
+        if (s is not PropertyGrid grid || grid.SelectedObject == null || e.ChangedItem == null || e.ChangedItem.PropertyDescriptor == null)
+            return;
+
+        var target = grid.SelectedObject;
+        var property = e.ChangedItem.PropertyDescriptor;
+
+        var oldValue = e.OldValue;
+        var newValue = property.GetValue(target);
+
+        var command = new PropertyChangeUndoCommand(target, property, oldValue, newValue);
+
+        UndoManager.Execute(command, true);
+        Invalidate();
     }
 
     private void QuadrantSelected(PBCFileReader.Quadrant quadrant)
@@ -45,19 +66,20 @@ public partial class PBCEditor : Form
 
     private void UpdateStatusLabel()
     {
+        if (pbcPreview == null || CurrentPBC == null)
+        {
+            statusLabel.Text = "No PBC loaded.";
+            return;
+        }
+
         var statusText = $"Width: {CurrentPBC.Width * 2} | Height: {CurrentPBC.Height * 2} | Offset: (X {CurrentPBC.OffsetX}, Y {CurrentPBC.OffsetY}) ";
 
-        if (pbcPreview != null && pbcPreview.TileBrush != null)
-            statusText += $"| Brush: {pbcPreview.TileBrush} ({(byte)pbcPreview.TileBrush})";
+        if (pbcPreview.CurrentView == ViewType.Collision && pbcPreview.TileBrush != null)
+            statusText += $"| Brush: {pbcPreview.TileBrush}";
+
+        statusText += pbcPreview.HighlightedHeight != null ? $"| Highlithed Height: {pbcPreview.HighlightedHeight}" : "";
 
         statusLabel.Text = statusText;
-    }
-
-    private void MouseMoved(object sender, MouseEventArgs e)
-    {
-        var currentHeight = pbcPreview.HighlightedHeight != null ? $"| Highlithed Height: {pbcPreview.HighlightedHeight}" : "";
-        UpdateStatusLabel();
-        statusLabel.Text += currentHeight;
     }
 
     private void ZoomChanged(int zoom)
@@ -76,7 +98,7 @@ public partial class PBCEditor : Form
         propertyGrid.SelectedObject = CurrentPBC;
     }
 
-    private void zoomPlusButton_Click(object sender, EventArgs e)
+    private void ZoomPlusButton_Click(object sender, EventArgs e)
     {
         pbcPreview.Zoom++;
 
@@ -84,7 +106,7 @@ public partial class PBCEditor : Form
         ReloadPBCImage();
     }
 
-    private void zoomMinusButton_Click(object sender, EventArgs e)
+    private void ZoomMinusButton_Click(object sender, EventArgs e)
     {
         if (pbcPreview.Zoom > 1)
             pbcPreview.Zoom--;
@@ -93,7 +115,7 @@ public partial class PBCEditor : Form
         ReloadPBCImage();
     }
 
-    private void viewIDToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ViewIDToolStripMenuItem_Click(object sender, EventArgs e)
     {
         pbcPreview.ShowType = !pbcPreview.ShowType;
         viewIDToolStripMenuItem.Checked = pbcPreview.ShowType;
@@ -101,44 +123,44 @@ public partial class PBCEditor : Form
         ReloadPBCImage();
     }
 
-    private void gridToolStripMenuItem_Click(object sender, EventArgs e)
+    private void GridToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        //GridView = !GridView;
-
         pbcPreview.DisplayGrid = !pbcPreview.DisplayGrid;
         gridToolStripMenuItem.Checked = pbcPreview.DisplayGrid;
 
         ReloadPBCImage();
     }
 
-    private void collisionMapToolStripMenuItem_Click(object sender, EventArgs e)
+    private void CollisionMapToolStripMenuItem_Click(object sender, EventArgs e)
     {
         pbcPreview.CurrentView = ViewType.Collision;
+        pbcPreview.ActiveTool = pbcPreview.Tools.CollisionBrush;
         propertyGrid.SelectedObject = CurrentPBC;
         colorList.Enabled = true;
         ReloadPBCImage();
     }
 
-    private void heightMapToolStripMenuItem_Click(object sender, EventArgs e)
+    private void HeightMapToolStripMenuItem_Click(object sender, EventArgs e)
     {
         pbcPreview.CurrentView = ViewType.HeightMap;
+        pbcPreview.ActiveTool = pbcPreview.Tools.InspectorTool;
         colorList.Enabled = false;
         ReloadPBCImage();
-    }    
-
-    private void saveToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        if (CurrentPBC != null)
-            SaveFunction?.Invoke(CurrentPBC.SaveAsBytes());
     }
 
-    private void saveButton_Click(object sender, EventArgs e)
+    private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
     {
         if (CurrentPBC != null)
-            SaveFunction?.Invoke(CurrentPBC.SaveAsBytes());
+            saveFunction?.Invoke(CurrentPBC.SaveAsBytes());
     }
 
-    private void colorList_SelectedIndexChanged(object sender, EventArgs e)
+    private void SaveButton_Click(object sender, EventArgs e)
+    {
+        if (CurrentPBC != null)
+            saveFunction?.Invoke(CurrentPBC.SaveAsBytes());
+    }
+
+    private void ColorList_SelectedIndexChanged(object sender, EventArgs e)
     {
         if (colorList.SelectedItem != null && colorList.SelectedItem is TileType tileType)
             pbcPreview.TileBrush = tileType;
@@ -146,11 +168,12 @@ public partial class PBCEditor : Form
         UpdateStatusLabel();
     }
 
-    private void colorList_DrawItem(object sender, DrawItemEventArgs e)
+    private void ColorList_DrawItem(object sender, DrawItemEventArgs e)
     {
         if (e.Index == -1) return;
-        
-        var tileType = (TileType) colorList.Items[e.Index];
+
+        var tileType = (TileType)colorList.Items[e.Index];
+        byte tileNumber = (byte)tileType;
 
         e.DrawBackground();
         var rect = new Rectangle(e.Bounds.X + 10, e.Bounds.Y + 2, 12, e.Bounds.Height - 4);
@@ -165,12 +188,50 @@ public partial class PBCEditor : Form
             Alignment = StringAlignment.Far
         };
 
-        e.Graphics.DrawString(tileType.ToString(), e.Font, Brushes.White, new Rectangle(e.Bounds.X + 25, e.Bounds.Y - 1, e.Bounds.Width, e.Bounds.Height), StringFormat.GenericDefault);
-
-
-        e.Graphics.DrawString(((byte)tileType).ToString(), e.Font, Brushes.DarkGray, new Rectangle(e.Bounds.X + 25, e.Bounds.Y, e.Bounds.Width - 27, e.Bounds.Height), ft);
+        if (e.Font != null)
+        {
+            e.Graphics.DrawString(tileType.ToString(), e.Font, Brushes.White, new Rectangle(e.Bounds.X + 25, e.Bounds.Y - 1, e.Bounds.Width, e.Bounds.Height), StringFormat.GenericDefault);
+            e.Graphics.DrawString(tileNumber.ToString(), e.Font, Brushes.DarkGray, new Rectangle(e.Bounds.X + 25, e.Bounds.Y, e.Bounds.Width - 27, e.Bounds.Height), ft);
+        }
 
         e.DrawFocusRectangle();
     }
 
+    private void Layer0ToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        pbcPreview.ChangeLayerView(LayerView.Layer0);
+    }
+
+    private void Layer1ToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        pbcPreview.ChangeLayerView(LayerView.Layer1);
+    }
+
+    private void Layer2ToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        pbcPreview.ChangeLayerView(LayerView.Layer2);
+    }
+
+    protected override void OnInvalidated(InvalidateEventArgs e)
+    {
+        pbcPreview.Invalidate();
+        base.OnInvalidated(e);
+    }
+
+    public void Undo()
+    {
+        UndoManager.Undo();
+
+        Invalidate();
+    }
+
+    public void Redo()
+    {
+        UndoManager.Redo();
+
+        Invalidate();
+    }
+
+    private void UndoToolStripMenuItem_Click(object sender, EventArgs e) => Undo();
+    private void RedoToolStripMenuItem_Click(object sender, EventArgs e) => Redo();
 }

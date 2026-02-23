@@ -36,7 +36,7 @@ namespace HeavenTool.Forms.SARC
             openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             saveAsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             searchTextBox = new System.Windows.Forms.ToolStripTextBox();
-            filesTreeView = new DarkTreeView();
+            filesTreeView = new System.Windows.Forms.TreeView();
             darkMenuStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -93,11 +93,11 @@ namespace HeavenTool.Forms.SARC
             searchTextBox.Size = new System.Drawing.Size(100, 20);
             searchTextBox.Text = "Search";
             searchTextBox.ToolTipText = "Search in SARC";
-            searchTextBox.Click += searchTextBox_Click;
             // 
             // filesTreeView
             // 
             filesTreeView.BackColor = System.Drawing.Color.FromArgb(35, 35, 36);
+            filesTreeView.BorderStyle = System.Windows.Forms.BorderStyle.None;
             filesTreeView.Dock = System.Windows.Forms.DockStyle.Left;
             filesTreeView.ForeColor = System.Drawing.Color.White;
             filesTreeView.Location = new System.Drawing.Point(0, 24);
@@ -128,7 +128,7 @@ namespace HeavenTool.Forms.SARC
 
         private DarkMenuStrip darkMenuStrip1;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
-        private DarkTreeView filesTreeView;
+        private System.Windows.Forms.TreeView filesTreeView;
         private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveAsToolStripMenuItem;
         private System.Windows.Forms.ToolStripTextBox searchTextBox;

@@ -37,6 +37,7 @@ namespace HeavenTool
             compressionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             yaz0ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             yaz0DecompressToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            yaz0CompressToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             devToolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             bCSVToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportLabelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -47,7 +48,6 @@ namespace HeavenTool
             sarcEditorButton = new DarkButton();
             itemParamHelperButton = new DarkButton();
             barsEditorButton = new DarkButton();
-            yaz0CompressToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             topMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
@@ -102,7 +102,7 @@ namespace HeavenTool
             yaz0ToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { yaz0DecompressToolStripMenuItem, yaz0CompressToolStripMenuItem });
             yaz0ToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             yaz0ToolStripMenuItem.Name = "yaz0ToolStripMenuItem";
-            yaz0ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            yaz0ToolStripMenuItem.Size = new System.Drawing.Size(97, 22);
             yaz0ToolStripMenuItem.Text = "Yaz0";
             // 
             // yaz0DecompressToolStripMenuItem
@@ -110,9 +110,18 @@ namespace HeavenTool
             yaz0DecompressToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             yaz0DecompressToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             yaz0DecompressToolStripMenuItem.Name = "yaz0DecompressToolStripMenuItem";
-            yaz0DecompressToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            yaz0DecompressToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
             yaz0DecompressToolStripMenuItem.Text = "Decompress";
             yaz0DecompressToolStripMenuItem.Click += Yaz0DecompressToolStripMenuItem_Click;
+            // 
+            // yaz0CompressToolStripMenuItem
+            // 
+            yaz0CompressToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            yaz0CompressToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
+            yaz0CompressToolStripMenuItem.Name = "yaz0CompressToolStripMenuItem";
+            yaz0CompressToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
+            yaz0CompressToolStripMenuItem.Text = "Compress";
+            yaz0CompressToolStripMenuItem.Click += Yaz0CompressToolStripMenuItem_Click;
             // 
             // devToolsToolStripMenuItem
             // 
@@ -129,7 +138,7 @@ namespace HeavenTool
             bCSVToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { exportLabelsToolStripMenuItem, exportEnumsToolStripMenuItem, exportUsedHashesToolStripMenuItem });
             bCSVToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             bCSVToolStripMenuItem.Name = "bCSVToolStripMenuItem";
-            bCSVToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            bCSVToolStripMenuItem.Size = new System.Drawing.Size(102, 22);
             bCSVToolStripMenuItem.Text = "BCSV";
             // 
             // exportLabelsToolStripMenuItem
@@ -224,15 +233,6 @@ namespace HeavenTool
             barsEditorButton.TabIndex = 11;
             barsEditorButton.Text = "Open BARS Editor";
             barsEditorButton.Click += BarsEditorButton_Click;
-            // 
-            // yaz0CompressToolStripMenuItem
-            // 
-            yaz0CompressToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            yaz0CompressToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
-            yaz0CompressToolStripMenuItem.Name = "yaz0CompressToolStripMenuItem";
-            yaz0CompressToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            yaz0CompressToolStripMenuItem.Text = "Compress";
-            yaz0CompressToolStripMenuItem.Click += yaz0CompressToolStripMenuItem_Click;
             // 
             // HeavenMain
             // 

@@ -23,8 +23,6 @@ public partial class HeavenMain : Form
         Text = $"Heaven Tool {Program.VERSION}";
     }
 
-    // Forms
-
     private void BcsvEditorButton_Click(object sender, EventArgs e)
     {
         var bcsvEditor = new BCSVForm();
@@ -79,10 +77,8 @@ public partial class HeavenMain : Form
             && File.Exists(openFileDialog.FileName))
         {
             using var fileStream = File.OpenRead(openFileDialog.FileName);
-            //MemoryStream memoryStream = new();
 
-            byte[] decompressedBytes = Yaz0CompressionAlgorithm.Decompress(fileStream)?.ToArray();
-
+            byte[] decompressedBytes = Yaz0CompressionAlgorithm.Decompress(fileStream).ToArray();
 
             if (decompressedBytes == null) return;
 
@@ -120,7 +116,7 @@ public partial class HeavenMain : Form
                     var outputFile = Path.Combine(outputDirectory, $"{Path.GetFileNameWithoutExtension(file)}-values.txt");
 
                     using var stream = File.OpenRead(file);
-                    var bcsvFile = new BinaryCSV(stream.ToArray());
+                    var bcsvFile = new BinaryCSV(stream);
                     var list = new List<string>();
 
                     if (bcsvFile.Fields.Any(x => x.GetTranslatedNameOrHash().StartsWith("Label string")))
@@ -128,7 +124,7 @@ public partial class HeavenMain : Form
                         var fieldId = bcsvFile.Fields.First(x => x.GetTranslatedNameOrHash().StartsWith("Label string"));
 
                         for (int i = 0; i < bcsvFile.Entries.Count; i++)
-                            list.Add(bcsvFile[i, fieldId].ToString());
+                            list.Add(bcsvFile[i, fieldId].ToString() ?? "<null>");
 
                         File.WriteAllLines(outputFile, list);
                     }
@@ -158,7 +154,7 @@ public partial class HeavenMain : Form
                     if (Path.GetExtension(file) != ".bcsv") continue;
 
                     using var stream = File.OpenRead(file);
-                    var bcsvFile = new BinaryCSV(stream.ToArray());
+                    var bcsvFile = new BinaryCSV(stream);
 
                     var hashedFields = bcsvFile.Fields.Where(x => x.DataType == DataType.CRC32).ToList();
                     if (bcsvFile.Entries.Count > 0 && hashedFields.Count > 0)
@@ -219,7 +215,7 @@ public partial class HeavenMain : Form
                     continue;
 
                 using var stream = File.OpenRead(file);
-                var bcsvFile = new BinaryCSV(stream.ToArray());
+                var bcsvFile = new BinaryCSV(stream);
 
                 foreach (var item in bcsvFile.Fields)
                     if (HashManager.GetHashTranslationOrNull(item.Hash) is string hashName && !usedHashesHeaders.Contains(hashName))
@@ -252,36 +248,7 @@ public partial class HeavenMain : Form
         barsWindow.Show();
     }
 
-    private void findBCSVToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        var folderBrowserDialog = new FolderBrowserDialog();
-
-        var result = folderBrowserDialog.ShowDialog();
-
-        if (result == DialogResult.OK)
-        {
-            var path = folderBrowserDialog.SelectedPath;
-            if (Directory.Exists(path))
-            {
-                foreach (var file in Directory.GetFiles(path))
-                {
-                    if (Path.GetExtension(file) != ".bcsv") continue;
-
-                    using var stream = File.OpenRead(file);
-                    var bcsvFile = new BinaryCSV(stream.ToArray());
-
-                    if (bcsvFile.Entries.Count > 10 && bcsvFile.Entries.Count < 13)
-                    {
-                        Console.WriteLine($"Possible bcsv: {file}");
-                    }
-                }
-            }
-
-        }
-
-    }
-
-    private void yaz0CompressToolStripMenuItem_Click(object sender, EventArgs e)
+    private void Yaz0CompressToolStripMenuItem_Click(object sender, EventArgs e)
     {
         var openFileDialog = new OpenFileDialog()
         {
@@ -296,7 +263,7 @@ public partial class HeavenMain : Form
         {
             using var fileStream = File.OpenRead(openFileDialog.FileName);
 
-            byte[] compressedBytes = Yaz0CompressionAlgorithm.Compress(fileStream)?.ToArray();
+            byte[] compressedBytes = Yaz0CompressionAlgorithm.Compress(fileStream).ToArray();
 
             if (compressedBytes == null || compressedBytes.Length == 0) return;
 

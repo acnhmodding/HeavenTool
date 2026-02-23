@@ -41,7 +41,7 @@ public class BinaryCSV : IDisposable
         0x37571146, // MessageCardSelectDesign, MessageCardSelectDesignSp, MessageCardSelectPresent and MessageCardSelectPresentSp
     ];
 
-    private static uint[] _uniqueHashes;
+    private static uint[]? _uniqueHashes;
     public static uint[] UniqueHashes
     {
         get
@@ -59,7 +59,7 @@ public class BinaryCSV : IDisposable
     /// <summary>
     /// Table of <seealso cref="Field"/> (columns)
     /// </summary>
-    public Field[] Fields { get; set; }
+    public Field[] Fields { get; set; } = [];
 
     /// <summary>
     /// List of <see cref="BCSVEntry"/>
@@ -67,12 +67,12 @@ public class BinaryCSV : IDisposable
     public List<object[]> Entries { get; set; }
 
     private bool _uniqueFieldSearched = false;
-    private Field _uniqueField = null;
+    private Field? _uniqueField = null;
 
     /// <summary>
     /// Get the Unique Field for the current file
     /// </summary>
-    public Field UniqueField { 
+    public Field? UniqueField { 
         get
         {
             if (_uniqueField == null && !_uniqueFieldSearched)
@@ -125,16 +125,49 @@ public class BinaryCSV : IDisposable
         HeaderVersion = version;
     }
 
+    private static readonly (string Suffix, DataType Type, Func<int, bool>? Condition)[] suffixRules =
+    [
+        (" s8",  DataType.S8,  size => size == 1),
+        (" u8",  DataType.U8,  size => size == 1),
+        (" s16", DataType.Int16, size => size == 2),
+        (" u16", DataType.UInt16, size => size == 2),
+        (" s32", DataType.Int32, size => size == 4),
+        (" u32", DataType.UInt32, size => size == 4),
+        (" f32", DataType.Float32, size => size == 4),
+        (".hshCstringRef", DataType.CRC32, size => size == 4),
+
+        // Can be either a BitField or a u8 that end up as last column which is aligned to 4
+        // HashManager.KnownTypes should be able to care of that
+        (" u8", DataType.BitField, size => size > 1),
+    ];
+
+    private static readonly Dictionary<int, DataType> baseTypeBySize = new()
+    {
+        { 1, DataType.U8 },
+        { 2, DataType.UInt16 },
+        { 4, DataType.UInt32 }
+    };
+
+    private static DataType ApplySuffixRules(string? name, int size, DataType current)
+    {
+        if (name == null) return current;
+
+        foreach (var rule in suffixRules)
+            if (name.EndsWith(rule.Suffix) && (rule.Condition == null || rule.Condition(size)))
+                return rule.Type;
+
+        return current;
+    }
+
     public static BinaryCSV CopyFileWithoutEntries(BinaryCSV fileToCopy) => new(fileToCopy.EntrySize, fileToCopy.Fields, [], fileToCopy.HasExtendedHeader, fileToCopy.UnknownField, fileToCopy.HeaderVersion);
 
-
-    public BinaryCSV(byte[] bytes)
+    public BinaryCSV(Stream stream)
     {
         HashManager.InitializeHashes();
 
-        using var fileStream = new MemoryStream(bytes);
-        using var reader = new BinaryFileReader(fileStream);
+        using var reader = new BinaryFileReader(stream);
 
+        reader.Position = 0;
         var entryCount = reader.ReadUInt32();
         EntrySize = reader.ReadInt32();
         var fieldCount = reader.ReadUInt16();
@@ -173,62 +206,16 @@ public class BinaryCSV : IDisposable
             // If it's not the last one is the next offset to calculate the current size, otherwise use EntrySize
             currentField.Size = (i < Fields.Length - 1 ? Fields[i + 1].Offset : EntrySize) - currentField.Offset;
 
-            // TODO: Make it less hard-coded LOL
-            DataType type = DataType.String;
+
             var translatedName = currentField.GetTranslatedNameOrNull();
-            switch (currentField.Size)
-            {
-                case 1:
-                    {
-                        type = DataType.U8;
+            var type = baseTypeBySize.TryGetValue(currentField.Size, out var baseType) ? baseType : DataType.String;
 
-                        if (translatedName != null && translatedName.EndsWith(" s8"))
-                            type = DataType.S8;
+            // Consider the translated name to get the correct type.
+            type = ApplySuffixRules(translatedName, currentField.Size, type);
 
-                    }
-                    break;
-
-                case 2:
-                    {
-                        if (translatedName != null && translatedName.EndsWith(" s16"))
-                            type = DataType.Int16;
-                        else
-                            type = DataType.UInt16;
-                    }
-                    break;
-
-                case 4:
-                    {
-                        type = DataType.UInt32;
-
-                        if (translatedName != null)
-                        {
-                            if (translatedName.EndsWith(".hshCstringRef"))
-                                type = DataType.CRC32;
-
-                            else if (translatedName.EndsWith(" s32"))
-                                type = DataType.Int32;
-
-                            else if (translatedName.EndsWith(" f32"))
-                                type = DataType.Float32;
-                        }
-                    }
-                    break;
-            }
-
-            // Assign "trusted types", by using translated hash
-            if (translatedName != null)
-            {
-                if (translatedName.EndsWith(" u8") && currentField.Size > 1)
-                    type = DataType.BitField;
-                else if (translatedName.EndsWith(" s8") && currentField.Size > 1)
-                    type = DataType.S8;
-                
-            }
-
+            // Enforce known types by hash, this is specially important for the fields that end up as BitFields because of alignment
             if (HashManager.KnownTypes.TryGetValue(currentField.HEX, out DataType value))
                 type = value;
-            
 
             currentField.DataType = type;
         }
@@ -254,10 +241,6 @@ public class BinaryCSV : IDisposable
                     case DataType.BitField:
                         value = reader.ReadBytes(currentField.Size);
                         break;
-
-                    //case DataType.S8Array:
-                    //    value = (sbyte[])(Array)reader.ReadBytes(currentField.Size);
-                    //    break;
 
                     case DataType.S8:
                         value = reader.ReadSByte();
@@ -305,9 +288,7 @@ public class BinaryCSV : IDisposable
             // Go to the next entry, important if we don't know the header
             reader.Position = entryPosition + EntrySize;
         }
-
-        reader.Close();
-        fileStream.Close();
+        return;
     }
 
 
@@ -425,9 +406,8 @@ public class BinaryCSV : IDisposable
         {
             if (disposing)
             {
-                Fields = null;
-                Entries.Clear();
-                Entries = null;
+                Fields = [];
+                Entries = [];
             }
 
             // Indicate that the instance has been disposed.

@@ -42,7 +42,6 @@ public class AudioMetadata
     }
 
     public AudioAsset Parent;
-    public string AssetType => Parent.assetType;
 
     //public bool BigEndian => Endian == 0xFEFF;
     //private ushort Endian { get; set; }
@@ -52,6 +51,9 @@ public class AudioMetadata
 
     // V5-specific fields
     public uint OffsetToData { get; private set; }
+    public uint OffsetToMarker { get; private set; }
+    public uint OffsetToMINF { get; private set; }
+
     //public string NameHashTranslated => $"0x{NameHash:x}";
 
     private uint OffsetToFooter;
@@ -78,20 +80,18 @@ public class AudioMetadata
 
     public void ReadAMTAV5(BinaryReader reader, long initialPosition)
     {
-        reader.Skip(4); // padding
-
+        reader.Skip(4); // padding - OFFSET to specific regions
         OffsetToData = reader.ReadUInt32(); // Offset to "DATA" block
-
-        reader.Skip(8); // padding?
+        OffsetToMarker = reader.ReadUInt32();
+        OffsetToMINF = reader.ReadUInt32();
 
         OffsetToFooter = reader.ReadUInt32();
+        reader.Skip(4); // padding
 
-        reader.Skip(4); // padding? again?
-
-        // 
         DataSize = reader.ReadUInt32();
         NameHash = reader.ReadUInt32();
-        Unknown_C = reader.ReadUInt32(); // ?
+        Unknown_C = reader.ReadUInt32(); // Seems to be "Type" where 1 is a external stream (located inside "Stream" folder),
+                                         // 0 is inside the file itself, 3/5 probably is villager singing (MINF?)
 
         StreamCount = reader.ReadByte();
         ChannelCount = reader.ReadByte();
@@ -162,7 +162,8 @@ public class AudioMetadata
     {
         writer.Skip(4);
         writer.Write(OffsetToData);
-        writer.Skip(8);
+        writer.Write(OffsetToMarker);
+        writer.Write(OffsetToMINF);
         writer.Write(OffsetToFooter);
         writer.Skip(4);
 

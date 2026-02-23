@@ -22,15 +22,16 @@ public partial class BitFieldEntry : UserControl, IBCSVEntry
         }
     }
 
-    public Action<byte[]> Callback;
+    public Action<byte[]>? Callback;
     private readonly byte[] tagBits;
 
-    public BitFieldEntry(int lenght, object defaultValue, string[] names = null)
+    public BitFieldEntry(int lenght, object defaultValue, string[]? names = null)
     {
         InitializeComponent();
 
         if (defaultValue is byte[] value)
             tagBits = value;
+        else throw new Exception("Default value for BitFieldEntry must be a byte array.");
 
         //input.Text = defaultValue.ToString();
         //Input_TextChanged(this, EventArgs.Empty);
@@ -38,7 +39,7 @@ public partial class BitFieldEntry : UserControl, IBCSVEntry
         checkedComboBox1.ValueSeparator = ", ";
         checkedComboBox1.DisplayMember = "Name";
 
-        checkedComboBox1.Items.Add(new BitFieldItem("None", -1), !tagBits.Any(x => x != 0));
+        checkedComboBox1.Items.Add(new BitFieldItem("None", -1), !(tagBits.Any(x => x != 0)));
 
         if (names != null && names.Length > lenght * 8) names = null;
         var count = names != null ? names.Length : lenght * 8;

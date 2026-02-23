@@ -1,18 +1,43 @@
-﻿using System;
+﻿using HeavenTool.Forms.PBC.Tools;
+using HeavenTool.IO.FileFormats.PBC;
+using HeavenTool.Utility;
+using System;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
-using HeavenTool.IO.FileFormats.PBC;
-using System.ComponentModel;
 
 namespace HeavenTool.Forms.PBC;
 
-public class TileEditor : Control
+public partial class TileEditor : Control
 {
-    private PBCFileReader _pbcFile;
+    public class EditorTools(TileEditor parent)
+    {
+        public CollisionBrushTool CollisionBrush { get; } = new CollisionBrushTool(parent);
+        public InspectorTool InspectorTool { get; } = new InspectorTool(parent);
+    }
+
+    public UndoManager _localUndoManager = new();
+    public UndoManager UndoManager
+    {
+        get
+        {
+            if (FindForm() is PBCEditor pbcEditor)
+                return pbcEditor.UndoManager;
+
+            return _localUndoManager;
+        }
+    }
+
+    public EditorTools Tools { get; }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public PBCFileReader PBCFile
+    public TileEditorTool? ActiveTool { get; set; }
+
+    private PBCFileReader? _pbcFile;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public PBCFileReader? PBCFile
     {
         get { return _pbcFile; }
         set
@@ -42,8 +67,10 @@ public class TileEditor : Control
     public TileType? TileBrush = TileType.Custom1;
 
     [DefaultValue(ViewType.HeightMap)]
-    public ViewType CurrentView { get; set; }
+    public ViewType CurrentView { get; set; } = ViewType.HeightMap;
 
+    [DefaultValue(LayerView.Layer1)]
+    public LayerView LayerView { get; set; } = LayerView.Layer1;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float? MinHeight { get; private set; }
@@ -51,6 +78,9 @@ public class TileEditor : Control
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float? MaxHeight { get; private set; }
 
+    /// <summary>
+    /// Updates the minimum and maximum height values based on the current tile data in the associated <see cref="PBCFile"/>.
+    /// </summary>
     private void UpdateHeight()
     {
         if (PBCFile == null)
@@ -69,14 +99,23 @@ public class TileEditor : Control
                 {
                     foreach (var heightTile in tileHeight.Quadrants)
                     {
+                        var val = LayerView switch
+                        {
+                            LayerView.Layer0 => heightTile.Layer0,
+                            LayerView.Layer1 => heightTile.Layer1,
+                            LayerView.Layer2 => heightTile.Layer2,
+
+                            _ => heightTile.Layer1
+                        };
+
                         // Ignore void height
-                        if (heightTile.Val2 == -10000000) continue;
+                        if (val == -10000000) continue;
 
-                        if (MinHeight == null || heightTile.Val2 < MinHeight)
-                            MinHeight = heightTile.Val2;
+                        if (MinHeight == null || val < MinHeight)
+                            MinHeight = val;
 
-                        if (MaxHeight == null || heightTile.Val2 > MaxHeight)
-                            MaxHeight = heightTile.Val2;
+                        if (MaxHeight == null || val > MaxHeight)
+                            MaxHeight = val;
                     }
                 }
             }
@@ -87,10 +126,10 @@ public class TileEditor : Control
     private Point? lastMousePos;
 
     public delegate void ZoomEventHandler(int zoom);
-    public event ZoomEventHandler ZoomChanged;
+    public event ZoomEventHandler? ZoomChanged;
 
     public delegate void HeightMapQuadrantSelected(PBCFileReader.Quadrant quadrant);
-    public event HeightMapQuadrantSelected QuadrantSelected;
+    public event HeightMapQuadrantSelected? QuadrantSelected;
 
     public TileEditor()
     {
@@ -99,6 +138,13 @@ public class TileEditor : Control
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.OptimizedDoubleBuffer, true);
 
         BackColor = Color.White;
+
+        SetStyle(ControlStyles.Selectable, true);
+        TabStop = true;
+
+        // Create our tools handler and set the default active tool
+        Tools = new EditorTools(this);
+        ActiveTool = Tools.CollisionBrush;
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -131,12 +177,11 @@ public class TileEditor : Control
                         // Render HeightMap
                         if (CurrentView == ViewType.HeightMap && MinHeight.HasValue && MaxHeight.HasValue)
                         {
-                            //var heightInfo = tileHeight[subY, subX];
-                            var heightInfo = tileHeight.Quadrants[subY, subX].Val2;
+                            var heightInfo = GetHeightInfo(tileHeight, subY, subX);
                             var c = PBCImageUtilities.GetHeightColor(heightInfo, MinHeight.Value, MaxHeight.Value);
                             using var brush = new SolidBrush(c);
                             e.Graphics.FillRectangle(brush, globalX * Zoom + offset.X, globalY * Zoom + offset.Y, Zoom, Zoom);
-                            
+
                             // Render text if ShowType is true and it's not void
                             if (heightInfo != -10000000 && ShowType)
                                 e.Graphics.DrawString(heightInfo.ToString(), f, Brushes.White, new Rectangle(globalX * Zoom + offset.X, globalY * Zoom + offset.Y, Zoom, Zoom));
@@ -163,40 +208,36 @@ public class TileEditor : Control
         }
     }
 
+    internal float GetHeightInfo(PBCFileReader.HeightMap tileHeight, int subY, int subX)
+    {
+        var tile = tileHeight.Quadrants[subY, subX];
+
+        return LayerView switch
+        {
+            LayerView.Layer0 => tile.Layer0,
+            LayerView.Layer1 => tile.Layer1,
+            LayerView.Layer2 => tile.Layer2,
+
+            _ => tile.Layer1
+        };
+    }
+
     protected override void OnMouseDown(MouseEventArgs e)
     {
         base.OnMouseDown(e);
-        lastMousePos = e.Location;
+
+        Focus();
+
+        ActiveTool?.OnMouseDown(e);
+
+        //lastMousePos = e.Location;
     }
 
     protected override void OnMouseUp(MouseEventArgs e)
     {
         base.OnMouseUp(e);
 
-        if (!ModifierKeys.HasFlag(Keys.Control) && TileBrush.HasValue)
-        {
-            int clickedX = (e.X - offset.X) / Zoom;
-            int clickedY = (e.Y - offset.Y) / Zoom;
-            int tileX = clickedX / 2;
-            int tileY = clickedY / 2;
-            int subX = clickedX % 2;
-            int subY = clickedY % 2;
-
-            if (PBCFile != null && tileX >= 0 && tileX < PBCFile.Width && tileY >= 0 && tileY < PBCFile.Height && subX >= 0 && subY >= 0) 
-            {
-                if (CurrentView == ViewType.Collision)
-                {
-                    var tile = PBCFile[tileY, tileX];
-                    tile.Type[subY, subX] = TileBrush.Value;
-                    Invalidate();
-                }
-                else
-                {
-                    var tile = PBCFile[tileY, tileX];
-                    QuadrantSelected?.Invoke(tile.HeightMap.Quadrants[subY, subX]);
-                }
-            }
-        }
+        ActiveTool?.OnMouseUp(e);
     }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -204,6 +245,8 @@ public class TileEditor : Control
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
+        ActiveTool?.OnMouseMove(e);
+
         if (e.Button == MouseButtons.Left && ModifierKeys.HasFlag(Keys.Control) && lastMousePos.HasValue)
         {
             int dx = e.X - lastMousePos.Value.X;
@@ -213,31 +256,6 @@ public class TileEditor : Control
             offset.Y += dy;
             lastMousePos = e.Location;
             Invalidate();
-        }
-        else if (CurrentView != ViewType.Collision)
-        {
-            int clickedX = (e.X - offset.X) / Zoom;
-            int clickedY = (e.Y - offset.Y) / Zoom;
-            int tileX = clickedX / 2;
-            int tileY = clickedY / 2;
-            int subX = clickedX % 2;
-            int subY = clickedY % 2;
-
-            if (PBCFile != null 
-                && tileX >= 0 
-                && tileX < PBCFile.Width 
-                && tileY >= 0 
-                && tileY < PBCFile.Height && subX >= 0 && subY >= 0)
-            {
-                var tile = PBCFile[tileY, tileX];
-                HighlightedHeight = tile.HeightMap.Quadrants[subY, subX].Val2;
-                Invalidate();
-            }
-
-        }
-        else
-        {
-            HighlightedHeight = null;
         }
 
         base.OnMouseMove(e);
@@ -250,4 +268,48 @@ public class TileEditor : Control
         ZoomChanged?.Invoke(Zoom);
         Invalidate();
     }
+
+    public bool TryGetTilePosition(Point mouse, out TilePosition pos)
+    {
+        pos = default;
+
+        if (PBCFile == null)
+            return false;
+
+        int clickedX = (mouse.X - offset.X) / Zoom;
+        int clickedY = (mouse.Y - offset.Y) / Zoom;
+
+        int tileX = clickedX / 2;
+        int tileY = clickedY / 2;
+        int subX = clickedX % 2;
+        int subY = clickedY % 2;
+
+        if (tileX < 0 || tileX >= PBCFile.Width ||
+            tileY < 0 || tileY >= PBCFile.Height ||
+            subX < 0 || subY < 0)
+            return false;
+
+        pos = new TilePosition
+        {
+            TileX = tileX,
+            TileY = tileY,
+            SubX = subX,
+            SubY = subY
+        };
+
+        return true;
+    }
+
+    public void ChangeLayerView(LayerView view)
+    {
+        if (LayerView != view)
+        {
+            LayerView = view;
+            UpdateHeight();
+            Invalidate();
+        }
+    }
+
+    public void SelectQuadrant(PBCFileReader.Quadrant quadrant) => QuadrantSelected?.Invoke(quadrant);
+    
 }

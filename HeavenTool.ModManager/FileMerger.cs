@@ -79,8 +79,7 @@ namespace HeavenTool.ModManager
                 // modFile = new GenericFile(stream, fileName);
             }
 
-            if (modFile != null) 
-                modFile.Compression = compression;
+            modFile?.Compression = compression;
 
             return modFile;
         }

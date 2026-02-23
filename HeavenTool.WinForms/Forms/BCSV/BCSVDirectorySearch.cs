@@ -57,7 +57,7 @@ public partial class BCSVDirectorySearch : Form
             return;
 
         using var stream = File.OpenRead(path);
-        var bcsvFile = new BinaryCSV(stream.ToArray());
+        var bcsvFile = new BinaryCSV(stream);
 
         foreach (var header in bcsvFile.Fields)
         {

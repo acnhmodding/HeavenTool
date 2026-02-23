@@ -36,8 +36,8 @@
             itemPropertyGrid = new System.Windows.Forms.PropertyGrid();
             barsTreeView = new System.Windows.Forms.TreeView();
             barsContainer = new System.Windows.Forms.SplitContainer();
-            customWaveViewer1 = new HeavenTool.Forms.Components.CustomWaveViewer();
             playButton = new AltUI.Controls.DarkButton();
+            customWaveViewer1 = new HeavenTool.Forms.Components.CustomWaveViewer();
             darkMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)barsContainer).BeginInit();
             barsContainer.Panel1.SuspendLayout();
@@ -102,7 +102,7 @@
             itemPropertyGrid.Margin = new System.Windows.Forms.Padding(3, 3, 3, 1);
             itemPropertyGrid.Name = "itemPropertyGrid";
             itemPropertyGrid.SelectedItemWithFocusForeColor = System.Drawing.Color.Black;
-            itemPropertyGrid.Size = new System.Drawing.Size(269, 339);
+            itemPropertyGrid.Size = new System.Drawing.Size(267, 339);
             itemPropertyGrid.TabIndex = 2;
             itemPropertyGrid.ToolbarVisible = false;
             itemPropertyGrid.ViewBackColor = System.Drawing.Color.FromArgb(26, 26, 26);
@@ -142,6 +142,21 @@
             barsContainer.SplitterWidth = 6;
             barsContainer.TabIndex = 4;
             // 
+            // playButton
+            // 
+            playButton.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            playButton.BackgroundImage = Properties.Resources.play;
+            playButton.BorderColour = System.Drawing.Color.Empty;
+            playButton.ButtonStyle = AltUI.Controls.DarkButtonStyle.Image;
+            playButton.Enabled = false;
+            playButton.ImagePadding = 0;
+            playButton.Location = new System.Drawing.Point(0, 347);
+            playButton.Name = "playButton";
+            playButton.Padding = new System.Windows.Forms.Padding(5);
+            playButton.Size = new System.Drawing.Size(23, 23);
+            playButton.TabIndex = 6;
+            playButton.Click += PlayStopButton_Click;
+            // 
             // customWaveViewer1
             // 
             customWaveViewer1.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
@@ -150,23 +165,9 @@
             customWaveViewer1.Location = new System.Drawing.Point(0, 373);
             customWaveViewer1.Margin = new System.Windows.Forms.Padding(3, 0, 3, 3);
             customWaveViewer1.Name = "customWaveViewer1";
-            customWaveViewer1.Size = new System.Drawing.Size(269, 43);
+            customWaveViewer1.Size = new System.Drawing.Size(267, 43);
             customWaveViewer1.StartPosition = 0L;
             customWaveViewer1.TabIndex = 3;
-            // 
-            // playButton
-            // 
-            playButton.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
-            playButton.BackgroundImage = Properties.Resources.play;
-            playButton.BorderColour = System.Drawing.Color.Empty;
-            playButton.ButtonStyle = AltUI.Controls.DarkButtonStyle.Image;
-            playButton.ImagePadding = 0;
-            playButton.Location = new System.Drawing.Point(0, 347);
-            playButton.Name = "playButton";
-            playButton.Padding = new System.Windows.Forms.Padding(5);
-            playButton.Size = new System.Drawing.Size(23, 23);
-            playButton.TabIndex = 6;
-            playButton.Click += this.darkButton1_Click;
             // 
             // BARSWindow
             // 

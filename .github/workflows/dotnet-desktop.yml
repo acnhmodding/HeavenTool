@@ -28,8 +28,17 @@ jobs:
       - name: Build solution
         run: dotnet build --configuration Release --no-restore
 
-      #- name: Publish application
-      #  run: dotnet publish -c Release -r win-x64 --self-contained false -o publish
+      - name: Publish Mod Manager
+        run: dotnet publish HeavenTool.ModManager.CLI/HeavenTool.ModManager.CLI.csproj `
+              -c Release `
+              -r win-x64 `
+              --self-contained false `
+              -o modmanager-windows
+
+      - name: Compress artifacts
+        run: |
+          Compress-Archive -Path modmanager-windows\* -DestinationPath ModManager-Windows.zip
+        shell: pwsh
 
       - name: Publish WinForms
         run: dotnet publish HeavenTool.WinForms/HeavenTool.WinForms.csproj `
@@ -50,6 +59,12 @@ jobs:
         run: |
           Compress-Archive -Path selfcontained\* -DestinationPath HeavenTool-Windows-selfcontained.zip
         shell: pwsh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ModManager-Windows
+          path: ModManager-Windows.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -89,6 +104,11 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
+          name: ModManager-Windows
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
           name: HeavenTool-Windows
 
       - name: Download self-contained artifact
@@ -102,11 +122,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: "v${{ needs.build.outputs.version }}.${{ github.run_number }}"
+          tag_name: "v${{ needs.build.outputs.version }}_Build_${{ github.run_number }}"
           release_name: "(Automatic) v${{ needs.build.outputs.version }} | Build ${{ github.run_number }}"
           body: "Automated release for commit ${{ github.sha }} with version v${{ needs.build.outputs.version }}"
           draft: false
           prerelease: true
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./ModManager-Windows.zip
+          asset_name: ModManager-Windows.zip
+          asset_content_type: application/zip
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1

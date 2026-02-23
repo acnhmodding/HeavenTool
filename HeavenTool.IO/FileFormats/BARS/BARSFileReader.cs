@@ -5,34 +5,51 @@ namespace HeavenTool.IO.FileFormats.BARS;
 
 public class AudioAsset
 {
-    public uint crcHash;
-    //public uint amtaOffset;
-    public int assetOffset;
-    public string assetName;
-    public string assetType;
-    public bool isPrefetch = false;
-    public byte[] assetData;
-    public AudioMetadata amtaData;
-    public BinaryWaveFile binaryWave;
+    /// <summary>
+    /// CRC32 Hash for the Asset name
+    /// </summary>
+    public uint Hash { get; set; }
+
+    /// <summary>
+    /// Offset for the asset data, this is used to read the actual audio data from the file.
+    /// </summary>
+    public int AssetOffset { get; set; }
+    public bool IsPrefetch { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the metadata information associated with the audio content.
+    /// </summary>
+    public AudioMetadata AudioMetadata { get; set; }
+
+    /// <summary>
+    /// Gets or sets the binary wave file associated with the current instance.
+    /// </summary>
+    public BinaryWaveFile BinaryWave { get; set; }
 
     public override string ToString()
     {
-        return assetName;
+        return AudioMetadata?.AssetName ?? "[Metadata not found]";
     }
 }
 
 public class BARSFileReader
 {
-    public BARSFileReader(string fileName) : this(new FileStream(fileName, FileMode.Open))
-    {
-        // Open using a fileName path
-    }
+    /// <summary>
+    /// Indicates if file is on big-endian byte order.
+    /// </summary>
+    public bool BigEndian { get; }
 
-    public bool BigEndian { get; set; }
-    public byte VersionMajor { get; set; }
-    public byte VersionMinor { get; set; }
+    /// <summary>
+    /// Major version of BARS header, currently only version 1.1 and 1.2 are supported.
+    /// </summary>
+    public byte VersionMajor { get; }
 
-    public AudioAsset[] AudioAssets { get; set; }
+    /// <summary>
+    /// Minor version of BARS header, currently only version 1.1 and 1.2 are supported.
+    /// </summary>
+    public byte VersionMinor { get; }
+
+    public AudioAsset[] AudioAssets { get; }
 
     public BARSFileReader(Stream stream)
     {
@@ -62,7 +79,7 @@ public class BARSFileReader
         {
             AudioAssets[i] = new AudioAsset()
             {
-                crcHash = reader.ReadUInt32()
+                Hash = reader.ReadUInt32()
             };
         }
 
@@ -70,20 +87,23 @@ public class BARSFileReader
         {
             var audioAsset = AudioAssets[i];
 
-            // Read AudioMetadata
+            // Read Audio Metadata from offset
             using (reader.CreateScopeAt(reader.ReadUInt32()))
-                audioAsset.amtaData = new AudioMetadata(audioAsset, reader);
+                audioAsset.AudioMetadata = new AudioMetadata(audioAsset, reader);
 
-            var checkHash = audioAsset.amtaData.AssetName.ToCRC32();
-            if (checkHash != audioAsset.crcHash) throw new Exception($"Invalid CRC32 Hash for {i}: {audioAsset.amtaData.AssetName}! Expected: {audioAsset.crcHash:x} | Got {checkHash:x}");
-            audioAsset.assetOffset = reader.ReadInt32();
+            var checkHash = audioAsset.AudioMetadata.AssetName.ToCRC32();
+            if (checkHash != audioAsset.Hash) 
+                throw new Exception($"Invalid CRC32 Hash for {i}: {audioAsset}!\n" +
+                    $"Expected: {audioAsset.Hash:x} | Got {checkHash:x}");
+
+            audioAsset.AssetOffset = reader.ReadInt32();
         }
 
         // Sort AudioAssets by lowest assetOffset
-        Array.Sort(AudioAssets, (a, b) => a.assetOffset.CompareTo(b.assetOffset));
+        Array.Sort(AudioAssets, (a, b) => a.AssetOffset.CompareTo(b.AssetOffset));
 
         // Here we have to group because some files shares the same assetOffset
-        var groups = AudioAssets.GroupBy(x => x.assetOffset).ToList();
+        var groups = AudioAssets.GroupBy(x => x.AssetOffset).ToList();
         int groupCount = groups.Count;
 
         for (int i = 0; i < groups.Count; i++)
@@ -105,56 +125,7 @@ public class BARSFileReader
 
             // Assign the BinaryWave to all the audio assets in the group
             foreach (var audioAsset in group)
-                audioAsset.binaryWave = binaryWave;
+                audioAsset.BinaryWave = binaryWave;
         }
-
-
-        //for (int i = 0; i < assetCount; i++)
-        //{
-        //    var audioAsset = AudioAssets[i];
-        //    if (audioAsset.assetOffset <= 0)
-        //    {
-        //        throw new Exception($"{audioAsset.amtaData.AssetName} does not contain a valid asset offset!"); 
-        //    }
-
-
-        //    var assetType = audioAsset.assetType = reader.ReadStringAt(audioAsset.assetOffset, 4);
-
-        //    if (assetType != "BWAV")
-        //    {
-        //        throw new Exception("non-BWAV file is not supported");
-        //        audioAsset.isPrefetch = assetType == "FSTP";
-        //        reader.Position += 8;
-        //        int assetSize = reader.ReadInt32();
-
-        //        reader.JumpTo(AudioAssets[i].assetOffset);
-        //        audioAsset.assetData = reader.ReadByteArray(assetSize);
-        //    }
-        //    else
-        //    {
-
-
-        //        byte[] assetData;
-        //        if (i != AudioAssets.Length - 1)
-        //        {
-        //            assetData = reader.ReadByteArrayAt(audioAsset.assetOffset, (int)(AudioAssets[i + 1].assetOffset - audioAsset.assetOffset));
-        //        }
-        //        else
-        //        {  // last entry
-        //            assetData = reader.ReadByteArrayAt(audioAsset.assetOffset, (int)(reader.Length - audioAsset.assetOffset));
-        //        }
-
-        //        Console.WriteLine("-----------");
-        //        Console.WriteLine($"Current index: {i}\n" +
-        //            $"Current offset: {audioAsset.assetOffset}\n" +
-        //            $"Next offset: {AudioAssets[i + 1].assetOffset}");
-        //        Console.WriteLine(reader.ReadStringAt(audioAsset.assetOffset, 4));
-        //        Console.WriteLine(assetData.Length);
-        //        Console.WriteLine($"IsLast: {i == AudioAssets.Length - 1}");
-
-        //        AudioAssets[i].binaryWave = new BinaryWaveFile(assetData);
-        //    }
-
-        //}
     }
 }

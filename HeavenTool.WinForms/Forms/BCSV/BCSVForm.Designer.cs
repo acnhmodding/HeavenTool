@@ -55,6 +55,8 @@ namespace HeavenTool
             deleteRowsToolStripMenuItem = new ToolStripMenuItem();
             compareRowsToolStripMenuItem = new ToolStripMenuItem();
             copyToolStripMenuItem1 = new ToolStripMenuItem();
+            undoButton = new ToolStripMenuItem();
+            redoButton = new ToolStripMenuItem();
             viewToolStripMenuItem = new ToolStripMenuItem();
             viewColumnsMenuItem = new ToolStripMenuItem();
             selectionTypeMenuItem = new ToolStripMenuItem();
@@ -191,7 +193,7 @@ namespace HeavenTool
             // editToolStripMenuItem
             // 
             editToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            editToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchToolStripMenuItem, newEntryToolStripMenuItem, duplicateRowToolStripMenuItem, deleteRowsToolStripMenuItem, compareRowsToolStripMenuItem, copyToolStripMenuItem1 });
+            editToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchToolStripMenuItem, newEntryToolStripMenuItem, duplicateRowToolStripMenuItem, deleteRowsToolStripMenuItem, compareRowsToolStripMenuItem, copyToolStripMenuItem1, undoButton, redoButton });
             editToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             editToolStripMenuItem.Name = "editToolStripMenuItem";
             editToolStripMenuItem.Size = new System.Drawing.Size(39, 20);
@@ -272,6 +274,22 @@ namespace HeavenTool
             copyToolStripMenuItem1.Size = new System.Drawing.Size(213, 30);
             copyToolStripMenuItem1.Text = "Copy";
             copyToolStripMenuItem1.Click += CopyToolStripMenuItem_Click;
+            // 
+            // undoButton
+            // 
+            undoButton.Name = "undoButton";
+            undoButton.ShortcutKeys = Keys.Control | Keys.Z;
+            undoButton.Size = new System.Drawing.Size(213, 30);
+            undoButton.Text = "Undo";
+            undoButton.Click += UndoButton_Click;
+            // 
+            // redoButton
+            // 
+            redoButton.Name = "redoButton";
+            redoButton.ShortcutKeys = Keys.Control | Keys.Y;
+            redoButton.Size = new System.Drawing.Size(213, 30);
+            redoButton.Text = "Redo";
+            redoButton.Click += RedoButton_Click;
             // 
             // viewToolStripMenuItem
             // 
@@ -587,6 +605,8 @@ namespace HeavenTool
         private ToolStripMenuItem cellSelectToolStripMenuItem;
         private ToolStripMenuItem hashFinderToolStripMenuItem;
         private ToolStripMenuItem copyToolStripMenuItem1;
+        private ToolStripMenuItem undoButton;
+        private ToolStripMenuItem redoButton;
     }
 }
 

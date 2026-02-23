@@ -16,9 +16,7 @@ public sealed class BCSV : ModFile
 
         if (stream is MemoryStream memoryStream)
         {
-            var bytes = memoryStream.ToArray();
-
-            LoadedFile = new BinaryCSV(bytes);
+            LoadedFile = new BinaryCSV(memoryStream);
             if (LoadedFile.Length == 0 || LoadedFile.Fields.Length == 0) return;
 
             UniqueHeader = BinaryCSV.UniqueHashes.FirstOrNullStruct(x => LoadedFile.Fields.Any(field => field.Hash == x));

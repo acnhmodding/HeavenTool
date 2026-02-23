@@ -7,9 +7,9 @@ using System.Windows.Forms;
 using DarkContextMenuStrip = HeavenTool.Forms.Components.DarkContextMenuStrip;
 using HeavenTool.Forms.PBC;
 using HeavenTool.IO;
+using AeonSake.NintendoTools.FileFormats;
 using AeonSake.NintendoTools.Compression.Zstd;
 using AeonSake.NintendoTools.FileFormats.Sarc;
-using AltUI.Controls;
 
 namespace HeavenTool.Forms.SARC;
 
@@ -18,19 +18,63 @@ public partial class SarcEditor : Form
     public SarcEditor()
     {
         InitializeComponent();
+
+        // probably I should find a better way of initialzing this
+        if (!isSarcInitialized)
+        {
+            var alignmentTable = new AlignmentTable()
+            {
+                Default = 0x08,
+            };
+
+            (string, int)[] extensionAlignments = [
+                (".bgenv", 0x04),
+                (".bfcpx", 0x10),
+                (".bflan", 0x10),
+                (".bflyt", 0x10),
+                (".bushvt", 0x10),
+                (".glsl", 0x10),
+                (".byml", 0x20),
+                (".pbc", 0x80),
+                (".belnk", 0x100),
+                (".msbt", 0x100),
+                (".barslist", 0x100),
+                (".bnsh", 0x1000),
+                (".bntx", 0x1000),
+                (".sharcb", 0x1000),
+                (".arc", 0x2000),
+                (".baglmf", 0x2000),
+                (".bffnt", 0x2000),
+                (".bfotf", 0x2000),
+                (".bfres", 0x2000),
+                (".bfsha", 0x2000),
+                (".bfttf", 0x2000),
+                (".bphcw", 0x2000),
+                (".bphlik", 0x2000),
+                (".genvb", 0x2000),
+                (".genvres", 0x2000),
+                (".phive", 0x2000),
+                (".ptcl", 0x4000)
+            ];
+
+            foreach (var (extension, alignment) in extensionAlignments)
+                alignmentTable.Add(extension, alignment);
+
+            isSarcInitialized = true;
+            SarcCompiler.Alignment = alignmentTable;
+        }
     }
 
+    private static bool isSarcInitialized = false;
     private static readonly ZstdCompressor Compressor = new();
     private static readonly ZstdDecompressor Decompressor = new();
     private static readonly SarcFileReader SarcFileParser = new();
     private static readonly SarcFileWriter SarcCompiler = new();
 
-    private string LoadedFileName { get; set; }
-    private SarcFile LoadedFile;
-
-    private Dictionary<SarcContent, DarkTreeNode> Nodes;
-    private List<SarcContent> OpenedFiles;
-    private List<Form> OpenedEditors;
+    private string loadedFileName = "";
+    private SarcFile? loadedFile;
+    private Dictionary<SarcContent, TreeNode>? nodes;
+    private List<Form>? openedEditors;
 
     private bool _isDirty;
     private bool IsDirty
@@ -41,8 +85,8 @@ public partial class SarcEditor : Form
             if (_isDirty != value)
                 _isDirty = value;
 
-            if (LoadedFile != null)
-                Text = $"SARC Editor: {LoadedFileName}{(_isDirty ? "*" : "")}";
+            if (loadedFile != null)
+                Text = $"SARC Editor: {loadedFileName}{(_isDirty ? "*" : "")}";
             else
                 Text = "SARC Editor";
         }
@@ -50,7 +94,7 @@ public partial class SarcEditor : Form
 
     private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        if (IsDirty || (OpenedEditors != null && OpenedEditors.Count > 0))
+        if (IsDirty || (openedEditors != null && openedEditors.Count > 0))
         {
             var result = MessageBox.Show("Do you really want to open a new file?\n\nAll current editors will be closed and you'll lose any non-saved progress!", "Open a new file?", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
 
@@ -68,53 +112,49 @@ public partial class SarcEditor : Form
         {
             var path = openFileDialog.FileName;
 
-            Stream file = File.OpenRead(path);
-            MemoryStream fileStream = new();
-
-            file.CopyTo(fileStream);
-
-            var isDecompressed = fileStream.ReadString(4, Encoding.ASCII) == "SARC";
-            fileStream.Position = 0;
+            using var file = File.OpenRead(path);
+            using var fileStream = new MemoryStream();
 
             // Check for compressor
-            if (!isDecompressed && Decompressor.CanDecompress(file))
+            if (Decompressor.CanDecompress(file))
                 Decompressor.Decompress(file, fileStream);
+            else file.CopyTo(fileStream);
 
+            fileStream.Position = 0;
             if (fileStream.Length == 0) throw new Exception("Failed to open SARC file!");
 
             filesTreeView.Nodes.Clear();
 
-            LoadedFileName = Path.GetFileName(path);
+            loadedFileName = Path.GetFileName(path);
             try
             {
-                LoadedFile = SarcFileParser.Read(fileStream);
+                loadedFile = SarcFileParser.Read(fileStream);
             } 
             catch(InvalidDataException)
             {
-                MessageBox.Show("This is not a SARC file!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"This is not a SARC file! ({fileStream.ReadString(4, Encoding.UTF8)})", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            OpenedFiles = [];
 
-            if (OpenedEditors != null && OpenedEditors.Count > 0)
-                foreach (var editor in OpenedEditors)
+            if (openedEditors != null && openedEditors.Count > 0)
+                foreach (var editor in openedEditors)
                     editor.Close();
 
-            OpenedEditors = [];
-            Nodes = [];
+            openedEditors = [];
+            nodes = [];
             IsDirty = false;
 
-            foreach (var sarcContent in LoadedFile.Files)
+            foreach (var sarcContent in loadedFile.Files)
             {
-                var treeNode = new DarkTreeNode(sarcContent.Name);
+                var treeNode = new TreeNode(sarcContent.Name);
                 filesTreeView.Nodes.Add(treeNode);
                 var context = new DarkContextMenuStrip();
 
                 if (sarcContent.Name.EndsWith(".pbc"))
                 {
-                    ToolStripItem item = null;
-                    item = context.Items.Add("Open with PBC Editor", null, (_, _) =>
+                    ToolStripItem item = context.Items.Add("Open with PBC Editor");
+                    item.Click += (_, _) =>
                     {
                         void saveFunction(byte[] bytes)
                         {
@@ -126,15 +166,14 @@ public partial class SarcEditor : Form
                         var editor = new PBCEditor(sarcContent.Data, sarcContent.Name, saveFunction);
                         editor.Show();
 
-                        OpenedFiles.Add(sarcContent);
-                        OpenedEditors.Add(editor);
+                        openedEditors.Add(editor);
                         item.Enabled = false;
 
                         editor.FormClosed += (_, _) =>
                         {
                             item.Enabled = true;
                         };
-                    });
+                    };
                 }
 
                 context.Items.Add("Export Data...", null, (_, _) =>
@@ -163,25 +202,23 @@ public partial class SarcEditor : Form
                         sarcContent.Data = stream.ToArray();
                     }
                 });
-                //treeNode.ContextMenuStrip = context;
+                treeNode.ContextMenuStrip = context;
                
-                Nodes[sarcContent] = treeNode;
+                nodes[sarcContent] = treeNode;
             }
 
             filesTreeView.Invalidate();
             fileStream.Close();
         }
-
-
     }
 
     private void SaveAsToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        if (LoadedFile == null) return;
+        if (loadedFile == null) return;
 
         var memoryStream = new MemoryStream();
 
-        SarcCompiler.Write(LoadedFile, memoryStream);
+        SarcCompiler.Write(loadedFile, memoryStream);
 
         var msg = MessageBox.Show("Do you want to compress with Zstd?", "ZSTD Compression", MessageBoxButtons.YesNo);
         bool isCompressed = false;
@@ -203,7 +240,7 @@ public partial class SarcEditor : Form
         var saveFileDialog = new SaveFileDialog()
         {
             Title = "Select where you want to save",
-            FileName = isCompressed ? $"{LoadedFileName}.Nin_NX_NVN.zs" : LoadedFileName
+            FileName = isCompressed ? $"{loadedFileName}.Nin_NX_NVN.zs" : loadedFileName
         };
 
         if (saveFileDialog.ShowDialog() == DialogResult.OK)
@@ -215,13 +252,8 @@ public partial class SarcEditor : Form
         IsDirty = false;
 
         // Remove Dirty Asterisk
-        foreach (var (sarcConcent, node) in Nodes)
-            node.Text = sarcConcent.Name;
-
-    }
-
-    private void searchTextBox_Click(object sender, EventArgs e)
-    {
-
+        if (nodes != null)
+            foreach (var (sarcConcent, node) in nodes)
+                node.Text = sarcConcent.Name;
     }
 }
