@@ -234,7 +234,7 @@ public class CheckedComboBox : ComboBox
         Text = sb.ToString();
     }
 
-    private void UpdateText()
+    public void UpdateText()
     {
         StringBuilder sb = new();
 
