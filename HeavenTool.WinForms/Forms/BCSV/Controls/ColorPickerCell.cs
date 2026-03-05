@@ -12,7 +12,7 @@ public class ColorPickerCell : DataGridViewCell
     public override Type FormattedValueType => typeof(string);
     public override object DefaultNewRowValue => Color.White;
 
-    protected override object GetFormattedValue(object value, int rowIndex, ref DataGridViewCellStyle cellStyle, TypeConverter valueTypeConverter, TypeConverter formattedValueTypeConverter, DataGridViewDataErrorContexts context)
+    protected override object? GetFormattedValue(object? value, int rowIndex, ref DataGridViewCellStyle cellStyle, TypeConverter? valueTypeConverter, TypeConverter? formattedValueTypeConverter, DataGridViewDataErrorContexts context)
     {
         if (value == null) return "Invalid";
 
@@ -22,7 +22,7 @@ public class ColorPickerCell : DataGridViewCell
         return base.GetFormattedValue(value, rowIndex, ref cellStyle, valueTypeConverter, formattedValueTypeConverter, context);
     }
 
-    public override void InitializeEditingControl(int rowIndex, object initialFormattedValue, DataGridViewCellStyle dataGridViewCellStyle)
+    public override void InitializeEditingControl(int rowIndex, object? initialFormattedValue, DataGridViewCellStyle dataGridViewCellStyle)
     {
         if (DataGridView?.EditingControl is ColorPickerEditingControl colorPickerEditingControl)
         {

@@ -119,7 +119,7 @@ namespace HeavenTool.Forms.RSTB
             dataGrid.Size = new System.Drawing.Size(406, 321);
             dataGrid.StandardTab = true;
             dataGrid.TabIndex = 5;
-            dataGrid.CellFormatting += mainDataGridView_CellFormatting;
+            dataGrid.CellFormatting += MainDataGridView_CellFormatting;
             // 
             // FileName
             // 
@@ -325,7 +325,7 @@ namespace HeavenTool.Forms.RSTB
             copyToolStripMenuItem.Name = "copyToolStripMenuItem";
             copyToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
             copyToolStripMenuItem.Text = "Copy";
-            copyToolStripMenuItem.Click += copyToolStripMenuItem_Click;
+            copyToolStripMenuItem.Click += CopyToolStripMenuItem_Click;
             // 
             // RSTBEditor
             // 

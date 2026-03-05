@@ -3,61 +3,52 @@ namespace HeavenTool.IO.FileFormats.ResourceSizeTable;
 
 public static class RomFsNameManager
 {
-    private static Dictionary<uint, string> Hashes { get; set; }
+    private static readonly Dictionary<uint, string> Hashes = [];
 
-    private static bool _isInitialized;
+    private static readonly string ExtraFolder = "extra";
+    private static readonly string FileLocation = Path.Combine(ExtraFolder, "romfs-files.txt");
+
+    static RomFsNameManager()
+    {
+        Initialize();
+    }
 
     private static void Initialize()
     {
-        if (_isInitialized)
+        Directory.CreateDirectory(ExtraFolder);
+
+        if (!File.Exists(FileLocation))
+        {
+            File.WriteAllText(FileLocation, string.Empty);
             return;
-
-        _isInitialized = true;
-
-        string fileLocation = Path.Combine("extra", "romfs-files.txt");
-        Hashes = [];
-
-        if (File.Exists(fileLocation))
-        {
-            var lines = File.ReadAllLines(fileLocation);
-
-            foreach (var line in lines)
-            {
-                var hash = line.ToCRC32();
-
-                if (!Hashes.TryGetValue(hash, out string value))
-                    Hashes.Add(hash, line);
-                else if (value != "")
-                    Hashes[hash] = "";
-
-            }
         }
-        else
+
+        Hashes.Clear();
+
+        foreach (var line in File.ReadLines(FileLocation))
         {
-            // Create file if it doesn't exist
-            File.WriteAllText(fileLocation, "");
+            AddHash(line);
         }
+    }
+
+    private static void AddHash(string value)
+    {
+        var hash = value.ToCRC32();
+
+        if (!Hashes.TryAdd(hash, value))
+            Hashes[hash] = "";  // Mark as duplicate
     }
 
     public static string GetValue(uint hash)
     {
-        if (!_isInitialized) Initialize();
-
-        var myString = Hashes.TryGetValue(hash, out string value) ? value : null;
-
-        if (string.IsNullOrEmpty(myString)) myString = null;
-
-        return myString ?? $"0x{hash:x}";
+        return Hashes.TryGetValue(hash, out var value) && !string.IsNullOrEmpty(value) ? value : $"0x{hash:x}";
     }
 
     public static void Update(string[] files)
     {
-        string fileLocation = Path.Combine("extra", "romfs-files.txt");
+        Directory.CreateDirectory(ExtraFolder);
+        File.WriteAllLines(FileLocation, files);
 
-        File.WriteAllLines(fileLocation, files);
-
-        Hashes = [];
-        _isInitialized = false;
         Initialize();
     }
 }

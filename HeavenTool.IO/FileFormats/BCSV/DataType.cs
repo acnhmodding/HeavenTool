@@ -10,7 +10,6 @@ public enum DataType
     UInt32,
 
     Float32,
-    Float64,
 
     CRC32,
     MMH3,

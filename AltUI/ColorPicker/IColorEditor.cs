@@ -14,7 +14,6 @@ namespace AltUI.ColorPicker
     /// <summary>
     /// Provides functionality required by color editors that are bindable
     /// </summary>
-    [Obsolete("This interface will be removed in a future update.")]
     public interface IColorEditor
     {
         #region Events

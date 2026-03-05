@@ -9,6 +9,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -31,11 +32,17 @@ public partial class RSTBEditor : Form, ISearchable
         Text = $"Heaven Tool | {Program.VERSION} | RSTB Editor";
         OriginalText = Text;
 
-        dataGrid.Columns["FileName"].ValueType = typeof(string);
-        dataGrid.Columns["FileSize"].ValueType = typeof(uint);
-        dataGrid.Columns["DLC"].ValueType = typeof(uint);
-        dataGrid.ShowCellToolTips = false;
+       
+        if (TryGetColumn("FileName", out var fileNameColumn))
+            fileNameColumn.ValueType = typeof(string);
 
+        if (TryGetColumn("FileSize", out var fileSizeColumn))
+            fileSizeColumn.ValueType = typeof(uint);
+
+        if (TryGetColumn("DLC", out var dlcColumn))
+            dlcColumn.ValueType = typeof(uint);
+
+        dataGrid.ShowCellToolTips = false;
         dataGrid.VirtualMode = true;
         dataGrid.CellValueNeeded += DataGrid_CellValueNeeded;
 
@@ -48,7 +55,20 @@ public partial class RSTBEditor : Form, ISearchable
         associateRstbToolStripMenuItem.Checked = ProgramAssociation.GetAssociatedProgram(".srsizetable") == Application.ExecutablePath;
     }
 
-    private void DataGrid_CellValueNeeded(object sender, DataGridViewCellValueEventArgs e)
+    private bool TryGetColumn(string columnName, [MaybeNullWhen(false)] out DataGridViewColumn column)
+    {
+        column = null;
+
+        if (dataGrid.Columns.Contains(columnName) && dataGrid.Columns[columnName] is DataGridViewColumn c)
+        {
+            column = c;
+            return true;
+        }
+        else return false;
+    }
+
+
+    private void DataGrid_CellValueNeeded(object? sender, DataGridViewCellValueEventArgs e)
     {
         if (LoadedFile == null) return;
 
@@ -146,7 +166,9 @@ public partial class RSTBEditor : Form, ISearchable
 
         if (saveFileDialog.ShowDialog() == DialogResult.OK)
         {
-            File.WriteAllBytes(saveFileDialog.FileName, LoadedFile.Save());
+            var file = LoadedFile.Save();
+            if (file != null)
+                File.WriteAllBytes(saveFileDialog.FileName, file);
         }
     }
 
@@ -385,7 +407,7 @@ public partial class RSTBEditor : Form, ISearchable
                     return (searchType == SearchType.Contains && formattedValue.Contains(search)) || (searchType == SearchType.Exactly && formattedValue == search);
                 });
 
-            searchCache = cells.ToArray();
+            searchCache = [.. cells];
 
             if (searchCache.Length > 1 && searchBackwards)
                 currentSearchIndex = searchCache.Length - 1;
@@ -534,17 +556,13 @@ public partial class RSTBEditor : Form, ISearchable
         statusProgressBar.Value = 0;
 
         var rowCount = LoadedFile.Length;
-        var rowsData = new (int Index, string FileName, uint FileSize)[rowCount];
+        var rowsData = new (int Index, string? FileName, uint FileSize)[rowCount];
         
         for (int i = 0; i < rowCount; i++)
         {
             var row = LoadedFile[i];
 
-            rowsData[i] = (
-                i,
-                row.FileName,
-                row.FileSize
-            );
+            rowsData[i] = (i, row.FileName, row.FileSize);
         }
 
         var rowsToColor = new ConcurrentBag<int>();
@@ -608,12 +626,12 @@ public partial class RSTBEditor : Form, ISearchable
     }
 
 
-    private void mainDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+    private void MainDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
     {
 
     }
 
-    private void copyToolStripMenuItem_Click(object sender, EventArgs e)
+    private void CopyToolStripMenuItem_Click(object sender, EventArgs e)
     {
         StringBuilder sb = new();
 
@@ -621,7 +639,7 @@ public partial class RSTBEditor : Form, ISearchable
         var rows = dataGrid.SelectedRows.Cast<DataGridViewRow>().OrderBy(x => x.Index);
         foreach (var row in rows)
         {
-            var text = string.Join(";", row.Cells.Cast<DataGridViewCell>().Where(y => y.OwningColumn.Name != "DLC").Select(x => x.FormattedValue?.ToString()));
+            var text = string.Join(";", row.Cells.Cast<DataGridViewCell>().Where(y => y.OwningColumn != null && y.OwningColumn.Name != "DLC").Select(x => x.FormattedValue?.ToString()));
             sb.AppendLine(text);
         }
         

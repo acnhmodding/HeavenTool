@@ -126,7 +126,8 @@ internal static partial class Program
                             outPath = originalArguments[2];
 
                         var bytes = rstbEditor.LoadedFile.Save();
-                        File.WriteAllBytes(outPath, bytes);
+                        if (bytes != null)
+                            File.WriteAllBytes(outPath, bytes);
                     }
                     Environment.Exit(0);
                     return null;

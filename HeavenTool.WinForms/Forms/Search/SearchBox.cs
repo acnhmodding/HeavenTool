@@ -6,10 +6,8 @@ namespace HeavenTool.Forms
 {
     public partial class SearchBox : Form
     {
-        // TODO: Update this form to be compatible with any file type (form)
-
-        private Form callerForm;
-        private readonly ISearchable searchableForm;
+        private readonly Form callerForm;
+        private readonly ISearchable? searchableForm;
 
         public SearchBox(Form caller)
         {
@@ -33,7 +31,7 @@ namespace HeavenTool.Forms
 
         private void SearchBox_FormClosing(object sender, FormClosingEventArgs e)
         {
-            searchableForm.SearchClosing();
+            searchableForm?.SearchClosing();
 
             // Remove original form ownership, so it can actually close without any issue
             Owner = null;
@@ -56,7 +54,7 @@ namespace HeavenTool.Forms
 
         private void FindButton_Click(object sender, EventArgs e)
         {
-            searchableForm.Search(searchValue.Text, exactlyButton.Checked ? SearchType.Exactly : SearchType.Contains, reverseDirectionCheckbox.Checked, caseSensitivivtyCheckbox.Checked);
+            searchableForm?.Search(searchValue.Text, exactlyButton.Checked ? SearchType.Exactly : SearchType.Contains, reverseDirectionCheckbox.Checked, caseSensitivivtyCheckbox.Checked);
         }
 
         public void UpdateMatchesFound(int quantity, int currentIndex)

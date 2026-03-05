@@ -32,7 +32,7 @@ namespace HeavenTool
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(HeavenMain));
             bcsvEditorButton = new DarkButton();
-            topMenu = new DarkMenuStrip();
+            topMenu = new System.Windows.Forms.MenuStrip();
             toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             compressionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             yaz0ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -80,65 +80,51 @@ namespace HeavenTool
             // 
             // toolsToolStripMenuItem
             // 
-            toolsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { compressionToolStripMenuItem });
-            toolsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             toolsToolStripMenuItem.Size = new System.Drawing.Size(47, 20);
             toolsToolStripMenuItem.Text = "Tools";
             // 
             // compressionToolStripMenuItem
             // 
-            compressionToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             compressionToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { yaz0ToolStripMenuItem });
-            compressionToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             compressionToolStripMenuItem.Name = "compressionToolStripMenuItem";
             compressionToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             compressionToolStripMenuItem.Text = "Compression";
             // 
             // yaz0ToolStripMenuItem
             // 
-            yaz0ToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             yaz0ToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { yaz0DecompressToolStripMenuItem, yaz0CompressToolStripMenuItem });
-            yaz0ToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             yaz0ToolStripMenuItem.Name = "yaz0ToolStripMenuItem";
-            yaz0ToolStripMenuItem.Size = new System.Drawing.Size(97, 22);
+            yaz0ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             yaz0ToolStripMenuItem.Text = "Yaz0";
             // 
             // yaz0DecompressToolStripMenuItem
             // 
-            yaz0DecompressToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            yaz0DecompressToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             yaz0DecompressToolStripMenuItem.Name = "yaz0DecompressToolStripMenuItem";
-            yaz0DecompressToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
+            yaz0DecompressToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             yaz0DecompressToolStripMenuItem.Text = "Decompress";
             yaz0DecompressToolStripMenuItem.Click += Yaz0DecompressToolStripMenuItem_Click;
             // 
             // yaz0CompressToolStripMenuItem
             // 
-            yaz0CompressToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            yaz0CompressToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             yaz0CompressToolStripMenuItem.Name = "yaz0CompressToolStripMenuItem";
-            yaz0CompressToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
+            yaz0CompressToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             yaz0CompressToolStripMenuItem.Text = "Compress";
             yaz0CompressToolStripMenuItem.Click += Yaz0CompressToolStripMenuItem_Click;
             // 
             // devToolsToolStripMenuItem
             // 
-            devToolsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             devToolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { bCSVToolStripMenuItem });
-            devToolsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             devToolsToolStripMenuItem.Name = "devToolsToolStripMenuItem";
             devToolsToolStripMenuItem.Size = new System.Drawing.Size(70, 20);
             devToolsToolStripMenuItem.Text = "Dev Tools";
             // 
             // bCSVToolStripMenuItem
             // 
-            bCSVToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             bCSVToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { exportLabelsToolStripMenuItem, exportEnumsToolStripMenuItem, exportUsedHashesToolStripMenuItem });
-            bCSVToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             bCSVToolStripMenuItem.Name = "bCSVToolStripMenuItem";
-            bCSVToolStripMenuItem.Size = new System.Drawing.Size(102, 22);
+            bCSVToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             bCSVToolStripMenuItem.Text = "BCSV";
             // 
             // exportLabelsToolStripMenuItem
@@ -146,7 +132,7 @@ namespace HeavenTool
             exportLabelsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             exportLabelsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportLabelsToolStripMenuItem.Name = "exportLabelsToolStripMenuItem";
-            exportLabelsToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
+            exportLabelsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             exportLabelsToolStripMenuItem.Text = "Export Labels";
             exportLabelsToolStripMenuItem.Click += ExportLabelsToolStripMenuItem_Click;
             // 
@@ -155,7 +141,7 @@ namespace HeavenTool
             exportEnumsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             exportEnumsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportEnumsToolStripMenuItem.Name = "exportEnumsToolStripMenuItem";
-            exportEnumsToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
+            exportEnumsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             exportEnumsToolStripMenuItem.Text = "Export Enums";
             exportEnumsToolStripMenuItem.Click += ExportEnumsToolStripMenuItem_Click;
             // 
@@ -164,7 +150,7 @@ namespace HeavenTool
             exportUsedHashesToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             exportUsedHashesToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportUsedHashesToolStripMenuItem.Name = "exportUsedHashesToolStripMenuItem";
-            exportUsedHashesToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
+            exportUsedHashesToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             exportUsedHashesToolStripMenuItem.Text = "Export Used Hashes";
             exportUsedHashesToolStripMenuItem.Click += ExportUsedHashesToolStripMenuItem_Click;
             // 
@@ -263,7 +249,7 @@ namespace HeavenTool
 
         #endregion
         private DarkButton bcsvEditorButton;
-        private DarkMenuStrip topMenu;
+        private System.Windows.Forms.MenuStrip topMenu;
         private System.Windows.Forms.ToolStripMenuItem toolsToolStripMenuItem;
         private System.Windows.Forms.PictureBox pictureBox1;
         private DarkButton rstbEditorButton;

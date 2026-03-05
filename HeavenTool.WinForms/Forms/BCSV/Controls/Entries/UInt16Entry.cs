@@ -1,12 +1,11 @@
 ﻿using HeavenTool.Forms.BCSV.Controls.Entries;
 using System;
-using System.Windows.Forms;
 
 namespace HeavenTool.Forms.BCSV.Controls;
 
-public partial class UInt16Entry : UserControl, IBCSVEntry
+public partial class UInt16Entry : BCSVEntry
 {
-    public Action<object> Callback;  
+    public Action<object>? Callback;  
     public UInt16Entry(object defaultValue)
     {
         InitializeComponent();
@@ -15,17 +14,17 @@ public partial class UInt16Entry : UserControl, IBCSVEntry
         Input_TextChanged(this, EventArgs.Empty);
     }
 
-    public void SetCallback(Action<object> newValueCallback)
+    public override void SetCallback(Action<object> newValueCallback)
     {
         Callback = newValueCallback;
     }
 
-    public void SetPropertyName(string name)
+    public override void SetPropertyName(string name)
     {
         propertyNameLabel.Text = name;
     }
 
-    public void SetUniqueIdentifier()
+    public override void SetUniqueIdentifier()
     {
         propertyNameLabel.Font = new System.Drawing.Font(DefaultFont, System.Drawing.FontStyle.Bold);
     }
@@ -34,5 +33,12 @@ public partial class UInt16Entry : UserControl, IBCSVEntry
     {
         if (ushort.TryParse(input.Text, out ushort value))
             Callback?.Invoke(value);
+    }
+
+    public override object GetValue()
+    {
+        if (ushort.TryParse(input.Text, out ushort value))
+            return value;
+        else return ushort.MinValue;
     }
 }

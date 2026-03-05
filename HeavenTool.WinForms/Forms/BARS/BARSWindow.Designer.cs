@@ -36,6 +36,7 @@
             itemPropertyGrid = new System.Windows.Forms.PropertyGrid();
             barsTreeView = new System.Windows.Forms.TreeView();
             barsContainer = new System.Windows.Forms.SplitContainer();
+            timeLabel = new System.Windows.Forms.Label();
             playButton = new AltUI.Controls.DarkButton();
             customWaveViewer1 = new HeavenTool.Forms.Components.CustomWaveViewer();
             darkMenuStrip1.SuspendLayout();
@@ -52,7 +53,7 @@
             darkMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { fileToolStripMenuItem, optionsToolStripMenuItem });
             darkMenuStrip1.Location = new System.Drawing.Point(0, 0);
             darkMenuStrip1.Name = "darkMenuStrip1";
-            darkMenuStrip1.Size = new System.Drawing.Size(483, 24);
+            darkMenuStrip1.Size = new System.Drawing.Size(500, 24);
             darkMenuStrip1.TabIndex = 1;
             darkMenuStrip1.Text = "darkMenuStrip1";
             // 
@@ -102,7 +103,7 @@
             itemPropertyGrid.Margin = new System.Windows.Forms.Padding(3, 3, 3, 1);
             itemPropertyGrid.Name = "itemPropertyGrid";
             itemPropertyGrid.SelectedItemWithFocusForeColor = System.Drawing.Color.Black;
-            itemPropertyGrid.Size = new System.Drawing.Size(267, 339);
+            itemPropertyGrid.Size = new System.Drawing.Size(279, 339);
             itemPropertyGrid.TabIndex = 2;
             itemPropertyGrid.ToolbarVisible = false;
             itemPropertyGrid.ViewBackColor = System.Drawing.Color.FromArgb(26, 26, 26);
@@ -114,7 +115,7 @@
             barsTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             barsTreeView.Location = new System.Drawing.Point(5, 5);
             barsTreeView.Name = "barsTreeView";
-            barsTreeView.Size = new System.Drawing.Size(195, 411);
+            barsTreeView.Size = new System.Drawing.Size(202, 411);
             barsTreeView.TabIndex = 3;
             // 
             // barsContainer
@@ -133,14 +134,25 @@
             // 
             // barsContainer.Panel2
             // 
+            barsContainer.Panel2.Controls.Add(timeLabel);
             barsContainer.Panel2.Controls.Add(playButton);
             barsContainer.Panel2.Controls.Add(customWaveViewer1);
             barsContainer.Panel2.Controls.Add(itemPropertyGrid);
             barsContainer.Panel2.Padding = new System.Windows.Forms.Padding(0, 5, 5, 5);
-            barsContainer.Size = new System.Drawing.Size(483, 421);
-            barsContainer.SplitterDistance = 200;
+            barsContainer.Size = new System.Drawing.Size(500, 421);
+            barsContainer.SplitterDistance = 207;
             barsContainer.SplitterWidth = 6;
             barsContainer.TabIndex = 4;
+            // 
+            // timeLabel
+            // 
+            timeLabel.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
+            timeLabel.Location = new System.Drawing.Point(150, 351);
+            timeLabel.Name = "timeLabel";
+            timeLabel.Size = new System.Drawing.Size(129, 15);
+            timeLabel.TabIndex = 7;
+            timeLabel.Text = "0:000:000";
+            timeLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // playButton
             // 
@@ -165,7 +177,7 @@
             customWaveViewer1.Location = new System.Drawing.Point(0, 373);
             customWaveViewer1.Margin = new System.Windows.Forms.Padding(3, 0, 3, 3);
             customWaveViewer1.Name = "customWaveViewer1";
-            customWaveViewer1.Size = new System.Drawing.Size(267, 43);
+            customWaveViewer1.Size = new System.Drawing.Size(279, 43);
             customWaveViewer1.StartPosition = 0L;
             customWaveViewer1.TabIndex = 3;
             // 
@@ -174,14 +186,14 @@
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            ClientSize = new System.Drawing.Size(483, 445);
+            ClientSize = new System.Drawing.Size(500, 445);
             Controls.Add(barsContainer);
             Controls.Add(darkMenuStrip1);
             Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
             MainMenuStrip = darkMenuStrip1;
+            MinimumSize = new System.Drawing.Size(430, 200);
             Name = "BARSWindow";
             Text = "Binary Audio Resources Editor";
-            Load += BARSWindow_Load;
             darkMenuStrip1.ResumeLayout(false);
             darkMenuStrip1.PerformLayout();
             barsContainer.Panel1.ResumeLayout(false);
@@ -202,5 +214,6 @@
         private System.Windows.Forms.ToolStripMenuItem optionsToolStripMenuItem;
         private Components.CustomWaveViewer customWaveViewer1;
         private AltUI.Controls.DarkButton playButton;
+        private System.Windows.Forms.Label timeLabel;
     }
 }

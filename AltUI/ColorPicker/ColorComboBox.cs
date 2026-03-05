@@ -27,7 +27,6 @@ namespace AltUI.ColorPicker
     {
         #region Public Constructors
 
-        private DarkTextBox _textBox;
 
         public ColorComboBox()
         {
@@ -65,23 +64,6 @@ namespace AltUI.ColorPicker
             SetDropDownWidth();
             EndUpdate();
         }
-        private void OnTextBoxTextChanged(object sender, EventArgs e)
-        {
-            Text = _textBox.Text;
-        }
-
-        private void OnTextBoxKeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (Char.IsControl(e.KeyChar)) return;
-            // Add the typed character to the text box's text
-            _textBox.Text += e.KeyChar;
-            // Move the cursor to the end of the text
-            _textBox.SelectionStart = _textBox.Text.Length;
-            _textBox.SelectionLength = 0;
-            // Cancel the key press event so that the character is not added twice
-            e.Handled = true;
-        }
-
 
         #endregion Internal Methods
 
@@ -89,7 +71,7 @@ namespace AltUI.ColorPicker
 
         protected override void OnDrawItem(DrawItemEventArgs e)
         {
-            if (e.Index != -1)
+            if (e.Index != -1 && Items[e.Index] is string name)
             {
                 var fillColor = ThemeProvider.Theme.Colors.GreyBackground;
 
@@ -102,7 +84,6 @@ namespace AltUI.ColorPicker
 
                 e.Graphics.FillRectangle(new SolidBrush(fillColor), e.Bounds);
 
-                var name = (string)Items[e.Index];
                 var color = Color.FromName(name);
                 var colorBox = new Rectangle(e.Bounds.Left + 1, e.Bounds.Top + 1, e.Bounds.Height - 3, e.Bounds.Height - 3);
 

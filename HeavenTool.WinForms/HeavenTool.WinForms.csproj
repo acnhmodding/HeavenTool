@@ -11,7 +11,7 @@
     <Product>Heaven Tool</Product>
     <Description>A GUI editor to deal with ACNH game files.</Description>
     <Authors>Rafacasari</Authors>
-    <Version>1.8</Version>
+    <Version>1.8.1</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Copyright>Copyright © 2024 – 2026 Rafacasari</Copyright>
     <ApplicationIcon>Resources\leaf.ico</ApplicationIcon>
@@ -83,10 +83,10 @@
     <Compile Update="Forms\BCSV\BCSVForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="Forms\BCSV\Controls\Entries\BitFieldEntry.cs">
+    <Compile Update="Forms\BCSV\Controls\Entries\CRC32Entry.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Update="Forms\BCSV\Controls\Entries\Float64Entry.cs">
+    <Compile Update="Forms\BCSV\Controls\Entries\BitFieldEntry.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Update="Forms\BCSV\Controls\Entries\Float32Entry.cs">

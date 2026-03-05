@@ -78,7 +78,7 @@ public partial class HeavenMain : Form
         {
             using var fileStream = File.OpenRead(openFileDialog.FileName);
 
-            byte[] decompressedBytes = Yaz0CompressionAlgorithm.Decompress(fileStream).ToArray();
+            var decompressedBytes = Yaz0CompressionAlgorithm.Decompress(fileStream)?.ToArray();
 
             if (decompressedBytes == null) return;
 

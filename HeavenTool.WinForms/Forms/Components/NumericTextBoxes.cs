@@ -83,7 +83,7 @@ public class StringTextBox : ValidatingTextBox
 
     protected override void OnTextValidating(object sender, TextValidatingEventArgs e)
     {
-        var bytes = Encoding.UTF8.GetBytes(e.NewText);
+        var bytes = Encoding.UTF8.GetBytes(e.NewText ?? "");
         e.Cancel = bytes.Length >= ByteSizeLimit;
     }
 }

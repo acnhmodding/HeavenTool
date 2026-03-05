@@ -36,7 +36,6 @@ namespace AltUI.Controls
         private bool _upArrowHot;
         private bool _downArrowHot;
 
-        private bool _thumbClicked;
         private bool _upArrowClicked;
         private bool _downArrowClicked;
 
@@ -44,7 +43,7 @@ namespace AltUI.Controls
         private int _initialValue;
         private Point _initialContact;
 
-        private Timer _scrollTimer;
+        private readonly Timer _scrollTimer;
 
         #endregion
 
@@ -85,8 +84,7 @@ namespace AltUI.Controls
 
                 UpdateThumb(true);
 
-                if (ValueChanged != null)
-                    ValueChanged(this, new ScrollValueEventArgs(Value));
+                ValueChanged?.Invoke(this, new ScrollValueEventArgs(Value));
             }
         }
 
@@ -154,8 +152,10 @@ namespace AltUI.Controls
 
             SetStyle(ControlStyles.Selectable, false);
 
-            _scrollTimer = new Timer();
-            _scrollTimer.Interval = 1;
+            _scrollTimer = new Timer
+            {
+                Interval = 1
+            };
             _scrollTimer.Tick += ScrollTimerTick;
         }
 
@@ -258,7 +258,6 @@ namespace AltUI.Controls
 
             _isScrolling = false;
 
-            _thumbClicked = false;
             _upArrowClicked = false;
             _downArrowClicked = false;
 

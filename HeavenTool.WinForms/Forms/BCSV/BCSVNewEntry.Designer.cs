@@ -29,23 +29,21 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(BCSVEntryEditor));
-            panel1 = new System.Windows.Forms.Panel();
+            bottomPanel = new System.Windows.Forms.Panel();
             addEntryButton = new AltUI.Controls.DarkButton();
             contentPanel = new System.Windows.Forms.FlowLayoutPanel();
-            sizeTracker = new System.Windows.Forms.Panel();
-            panel1.SuspendLayout();
-            contentPanel.SuspendLayout();
+            bottomPanel.SuspendLayout();
             SuspendLayout();
             // 
-            // panel1
+            // bottomPanel
             // 
-            panel1.BackColor = System.Drawing.Color.FromArgb(35, 35, 35);
-            panel1.Controls.Add(addEntryButton);
-            panel1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            panel1.Location = new System.Drawing.Point(0, 347);
-            panel1.Name = "panel1";
-            panel1.Size = new System.Drawing.Size(340, 36);
-            panel1.TabIndex = 0;
+            bottomPanel.BackColor = System.Drawing.Color.FromArgb(35, 35, 35);
+            bottomPanel.Controls.Add(addEntryButton);
+            bottomPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
+            bottomPanel.Location = new System.Drawing.Point(0, 347);
+            bottomPanel.Name = "bottomPanel";
+            bottomPanel.Size = new System.Drawing.Size(340, 36);
+            bottomPanel.TabIndex = 0;
             // 
             // addEntryButton
             // 
@@ -62,12 +60,10 @@
             // contentPanel
             // 
             contentPanel.AutoScroll = true;
-            contentPanel.AutoSize = true;
-            contentPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            contentPanel.Controls.Add(sizeTracker);
             contentPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             contentPanel.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             contentPanel.Location = new System.Drawing.Point(0, 0);
+            contentPanel.Margin = new System.Windows.Forms.Padding(0);
             contentPanel.Name = "contentPanel";
             contentPanel.Padding = new System.Windows.Forms.Padding(3);
             contentPanel.Size = new System.Drawing.Size(340, 347);
@@ -75,42 +71,31 @@
             contentPanel.WrapContents = false;
             contentPanel.SizeChanged += ContentPanel_SizeChanged;
             // 
-            // sizeTracker
-            // 
-            sizeTracker.Location = new System.Drawing.Point(6, 6);
-            sizeTracker.Name = "sizeTracker";
-            sizeTracker.Size = new System.Drawing.Size(331, 14);
-            sizeTracker.TabIndex = 0;
-            // 
-            // BCSVNewEntry
+            // BCSVEntryEditor
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             ClientSize = new System.Drawing.Size(340, 383);
             Controls.Add(contentPanel);
-            Controls.Add(panel1);
+            Controls.Add(bottomPanel);
             ForeColor = System.Drawing.Color.White;
             Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
             MaximizeBox = false;
             MinimizeBox = false;
-            Name = "BCSVNewEntry";
+            Name = "BCSVEntryEditor";
             ShowIcon = false;
             SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             Text = "New Entry";
-            ResizeEnd += BCSVEntryEditor_ResizeEnd;
-            panel1.ResumeLayout(false);
-            contentPanel.ResumeLayout(false);
+            bottomPanel.ResumeLayout(false);
             ResumeLayout(false);
-            PerformLayout();
         }
 
         #endregion
 
-        private System.Windows.Forms.Panel panel1;
+        private System.Windows.Forms.Panel bottomPanel;
         private AltUI.Controls.DarkButton addEntryButton;
-        private System.Windows.Forms.FlowLayoutPanel contentPanel;
-        private System.Windows.Forms.Panel sizeTracker;
+        public System.Windows.Forms.FlowLayoutPanel contentPanel;
     }
 }

@@ -17,7 +17,7 @@ public partial class BCSVDirectorySearch : Form
 
     private void SelectDirectoryButton_Click(object sender, EventArgs e)
     {
-        FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
+        FolderBrowserDialog folderBrowserDialog = new();
 
         var result = folderBrowserDialog.ShowDialog();
 
@@ -79,7 +79,7 @@ public partial class BCSVDirectorySearch : Form
             {
                 object item = entry[fieldIndex];
                 var value = item.ToString();
-                if ((containButton.Checked && value.Contains(searchField.Text, StringComparison.CurrentCultureIgnoreCase)) || value == searchField.Text)
+                if ((containButton.Checked && value != null && value.Contains(searchField.Text, StringComparison.CurrentCultureIgnoreCase)) || value == searchField.Text)
                 {
                     var key = Path.GetFileNameWithoutExtension(path);
                     if (!foundHits.Nodes.Any(x => x.Text == key))

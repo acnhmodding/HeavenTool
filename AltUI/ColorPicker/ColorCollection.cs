@@ -15,6 +15,7 @@ using System.Collections.ObjectModel;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace AltUI.ColorPicker
 {
@@ -29,9 +30,9 @@ namespace AltUI.ColorPicker
     {
         #region Instance Fields
 
-        private readonly object _lock = new object();
+        private readonly Lock _lock = new();
 
-        private IDictionary<int, int> _indexedLookup;
+        private Dictionary<int, int> _indexedLookup;
 
         #endregion
 
@@ -130,12 +131,7 @@ namespace AltUI.ColorPicker
                 throw new FileNotFoundException(string.Format("Cannot find file '{0}'", fileName), fileName);
             }
 
-            serializer = PaletteSerializer.GetSerializer(fileName);
-            if (serializer == null)
-            {
-                throw new ArgumentException(string.Format("Cannot find a palette serializer for '{0}'", fileName), nameof(fileName));
-            }
-
+            serializer = PaletteSerializer.GetSerializer(fileName) ?? throw new ArgumentException(string.Format("Cannot find a palette serializer for '{0}'", fileName), nameof(fileName));
             using var file = File.OpenRead(fileName);
             return serializer.Deserialize(file);
         }
@@ -178,10 +174,7 @@ namespace AltUI.ColorPicker
             {
                 lock (_lock)
                 {
-                    if (!_indexedLookup.ContainsKey(key))
-                    {
-                        _indexedLookup.Add(key, index);
-                    }
+                    _indexedLookup.TryAdd(key, index);
                 }
             }
             else
@@ -247,14 +240,8 @@ namespace AltUI.ColorPicker
 
                     lock (_lock)
                     {
-                        if (_indexedLookup.ContainsKey(oldKey))
-                        {
-                            _indexedLookup.Remove(oldKey);
-                        }
-                        if (!_indexedLookup.ContainsKey(key))
-                        {
-                            _indexedLookup.Add(key, index);
-                        }
+                        _indexedLookup.Remove(oldKey);
+                        _indexedLookup.TryAdd(key, index);
                     }
                 }
 
@@ -286,7 +273,7 @@ namespace AltUI.ColorPicker
         /// <returns>A new object that is a copy of this instance.</returns>
         public virtual ColorCollection Clone()
         {
-            return new ColorCollection(this);
+            return [..this];
         }
 
         /// <summary>
@@ -300,56 +287,18 @@ namespace AltUI.ColorPicker
         }
 
         /// <summary>
-        /// Searches for the specified object and returns the zero-based index of the first occurrence within the entire <see cref="ColorCollection" />.
-        /// </summary>
-        /// <param name="item">The <see cref="Color"/> to locate in the <see cref="ColorCollection" />.</param>
-        /// <param name="ignoreAlphaChannel">If set to <c>true</c> only the red, green and blue channels of items in the <see cref="ColorCollection"/> will be compared.</param>
-        /// <returns>The zero-based index of the first occurrence of <c>item</c> within the entire <see cref="ColorCollection" />, if found; otherwise, –1.</returns>
-        public int Find(Color item, bool ignoreAlphaChannel)
-        {
-            int result;
-
-            if (!ignoreAlphaChannel)
-            {
-                result = Find(item);
-            }
-            else
-            {
-                // TODO: This is much much slower than the lookup based find
-
-                result = -1;
-
-                for (var i = 0; i < Count; i++)
-                {
-                    Color original;
-
-                    original = this[i];
-                    if (original.R == item.R && original.G == item.G && original.B == item.B)
-                    {
-                        result = i;
-                        break;
-                    }
-                }
-            }
-
-            return result;
-        }
-
-        /// <summary>
         /// Searches for the specified object and returns the zero-based index of the first occurrence within the entire <see cref="ColorCollection"/>.
         /// </summary>
         /// <param name="item">The ARGB color to locate in the <see cref="ColorCollection"/>.</param>
         /// <returns>The zero-based index of the first occurrence of <c>item</c> within the entire <see cref="ColorCollection"/>, if found; otherwise, –1.</returns>
         public int Find(int item)
         {
-            int result;
-
             if (_indexedLookup == null)
             {
                 BuildIndexedLookup();
             }
 
-            if (_indexedLookup == null || !_indexedLookup.TryGetValue(item, out result))
+            if (_indexedLookup == null || !_indexedLookup.TryGetValue(item, out int result))
             {
                 result = -1;
             }
@@ -404,27 +353,15 @@ namespace AltUI.ColorPicker
         {
             if (Count > 0)
             {
-                Comparison<Color> sortDelegate;
                 List<Color> orderedItems;
-
-                // HACK: This is a bit nasty
-
-                switch (sortOrder)
+                Comparison<Color> sortDelegate = sortOrder switch
                 {
-                    case ColorCollectionSortOrder.Brightness:
-                        sortDelegate = ColorComparer.Brightness;
-                        break;
-                    case ColorCollectionSortOrder.Hue:
-                        sortDelegate = ColorComparer.Hue;
-                        break;
-                    case ColorCollectionSortOrder.Value:
-                        sortDelegate = ColorComparer.Value;
-                        break;
-                    default:
-                        throw new ArgumentException("Invalid sort order", nameof(sortOrder));
-                }
-
-                orderedItems = new List<Color>(this);
+                    ColorCollectionSortOrder.Brightness => ColorComparer.Brightness,
+                    ColorCollectionSortOrder.Hue => ColorComparer.Hue,
+                    ColorCollectionSortOrder.Value => ColorComparer.Value,
+                    _ => throw new ArgumentException("Invalid sort order", nameof(sortOrder)),
+                };
+                orderedItems = [.. this];
                 orderedItems.Sort(sortDelegate);
                 ClearItems();
                 AddRange(orderedItems);
@@ -445,10 +382,7 @@ namespace AltUI.ColorPicker
 
             handler = CollectionChanged;
 
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
 
         /// <summary>
@@ -461,10 +395,7 @@ namespace AltUI.ColorPicker
 
             handler = ItemInserted;
 
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
 
         /// <summary>
@@ -477,10 +408,7 @@ namespace AltUI.ColorPicker
 
             handler = ItemRemoved;
 
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
 
         /// <summary>
@@ -493,10 +421,7 @@ namespace AltUI.ColorPicker
 
             handler = ItemReplaced;
 
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
 
         /// <summary>
@@ -509,10 +434,7 @@ namespace AltUI.ColorPicker
 
             handler = ItemsCleared;
 
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
 
         #endregion
@@ -526,7 +448,7 @@ namespace AltUI.ColorPicker
         {
             lock (_lock)
             {
-                _indexedLookup = new Dictionary<int, int>();
+                _indexedLookup = [];
 
                 for (var i = 0; i < Count; i++)
                 {
@@ -536,10 +458,7 @@ namespace AltUI.ColorPicker
                     color = this[i];
                     key = color.ToArgb();
 
-                    if (!_indexedLookup.ContainsKey(key))
-                    {
-                        _indexedLookup.Add(key, i);
-                    }
+                    _indexedLookup.TryAdd(key, i);
                 }
             }
         }
@@ -567,7 +486,7 @@ namespace AltUI.ColorPicker
         /// <returns><c>true</c> if the values of <paramref name="left"/> and <paramref name="right"/> are equal; otherwise, <c>false</c>.</returns>
         public static bool operator ==(ColorCollection left, ColorCollection right)
         {
-            return ReferenceEquals(left, right) || !((object)left == null || (object)right == null) && left.Equals(right);
+            return ReferenceEquals(left, right) || !(left is null || right is null) && left.Equals(right);
         }
 
         /// <summary>
@@ -588,7 +507,7 @@ namespace AltUI.ColorPicker
         /// <returns><c>true</c> if <paramref name="obj"/> is a <see cref="ColorCollection"/> and has the same values as this <see cref="ColorCollection"/>.</returns>
         public override bool Equals(object obj)
         {
-            return obj is ColorCollection && Equals((ColorCollection)obj);
+            return obj is ColorCollection collection && Equals(collection);
         }
 
         /// <summary>

@@ -12,7 +12,7 @@ public class BitFieldDataGridCell() : DataGridViewTextBoxCell
     public override object DefaultNewRowValue => new byte[FieldLength];
     public int FieldLength { get; set; }
 
-    public override object ParseFormattedValue(object formattedValue, DataGridViewCellStyle cellStyle, TypeConverter formattedValueTypeConverter, TypeConverter valueTypeConverter)
+    public override object? ParseFormattedValue(object? formattedValue, DataGridViewCellStyle cellStyle, TypeConverter? formattedValueTypeConverter, TypeConverter? valueTypeConverter)
     {
         if (formattedValue == null)
             return new byte[FieldLength];
@@ -36,9 +36,7 @@ public class BitFieldDataGridCell() : DataGridViewTextBoxCell
         return base.ParseFormattedValue(formattedValue, cellStyle, formattedValueTypeConverter, valueTypeConverter);
     }
 
-    public override void InitializeEditingControl(int rowIndex,
-        object initialFormattedValue,
-        DataGridViewCellStyle dataGridViewCellStyle)
+    public override void InitializeEditingControl(int rowIndex, object? initialFormattedValue, DataGridViewCellStyle dataGridViewCellStyle)
     {
         base.InitializeEditingControl(rowIndex, initialFormattedValue, dataGridViewCellStyle);
     }

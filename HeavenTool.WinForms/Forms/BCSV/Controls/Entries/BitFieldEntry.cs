@@ -1,11 +1,10 @@
 ﻿using HeavenTool.Forms.BCSV.Controls.Entries;
 using System;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace HeavenTool.Forms.BCSV.Controls;
 
-public partial class BitFieldEntry : UserControl, IBCSVEntry
+public partial class BitFieldEntry : BCSVEntry
 {
     public class BitFieldItem(string name, int val)
     {
@@ -35,17 +34,17 @@ public partial class BitFieldEntry : UserControl, IBCSVEntry
 
         //input.Text = defaultValue.ToString();
         //Input_TextChanged(this, EventArgs.Empty);
-        checkedComboBox1.MaxDropDownItems = 10;
-        checkedComboBox1.ValueSeparator = ", ";
-        checkedComboBox1.DisplayMember = "Name";
+        bitfieldEntries.MaxDropDownItems = 10;
+        bitfieldEntries.ValueSeparator = ", ";
+        bitfieldEntries.DisplayMember = "Name";
 
-        checkedComboBox1.Items.Add(new BitFieldItem("None", -1), !(tagBits.Any(x => x != 0)));
+        bitfieldEntries.Items?.Add(new BitFieldItem("None", -1), !(tagBits.Any(x => x != 0)));
 
         if (names != null && names.Length > lenght * 8) names = null;
         var count = names != null ? names.Length : lenght * 8;
 
         for (int i = 0; i < count; i++)
-            checkedComboBox1.Items.Add(new BitFieldItem(names != null ? names[i] : $"BitMask_{i}", i), IsFlagSet(i));
+            bitfieldEntries.Items?.Add(new BitFieldItem(names != null ? names[i] : $"BitMask_{i}", i), IsFlagSet(i));
         
     }
 
@@ -54,24 +53,41 @@ public partial class BitFieldEntry : UserControl, IBCSVEntry
         return (tagBits[bitIndex / 8] & (1 << (bitIndex % 8))) != 0;
     }
 
-    public void SetCallback(Action<object> newValueCallback)
+    public override void SetCallback(Action<object> newValueCallback)
     {
         Callback = newValueCallback;
     }
 
-    public void SetPropertyName(string name)
+    public override void SetPropertyName(string name)
     {
         propertyNameLabel.Text = name;
     }
 
-    public void SetUniqueIdentifier()
+    public override void SetUniqueIdentifier()
     {
         propertyNameLabel.Font = new System.Drawing.Font(DefaultFont, System.Drawing.FontStyle.Bold);
     }
 
-    private void Input_TextChanged(object sender, EventArgs e)
+    public override object GetValue()
     {
-        //if (ushort.TryParse(input.Text, out ushort value))
-        //    Callback?.Invoke(value);
+        // Clear all bits
+        Array.Clear(tagBits, 0, tagBits.Length);
+
+        foreach (var obj in bitfieldEntries.CheckedItems)
+        {
+            if (obj is not BitFieldItem item)
+                continue;
+
+            // "None" option
+            if (item.Value < 0)
+                return tagBits;
+
+            int byteIndex = item.Value / 8;
+            int bitOffset = item.Value % 8;
+
+            tagBits[byteIndex] |= (byte)(1 << bitOffset);
+        }
+
+        return tagBits;
     }
 }

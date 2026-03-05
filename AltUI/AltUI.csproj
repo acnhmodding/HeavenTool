@@ -10,19 +10,24 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <Configurations>Debug;Release;Main;Main-Debug</Configurations>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <NoWarn>1701;1702;CA1416</NoWarn>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <NoWarn>1701;1702;CA1416</NoWarn>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Main|AnyCPU'">
     <NoWarn>1701;1702;CA1416</NoWarn>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Main-Debug|AnyCPU'">
     <NoWarn>1701;1702;CA1416</NoWarn>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <Compile Update="ColorPicker\Resources.Designer.cs">
@@ -40,9 +45,6 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Update="Controls\DarkNumericUpDown.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="Controls\DarkProgressBar.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Update="Controls\DarkRadioButton.cs">
@@ -66,13 +68,7 @@
     <Compile Update="Controls\DarkButton.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Update="Controls\DarkContextMenu.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Update="Controls\DarkLabel.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="Controls\DarkMenuStrip.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Update="Controls\DarkScrollBar.cs">
@@ -84,16 +80,7 @@
     <Compile Update="Controls\DarkSectionPanel.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Update="Controls\DarkSeparator.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="Controls\DarkStatusStrip.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Update="Controls\DarkTextBox.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="Controls\DarkToolStrip.cs">
       <SubType>Component</SubType>
     </Compile>
   </ItemGroup>
@@ -108,5 +95,8 @@
     <None Update="Resources\cellbackground.png">
       <CustomToolNamespace></CustomToolNamespace>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Renderers\" />
   </ItemGroup>
 </Project>

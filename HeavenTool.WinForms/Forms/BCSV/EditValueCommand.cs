@@ -7,8 +7,8 @@ internal class EditValueCommand(BinaryCSV bcsv) : IUndoCommand
 {
     public int rowIndex;
     public int columnIndex;
-    public object? oldValue;
-    public object? newValue;
+    public required object oldValue;
+    public required object newValue;
 
     public void Redo()
     {

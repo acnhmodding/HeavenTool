@@ -5,7 +5,7 @@ namespace HeavenTool.IO.FileFormats.BCSV;
 // Thanks to https://nintendo-formats.com/games/acnh/bcsv.html
 // The information about HasExtendedHeader and padding helped a lot =D
 
-public class BinaryCSV : IDisposable
+public class BinaryCSV
 {
     private static readonly string[] _uniqueFieldNames =
         [
@@ -99,7 +99,7 @@ public class BinaryCSV : IDisposable
 
     internal int HeaderVersion { get; private set; }
 
-    internal readonly byte[] MAGIC = "VSCB"u8.ToArray();
+    private static ReadOnlySpan<byte> Magic => "VSCB"u8;
 
     public object this[int row, int column]
     {
@@ -179,7 +179,7 @@ public class BinaryCSV : IDisposable
         {
             var magic = reader.ReadBytes(4); 
 
-            if (!MAGIC.SequenceEqual(magic))
+            if (!Magic.SequenceEqual(magic))
                 throw new Exception("File is not a BCSV!");
 
             HeaderVersion = reader.ReadInt32();
@@ -266,9 +266,6 @@ public class BinaryCSV : IDisposable
                         value = reader.ReadInt32();
                         break;
 
-                    case DataType.Float64:
-                        value = reader.ReadDouble();
-                        break;
 
                     case DataType.UInt32:
                     case DataType.CRC32:
@@ -306,7 +303,7 @@ public class BinaryCSV : IDisposable
 
         if (HasExtendedHeader == 1)
         {
-            writer.Write(MAGIC);
+            writer.Write(Magic);
             writer.Write(HeaderVersion);
 
             // Padding
@@ -348,10 +345,6 @@ public class BinaryCSV : IDisposable
 
                     case DataType.Float32:
                         writer.Write((float)entryValue);
-                        break;
-
-                    case DataType.Float64:
-                        writer.Write((double)entryValue);
                         break;
 
                     case DataType.Int16:
@@ -399,26 +392,4 @@ public class BinaryCSV : IDisposable
         return stream.ToArray();
     }
 
-    private bool disposed = false;
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!disposed)
-        {
-            if (disposing)
-            {
-                Fields = [];
-                Entries = [];
-            }
-
-            // Indicate that the instance has been disposed.
-            disposed = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-
-        GC.SuppressFinalize(this);
-    }
 }

@@ -155,7 +155,7 @@ namespace HeavenTool.Forms.PBC
             // 
             zoomPlusButton.Name = "zoomPlusButton";
             zoomPlusButton.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Oemplus;
-            zoomPlusButton.Size = new System.Drawing.Size(172, 22);
+            zoomPlusButton.Size = new System.Drawing.Size(180, 22);
             zoomPlusButton.Text = "+";
             zoomPlusButton.Click += ZoomPlusButton_Click;
             // 
@@ -163,7 +163,7 @@ namespace HeavenTool.Forms.PBC
             // 
             zoomMinusButton.Name = "zoomMinusButton";
             zoomMinusButton.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.OemMinus;
-            zoomMinusButton.Size = new System.Drawing.Size(172, 22);
+            zoomMinusButton.Size = new System.Drawing.Size(180, 22);
             zoomMinusButton.Text = "-";
             zoomMinusButton.Click += ZoomMinusButton_Click;
             // 
@@ -177,59 +177,59 @@ namespace HeavenTool.Forms.PBC
             // collisionMapToolStripMenuItem
             // 
             collisionMapToolStripMenuItem.Name = "collisionMapToolStripMenuItem";
-            collisionMapToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            collisionMapToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             collisionMapToolStripMenuItem.Text = "Collision Map";
             collisionMapToolStripMenuItem.Click += CollisionMapToolStripMenuItem_Click;
             // 
             // heightMapToolStripMenuItem
             // 
             heightMapToolStripMenuItem.Name = "heightMapToolStripMenuItem";
-            heightMapToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            heightMapToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             heightMapToolStripMenuItem.Text = "Height Map";
             heightMapToolStripMenuItem.Click += HeightMapToolStripMenuItem_Click;
             // 
             // toolStripSeparator1
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new System.Drawing.Size(144, 6);
+            toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
             // 
             // viewIDToolStripMenuItem
             // 
             viewIDToolStripMenuItem.Name = "viewIDToolStripMenuItem";
-            viewIDToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            viewIDToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             viewIDToolStripMenuItem.Text = "Show ID";
             viewIDToolStripMenuItem.Click += ViewIDToolStripMenuItem_Click;
             // 
             // gridToolStripMenuItem
             // 
             gridToolStripMenuItem.Name = "gridToolStripMenuItem";
-            gridToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            gridToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             gridToolStripMenuItem.Text = "Show Grid";
             gridToolStripMenuItem.Click += GridToolStripMenuItem_Click;
             // 
             // toolStripSeparator2
             // 
             toolStripSeparator2.Name = "toolStripSeparator2";
-            toolStripSeparator2.Size = new System.Drawing.Size(144, 6);
+            toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
             // 
             // layer0ToolStripMenuItem
             // 
             layer0ToolStripMenuItem.Name = "layer0ToolStripMenuItem";
-            layer0ToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            layer0ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             layer0ToolStripMenuItem.Text = "Layer 0";
             layer0ToolStripMenuItem.Click += Layer0ToolStripMenuItem_Click;
             // 
             // layer1ToolStripMenuItem
             // 
             layer1ToolStripMenuItem.Name = "layer1ToolStripMenuItem";
-            layer1ToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            layer1ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             layer1ToolStripMenuItem.Text = "Layer 1";
             layer1ToolStripMenuItem.Click += Layer1ToolStripMenuItem_Click;
             // 
             // layer2ToolStripMenuItem
             // 
             layer2ToolStripMenuItem.Name = "layer2ToolStripMenuItem";
-            layer2ToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            layer2ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             layer2ToolStripMenuItem.Text = "Layer 2";
             layer2ToolStripMenuItem.Click += Layer2ToolStripMenuItem_Click;
             // 

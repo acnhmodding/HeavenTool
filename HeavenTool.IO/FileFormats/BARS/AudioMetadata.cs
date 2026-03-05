@@ -12,10 +12,15 @@ public class AudioMetadata
         V5 = 0x0500
     }
 
-    public AudioMetadata(AudioAsset parent, BinaryReader reader)
+    public AudioMetadata(AudioAsset parent)
     {
         ArgumentNullException.ThrowIfNull(parent);
-        ArgumentNullException.ThrowIfNull(reader);
+
+        if (parent.RawAudioMetadata == null)
+            throw new NullReferenceException("Raw audio metadata was not found on file");
+
+        using var stream = new MemoryStream(parent.RawAudioMetadata);
+        using var reader = new BinaryReader(stream);
 
         Parent = parent;
 
@@ -71,11 +76,11 @@ public class AudioMetadata
     public float LoopEnd { get; private set; }
     public float Volume { get; private set; }
     public float Loudness { get; private set; }
-    public string AssetName { get; private set; }
+    public string AssetName { get; private set; } = "";
 
     public uint? UnknownInt { get; private set; } = null;
     public uint? UnknownInt2 { get; private set; } = null;
-    public string GameVersion { get; private set; }
+    public string Type { get; private set; } = "";
     public byte UnknownByte { get; private set; }
 
     public void ReadAMTAV5(BinaryReader reader, long initialPosition)
@@ -125,7 +130,7 @@ public class AudioMetadata
             UnknownInt = reader.ReadUInt32();
             UnknownInt2 = reader.ReadUInt32();
 
-            GameVersion = reader.ReadTerminatedString(7);
+            Type = reader.ReadTerminatedString(7);
         }
     }
 
@@ -197,11 +202,11 @@ public class AudioMetadata
 
     private void WriteFileFooter(BinaryWriter writer)
     {
-        if (UnknownInt != null && UnknownInt2 != null && GameVersion != null)
+        if (UnknownInt != null && UnknownInt2 != null && Type != null)
         {
             writer.Write(UnknownInt.Value);
             writer.Write(UnknownInt2.Value);
-            writer.WriteTerminatedString(GameVersion);
+            writer.WriteTerminatedString(Type);
         }
     }
 

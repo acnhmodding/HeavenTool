@@ -51,14 +51,14 @@
             input.TabIndex = 3;
             input.TextChanged += Input_TextChanged;
             // 
-            // Entry
+            // ByteEntry
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             Controls.Add(input);
             Controls.Add(propertyNameLabel);
-            Name = "Entry";
+            Name = "ByteEntry";
             Size = new System.Drawing.Size(297, 23);
             ResumeLayout(false);
             PerformLayout();
@@ -66,6 +66,6 @@
 
         #endregion
         private System.Windows.Forms.Label propertyNameLabel;
-        private Components.ValidatingTextBox input;
+        private Components.ByteTextBox input;
     }
 }

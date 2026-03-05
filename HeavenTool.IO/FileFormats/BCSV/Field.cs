@@ -7,31 +7,26 @@ public class Field
     public int Offset { get; set; }
     public int Size { get; set; }
 
-    public object GetFieldDefaultValue()
+    public object GetFieldDefaultValue() => DataType switch
     {
-        return DataType switch
-        {
-
-            DataType.BitField => new byte[Size],
-            DataType.U8 => (byte)0,
-            DataType.S8 => (sbyte)0,
-            DataType.Int16 => (short)0,
-            DataType.UInt16 => (ushort)0,
-            DataType.Int32 => 0,
-            DataType.UInt32 or DataType.CRC32 or DataType.MMH3 => (uint)0,
-            DataType.Float32 => (float)0,
-            DataType.Float64 => (double)0,
-            DataType.String => "",
-            _ => null,
-        };
-    }
+        DataType.BitField => new byte[Size],
+        DataType.U8 => (byte)0,
+        DataType.S8 => (sbyte)0,
+        DataType.Int16 => (short)0,
+        DataType.UInt16 => (ushort)0,
+        DataType.Int32 => 0,
+        DataType.UInt32 or DataType.CRC32 or DataType.MMH3 => (uint)0,
+        DataType.Float32 => (float)0,
+        DataType.String => "",
+        _ => throw new NotImplementedException($"{DataType} doesn't have a default field value"),
+    };
 
     public string HEX => Hash.ToString("x");
 
     public bool IsMissingHash => !HashManager.CRC32_Hashes.ContainsKey(Hash);
     
 
-    private string _displayName;
+    private string? _displayName;
     public string DisplayName { 
         get
         {
@@ -61,12 +56,12 @@ public class Field
         return GetTranslatedNameOrNull() ?? HEX;
     }
 
-    public string GetTranslatedNameOrNull()
+    public string? GetTranslatedNameOrNull()
     {
         return HashManager.GetHashTranslationOrNull(Hash);
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is Field field && Hash == field.Hash;
     }

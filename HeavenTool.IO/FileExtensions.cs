@@ -16,7 +16,6 @@ public static class FileExtensions
             DataType.Int32 => typeof(int),
             DataType.UInt32 => typeof(uint),
             DataType.Float32 => typeof(float),
-            DataType.Float64 => typeof(double),
             DataType.BitField => typeof(byte[]),
             DataType.MMH3 => typeof(uint),
             DataType.CRC32 => typeof(uint),

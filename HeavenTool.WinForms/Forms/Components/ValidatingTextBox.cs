@@ -8,12 +8,12 @@ namespace HeavenTool.Forms.Components;
 [ToolboxItem(false)]
 public class ValidatingTextBox : DarkTextBox
 {
-    private string _validText;
+    private string? _validText;
     private int _selectionStart;
     private int _selectionEnd;
     private bool _dontProcessMessages;
 
-    public event EventHandler<TextValidatingEventArgs> TextValidating;
+    public event EventHandler<TextValidatingEventArgs>? TextValidating;
 
     protected virtual void OnTextValidating(object sender, TextValidatingEventArgs e) => TextValidating?.Invoke(sender, e);
 
@@ -42,7 +42,7 @@ public class ValidatingTextBox : DarkTextBox
         const int WM_PASTE = 0x302;
         if (m.Msg == WM_CHAR || m.Msg == WM_PASTE || delete)
         {
-            string newText = null;
+            string? newText = null;
             DontProcessMessage(() =>
             {
                 newText = Text;
@@ -76,8 +76,7 @@ public class ValidatingTextBox : DarkTextBox
     }
 }
 
-public class TextValidatingEventArgs : CancelEventArgs
+public class TextValidatingEventArgs(string? newText) : CancelEventArgs
 {
-    public TextValidatingEventArgs(string newText) => NewText = newText;
-    public string NewText { get; }
+    public string? NewText { get; } = newText;
 }

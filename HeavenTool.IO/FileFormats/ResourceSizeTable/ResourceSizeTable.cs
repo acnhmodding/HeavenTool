@@ -52,12 +52,12 @@ public class ResourceSizeTable : IDisposable
 
         // Just to prevent a lot of attempts in FileName
         private bool unknownHash;
-        private string _fileName;
+        private string? _fileName = "";
 
         /// <summary>
         /// File name, max of 128 characters
         /// </summary>
-        public string FileName
+        public string? FileName
         {
             get
             {
@@ -143,7 +143,7 @@ public class ResourceSizeTable : IDisposable
     /// <summary>
     /// Get a <seealso cref="ResourceTableEntry"/> from <seealso cref="Entries"/> using <seealso cref="ResourceTableEntry.FileName"/>
     /// </summary>
-    public Dictionary<string, ResourceTableEntry> Dictionary { get; private set; }
+    public Dictionary<string, ResourceTableEntry> Dictionary { get; private set; } = [];
 
     /// <summary>
     /// Returns <see cref="Dictionary.Count"/>
@@ -287,7 +287,7 @@ public class ResourceSizeTable : IDisposable
     /// Save the file
     /// </summary>
     /// <param name="filePath">File Location</param>
-    public byte[] Save()
+    public byte[]? Save()
     {
         UpdateUniques();
 
@@ -437,7 +437,7 @@ public class ResourceSizeTable : IDisposable
     }
 
     private bool disposed = false;
-    private static SarcFileReader sarcFileReader = new();
+    private static readonly SarcFileReader sarcFileReader = new();
 
     protected virtual void Dispose(bool disposing)
     {
@@ -447,7 +447,6 @@ public class ResourceSizeTable : IDisposable
             {
                 IsLoaded = false;
                 Dictionary.Clear();
-                Dictionary = null;
             }
 
             // Indicate that the instance has been disposed.

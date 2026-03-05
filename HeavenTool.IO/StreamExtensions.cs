@@ -13,7 +13,7 @@ public static class StreamExtensions
     {
         byte[] copy = new byte[stream.Length];
         stream.Seek(0, SeekOrigin.Begin);
-        stream.Read(copy, 0, copy.Length);
+        stream.ReadExactly(copy);
         return copy;
     }
 
@@ -27,7 +27,7 @@ public static class StreamExtensions
     public static string ReadString(this Stream stream, int size, Encoding encoding)
     {
         byte[] bytes = new byte[size];
-        stream.Read(bytes, 0, bytes.Length);
+        stream.ReadExactly(bytes);
 
         return encoding.GetString(bytes);
     }

@@ -1,15 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace AltUI.Collections
-{
-    public class ObservableListModified<T> : EventArgs
-    {
-        public IEnumerable<T> Items { get; private set; }
+namespace AltUI.Collections;
 
-        public ObservableListModified(IEnumerable<T> items)
-        {
-            Items = items;
-        }
-    }
+public class ObservableListModified<T>(IEnumerable<T> items) : EventArgs
+{
+    public IEnumerable<T> Items { get; private set; } = items;
 }

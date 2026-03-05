@@ -28,17 +28,17 @@ namespace AltUI.ColorPicker
 
         private const double _rgbMultiplier = 0.00392156862745098;
 
-        private static readonly object _eventColorChanged = new object();
+        private static readonly object _eventColorChanged = new();
 
-        private static readonly object _eventColorEditorChanged = new object();
+        private static readonly object _eventColorEditorChanged = new();
 
-        private static readonly object _eventColorGridChanged = new object();
+        private static readonly object _eventColorGridChanged = new();
 
-        private static readonly object _eventColorWheelChanged = new object();
+        private static readonly object _eventColorWheelChanged = new();
 
-        private static readonly object _eventLightnessColorSliderChanged = new object();
+        private static readonly object _eventLightnessColorSliderChanged = new();
 
-        private static readonly object _eventScreenColorPickerChanged = new object();
+        private static readonly object _eventScreenColorPickerChanged = new();
 
         private Color _color;
 
@@ -465,17 +465,11 @@ namespace AltUI.ColorPicker
                     {
                         SyncWheel(_colorEditor.Color.A, _colorEditor.HslColor.L);
 
-                        if (_lightnessColorSlider != null)
-                        {
-                            _lightnessColorSlider.Value = (float)(_colorEditor.HslColor.L * 100);
-                        }
+                        _lightnessColorSlider?.Value = (float)(_colorEditor.HslColor.L * 100);
                     }
                     else if (ReferenceEquals(sender, _lightnessColorSlider))
                     {
-                        if (_colorWheel != null)
-                        {
-                            _colorWheel.Lightness = _lightnessColorSlider.Value / 100D;
-                        }
+                        _colorWheel?.Lightness = _lightnessColorSlider.Value / 100D;
 
                         if (_colorEditor != null)
                         {

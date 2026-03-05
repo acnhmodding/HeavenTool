@@ -19,12 +19,15 @@ public class AudioAsset
     /// <summary>
     /// Gets or sets the metadata information associated with the audio content.
     /// </summary>
-    public AudioMetadata AudioMetadata { get; set; }
+    public AudioMetadata? AudioMetadata { get; set; }
 
     /// <summary>
     /// Gets or sets the binary wave file associated with the current instance.
     /// </summary>
-    public BinaryWaveFile BinaryWave { get; set; }
+    public BinaryWaveFile? BinaryWave { get; set; }
+
+    public byte[]? RawBinaryWave { get; set; }
+    public byte[]? RawAudioMetadata { get; internal set; }
 
     public override string ToString()
     {
@@ -87,9 +90,21 @@ public class BARSFileReader
         {
             var audioAsset = AudioAssets[i];
 
-            // Read Audio Metadata from offset
-            using (reader.CreateScopeAt(reader.ReadUInt32()))
-                audioAsset.AudioMetadata = new AudioMetadata(audioAsset, reader);
+            var metadataOffset = reader.ReadUInt32();
+            var bigEndian = reader.BigEndian;
+
+            using (reader.CreateScopeAt(metadataOffset))
+            {
+                reader.Skip(4);
+
+                reader.BigEndian = reader.ReadUInt16() == 0xFFFE;
+                reader.Skip(2); // version
+                var metadataSize = reader.ReadInt32();
+
+                audioAsset.RawAudioMetadata = reader.ReadByteArrayAt(metadataOffset, metadataSize);
+                audioAsset.AudioMetadata = new AudioMetadata(audioAsset);
+            }
+            reader.BigEndian = bigEndian;
 
             var checkHash = audioAsset.AudioMetadata.AssetName.ToCRC32();
             if (checkHash != audioAsset.Hash) 
@@ -125,7 +140,10 @@ public class BARSFileReader
 
             // Assign the BinaryWave to all the audio assets in the group
             foreach (var audioAsset in group)
+            {
                 audioAsset.BinaryWave = binaryWave;
+                audioAsset.RawBinaryWave = assetData;
+            }
         }
     }
 }

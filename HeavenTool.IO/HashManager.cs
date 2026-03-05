@@ -146,27 +146,18 @@ public static class HashManager
         }));
     }
 
-    public static string GetMurmurHashTranslationOrNull(this uint hash)
+    public static string? GetMurmurHashTranslationOrNull(this uint hash)
     {
-        if (MMH3_Hashes.TryGetValue(hash, out string value))
-            return value;
-
-        return null;
+        return MMH3_Hashes.TryGetValue(hash, out string? value) ? value : null;
     }
 
-    public static string GetHashTranslationOrNull(this uint hash)
+    public static string? GetHashTranslationOrNull(this uint hash)
     {
-        if (CRC32_Hashes.TryGetValue(hash, out string value))
-            return value;
-
-        return null;
+        return CRC32_Hashes.TryGetValue(hash, out string? value) ? value : null;
     }
 
     public static string GetHashTranslation(this uint hash)
     {
-        if (GetHashTranslationOrNull(hash) is string value)
-            return value;
-
-        return hash.ToString("X");
+        return GetHashTranslationOrNull(hash) is string value ? value : hash.ToString("X");
     }
 }

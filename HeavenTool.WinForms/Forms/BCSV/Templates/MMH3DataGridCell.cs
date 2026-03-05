@@ -14,7 +14,7 @@ public class MMH3DataGridCell : DataGridViewTextBoxCell
     public override Type ValueType => typeof(uint);
     public override object DefaultNewRowValue => (uint)0;
 
-    public override object ParseFormattedValue(object formattedValue, DataGridViewCellStyle cellStyle, TypeConverter formattedValueTypeConverter, TypeConverter valueTypeConverter)
+    public override object? ParseFormattedValue(object? formattedValue, DataGridViewCellStyle cellStyle, TypeConverter? formattedValueTypeConverter, TypeConverter? valueTypeConverter)
     {
         if (formattedValue == null) return (uint)0;
 
@@ -25,12 +25,12 @@ public class MMH3DataGridCell : DataGridViewTextBoxCell
     }
 
     public override void InitializeEditingControl(int rowIndex,
-        object initialFormattedValue,
+        object? initialFormattedValue,
         DataGridViewCellStyle dataGridViewCellStyle)
     {
         base.InitializeEditingControl(rowIndex, initialFormattedValue, dataGridViewCellStyle);
 
-        if (DataGridView.EditingControl is TextBox txt)
+        if (DataGridView != null && OwningColumn != null && DataGridView.EditingControl is TextBox txt)
         {
             string hashedName = OwningColumn.Name;
             if (uint.TryParse(hashedName,

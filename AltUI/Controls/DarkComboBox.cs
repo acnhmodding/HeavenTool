@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
-#pragma warning disable CA1416
 
 namespace AltUI.Controls
 {

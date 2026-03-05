@@ -10,7 +10,7 @@ public class ColorDataGridCell : DataGridViewButtonCell
 {
     public override Type ValueType => typeof(Color);
 
-    public Dictionary<string, int> ColorFieldIndexes;
+    public Dictionary<string, int> ColorFieldIndexes = [];
 
     public static (int r, int g, int b) FloatToRgbInt(float rFloat, float gFloat, float bFloat)
     {
@@ -45,7 +45,7 @@ public class ColorDataGridCell : DataGridViewButtonCell
         }
     }
 
-    public Color GetColor(float floatR, float floatG, float floatB)
+    public static Color GetColor(float floatR, float floatG, float floatB)
     {
         var (r, g, b) = FloatToRgbInt(floatR, floatG, floatB);
 

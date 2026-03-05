@@ -24,7 +24,7 @@
         private void InitializeComponent()
         {
             propertyNameLabel = new System.Windows.Forms.Label();
-            checkedComboBox1 = new CheckedComboBox();
+            bitfieldEntries = new CheckedComboBox();
             SuspendLayout();
             // 
             // propertyNameLabel
@@ -39,25 +39,25 @@
             propertyNameLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             propertyNameLabel.UseMnemonic = false;
             // 
-            // checkedComboBox1
+            // bitfieldEntries
             // 
-            checkedComboBox1.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            checkedComboBox1.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawVariable;
-            checkedComboBox1.DropDownHeight = 1;
-            checkedComboBox1.FormattingEnabled = true;
-            checkedComboBox1.IntegralHeight = false;
-            checkedComboBox1.Location = new System.Drawing.Point(149, 0);
-            checkedComboBox1.Name = "checkedComboBox1";
-            checkedComboBox1.Size = new System.Drawing.Size(148, 24);
-            checkedComboBox1.TabIndex = 6;
-            checkedComboBox1.ValueSeparator = ", ";
+            bitfieldEntries.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            bitfieldEntries.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawVariable;
+            bitfieldEntries.DropDownHeight = 1;
+            bitfieldEntries.FormattingEnabled = true;
+            bitfieldEntries.IntegralHeight = false;
+            bitfieldEntries.Location = new System.Drawing.Point(149, 0);
+            bitfieldEntries.Name = "bitfieldEntries";
+            bitfieldEntries.Size = new System.Drawing.Size(148, 24);
+            bitfieldEntries.TabIndex = 6;
+            bitfieldEntries.ValueSeparator = ", ";
             // 
             // BitFieldEntry
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            Controls.Add(checkedComboBox1);
+            Controls.Add(bitfieldEntries);
             Controls.Add(propertyNameLabel);
             Name = "BitFieldEntry";
             Size = new System.Drawing.Size(297, 24);
@@ -66,6 +66,6 @@
 
         #endregion
         private System.Windows.Forms.Label propertyNameLabel;
-        private CheckedComboBox checkedComboBox1;
+        private CheckedComboBox bitfieldEntries;
     }
 }

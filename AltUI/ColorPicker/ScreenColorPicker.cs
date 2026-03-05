@@ -29,21 +29,21 @@ namespace AltUI.ColorPicker
     {
         #region Private Fields
 
-        private static readonly object _eventColorChanged = new object();
+        private static readonly object _eventColorChanged = new();
 
-        private static readonly object _eventGridColorChanged = new object();
+        private static readonly object _eventGridColorChanged = new();
 
-        private static readonly object _eventImageChanged = new object();
+        private static readonly object _eventImageChanged = new();
 
-        private static readonly object _eventSelected = new object();
+        private static readonly object _eventSelected = new();
 
-        private static readonly object _eventSelecting = new object();
+        private static readonly object _eventSelecting = new();
 
-        private static readonly object _eventShowGridChanged = new object();
+        private static readonly object _eventShowGridChanged = new();
 
-        private static readonly object _eventShowTextWithSnapshotChanged = new object();
+        private static readonly object _eventShowTextWithSnapshotChanged = new();
 
-        private static readonly object _eventZoomChanged = new object();
+        private static readonly object _eventZoomChanged = new();
 
         private Color _color;
 
@@ -363,7 +363,7 @@ namespace AltUI.ColorPicker
             ScreenColorPickerHooks.Capture(this);
         }
 
-        public void ReleaseMouse()
+        public static void ReleaseMouse()
         {
             ScreenColorPickerHooks.Release();
         }
@@ -429,12 +429,8 @@ namespace AltUI.ColorPicker
         protected virtual void CreateSnapshotImage()
         {
             Size size;
-
-            if (_snapshotImage != null)
-            {
-                _snapshotImage.Dispose();
-                _snapshotImage = null;
-            }
+            _snapshotImage?.Dispose();
+            _snapshotImage = null;
 
             size = GetSnapshotSize();
             if (!size.IsEmpty)

@@ -19,7 +19,6 @@ namespace AltUI.ColorPicker
     /// <summary>
     /// Serializes and deserializes color palettes into and from other documents.
     /// </summary>
-    [Obsolete("This class will be removed in a future update to the library.")]
     public abstract class PaletteSerializer : IPaletteSerializer
     {
         #region Constants
@@ -35,7 +34,7 @@ namespace AltUI.ColorPicker
         /// </summary>
         static PaletteSerializer()
         {
-            _serializerCache = new List<IPaletteSerializer>();
+            _serializerCache = [];
         }
 
         #endregion
@@ -134,7 +133,7 @@ namespace AltUI.ColorPicker
             StringBuilder saveFilter;
             List<string> openExtensions;
 
-            openExtensions = new List<string>();
+            openExtensions = [];
             openFilter = new StringBuilder();
             saveFilter = new StringBuilder();
 
@@ -150,10 +149,7 @@ namespace AltUI.ColorPicker
 
                 extensionMask = new StringBuilder();
 
-                foreach (var extension in serializer.DefaultExtension.Split(new[]
-                                                                               {
-                                                                         ';'
-                                                                       }, StringSplitOptions.RemoveEmptyEntries))
+                foreach (var extension in serializer.DefaultExtension.Split(';', StringSplitOptions.RemoveEmptyEntries))
                 {
                     string mask;
 
@@ -166,7 +162,7 @@ namespace AltUI.ColorPicker
 
                     if (extensionMask.Length != 0)
                     {
-                        extensionMask.Append(";");
+                        extensionMask.Append(';');
                     }
                     extensionMask.Append(mask);
                 }
@@ -177,7 +173,7 @@ namespace AltUI.ColorPicker
                 {
                     if (openFilter.Length != 0)
                     {
-                        openFilter.Append("|");
+                        openFilter.Append('|');
                     }
                     openFilter.Append(filter);
                 }
@@ -186,7 +182,7 @@ namespace AltUI.ColorPicker
                 {
                     if (saveFilter.Length != 0)
                     {
-                        saveFilter.Append("|");
+                        saveFilter.Append('|');
                     }
                     saveFilter.Append(filter);
                 }
@@ -198,7 +194,7 @@ namespace AltUI.ColorPicker
             }
             if (openFilter.Length != 0)
             {
-                openFilter.Append("|");
+                openFilter.Append('|');
             }
             openFilter.Append("All Files (*.*)|*.*");
 
@@ -307,21 +303,6 @@ namespace AltUI.ColorPicker
         /// <returns>The <see cref="ColorCollection" /> being deserialized.</returns>
         public abstract ColorCollection Deserialize(Stream stream);
 
-        /// <summary>
-        /// Deserializes the <see cref="ColorCollection" /> contained by the specified <see cref="Stream" />.
-        /// </summary>
-        /// <param name="fileName">The name of the file that the palette will be read from.</param>
-        /// <returns>The <see cref="ColorCollection" /> being deserialized.</returns>
-        public ColorCollection Deserialize(string fileName)
-        {
-            if (!File.Exists(fileName))
-            {
-                throw new FileNotFoundException(string.Format("Cannot find file '{0}'", fileName), fileName);
-            }
-
-            using Stream stream = File.OpenRead(fileName);
-            return this.Deserialize(stream);
-        }
 
         /// <summary>
         /// Serializes the specified <see cref="ColorCollection" /> and writes the palette to a file using the specified <see cref="Stream"/>.
@@ -330,84 +311,6 @@ namespace AltUI.ColorPicker
         /// <param name="palette">The <see cref="ColorCollection" /> to serialize.</param>
         public abstract void Serialize(Stream stream, ColorCollection palette);
 
-        /// <summary>
-        /// Serializes the specified <see cref="ColorCollection" /> and writes the palette to a file using the specified <see cref="Stream"/>.
-        /// </summary>
-        /// <param name="fileName">The name of the file where the palette will be written to.</param>
-        /// <param name="palette">The <see cref="ColorCollection" /> to serialize.</param>
-        public void Serialize(string fileName, ColorCollection palette)
-        {
-            using Stream stream = File.Create(fileName);
-            this.Serialize(stream, palette);
-        }
-
-        /// <summary>
-        /// Reads a 16bit unsigned integer in big-endian format.
-        /// </summary>
-        /// <param name="stream">The stream to read the data from.</param>
-        /// <returns>The unsigned 16bit integer cast to an <c>Int32</c>.</returns>
-        protected int ReadInt16(Stream stream)
-        {
-            return (stream.ReadByte() << 8) | (stream.ReadByte() << 0);
-        }
-
-        /// <summary>
-        /// Reads a 32bit unsigned integer in big-endian format.
-        /// </summary>
-        /// <param name="stream">The stream to read the data from.</param>
-        /// <returns>The unsigned 32bit integer cast to an <c>Int32</c>.</returns>
-        protected int ReadInt32(Stream stream)
-        {
-            // big endian conversion: http://stackoverflow.com/a/14401341/148962
-
-            return ((byte)stream.ReadByte() << 24) | ((byte)stream.ReadByte() << 16) | ((byte)stream.ReadByte() << 8) | (byte)stream.ReadByte();
-        }
-
-        /// <summary>
-        /// Reads a unicode string of the specified length.
-        /// </summary>
-        /// <param name="stream">The stream to read the data from.</param>
-        /// <param name="length">The number of characters in the string.</param>
-        /// <returns>The string read from the stream.</returns>
-        protected string ReadString(Stream stream, int length)
-        {
-            byte[] buffer;
-
-            buffer = new byte[length * 2];
-
-            stream.Read(buffer, 0, buffer.Length);
-
-            return Encoding.BigEndianUnicode.GetString(buffer);
-        }
-
-        /// <summary>
-        /// Writes a 16bit unsigned integer in big-endian format.
-        /// </summary>
-        /// <param name="stream">The stream to write the data to.</param>
-        /// <param name="value">The value to write</param>
-        protected void WriteInt16(Stream stream, short value)
-        {
-            stream.WriteByte((byte)(value >> 8));
-            stream.WriteByte((byte)(value >> 0));
-        }
-
-        /// <summary>
-        /// Writes a 32bit unsigned integer in big-endian format.
-        /// </summary>
-        /// <param name="stream">The stream to write the data to.</param>
-        /// <param name="value">The value to write</param>
-        protected void WriteInt32(Stream stream, int value)
-        {
-            stream.WriteByte((byte)((value & 0xFF000000) >> 24));
-            stream.WriteByte((byte)((value & 0x00FF0000) >> 16));
-            stream.WriteByte((byte)((value & 0x0000FF00) >> 8));
-            stream.WriteByte((byte)((value & 0x000000FF) >> 0));
-        }
-
-        protected void WriteString(Stream stream, string value)
-        {
-            stream.Write(Encoding.BigEndianUnicode.GetBytes(value), 0, value.Length * 2);
-        }
 
         #endregion
 

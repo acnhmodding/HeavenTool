@@ -31,39 +31,34 @@ namespace HeavenTool.Forms.SARC
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SarcEditor));
-            darkMenuStrip1 = new DarkMenuStrip();
+            headerMenu = new System.Windows.Forms.MenuStrip();
             fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             saveAsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             searchTextBox = new System.Windows.Forms.ToolStripTextBox();
             filesTreeView = new System.Windows.Forms.TreeView();
-            darkMenuStrip1.SuspendLayout();
+            headerMenu.SuspendLayout();
             SuspendLayout();
             // 
-            // darkMenuStrip1
+            // headerMenu
             // 
-            darkMenuStrip1.BackColor = System.Drawing.Color.FromArgb(40, 40, 40);
-            darkMenuStrip1.ForeColor = System.Drawing.Color.White;
-            darkMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { fileToolStripMenuItem, searchTextBox });
-            darkMenuStrip1.Location = new System.Drawing.Point(0, 0);
-            darkMenuStrip1.Name = "darkMenuStrip1";
-            darkMenuStrip1.Padding = new System.Windows.Forms.Padding(3, 2, 0, 2);
-            darkMenuStrip1.Size = new System.Drawing.Size(636, 24);
-            darkMenuStrip1.TabIndex = 0;
-            darkMenuStrip1.Text = "darkMenuStrip1";
+            headerMenu.ForeColor = System.Drawing.Color.White;
+            headerMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { fileToolStripMenuItem, searchTextBox });
+            headerMenu.Location = new System.Drawing.Point(0, 0);
+            headerMenu.Name = "headerMenu";
+            headerMenu.Padding = new System.Windows.Forms.Padding(3, 2, 0, 2);
+            headerMenu.Size = new System.Drawing.Size(636, 24);
+            headerMenu.TabIndex = 0;
             // 
             // fileToolStripMenuItem
             // 
-            fileToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { openToolStripMenuItem, saveAsToolStripMenuItem });
-            fileToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
             fileToolStripMenuItem.Text = "File";
             // 
             // openToolStripMenuItem
             // 
-            openToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             openToolStripMenuItem.Image = Properties.Resources.open_file;
             openToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             openToolStripMenuItem.Name = "openToolStripMenuItem";
@@ -74,7 +69,6 @@ namespace HeavenTool.Forms.SARC
             // 
             // saveAsToolStripMenuItem
             // 
-            saveAsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             saveAsToolStripMenuItem.Image = Properties.Resources.save;
             saveAsToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             saveAsToolStripMenuItem.Name = "saveAsToolStripMenuItem";
@@ -85,9 +79,7 @@ namespace HeavenTool.Forms.SARC
             // searchTextBox
             // 
             searchTextBox.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
-            searchTextBox.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             searchTextBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            searchTextBox.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             searchTextBox.Margin = new System.Windows.Forms.Padding(0, 0, 5, 0);
             searchTextBox.Name = "searchTextBox";
             searchTextBox.Size = new System.Drawing.Size(100, 20);
@@ -112,21 +104,20 @@ namespace HeavenTool.Forms.SARC
             BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             ClientSize = new System.Drawing.Size(636, 397);
             Controls.Add(filesTreeView);
-            Controls.Add(darkMenuStrip1);
-            ForeColor = System.Drawing.Color.White;
+            Controls.Add(headerMenu);
             Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
-            MainMenuStrip = darkMenuStrip1;
+            MainMenuStrip = headerMenu;
             Name = "SarcEditor";
             Text = "SARC Editor";
-            darkMenuStrip1.ResumeLayout(false);
-            darkMenuStrip1.PerformLayout();
+            headerMenu.ResumeLayout(false);
+            headerMenu.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
 
         #endregion
 
-        private DarkMenuStrip darkMenuStrip1;
+        private System.Windows.Forms.MenuStrip headerMenu;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
         private System.Windows.Forms.TreeView filesTreeView;
         private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;

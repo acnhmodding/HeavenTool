@@ -14,7 +14,7 @@ namespace HeavenTool.Forms.BCSV
             InitializeComponent();
         }
 
-        private string lastResult = null;
+        private string? lastResult = null;
 
         private void SearchButton_Click(object sender, EventArgs e)
         {
