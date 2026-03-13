@@ -1,52 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace HeavenTool.IO.Audio.DspAdpcm;
 
-namespace HeavenTool.IO.FileFormats.BWAV;
-
-public class AdpcmEncodeBuffers
+public static class DspAdpcmEncoder
 {
-    public short[][] Coefs { get; } = new short[8][];
-    public int[][] PcmOut { get; } = new int[8][];
-    public int[][] AdpcmOut { get; } = new int[8][];
-    public int[] Scale { get; } = new int[8];
-    public double[] TotalDistance { get; } = new double[8];
+    public const int BytesPerFrame = 8;
+    public const int SamplesPerFrame = 14;
+    public const int NibblesPerFrame = 16;
 
-    public AdpcmEncodeBuffers()
-    {
-        for (int i = 0; i < 8; i++)
-        {
-            PcmOut[i] = new int[16];
-            AdpcmOut[i] = new int[14];
-            Coefs[i] = new short[2];
-        }
-    }
-}
-
-public static class AdpcmEncoder
-{
-    public static readonly int BytesPerFrame = 8;
-    public static readonly int SamplesPerFrame = 14;
-    public static readonly int NibblesPerFrame = 16;
-
-    public static short Clamp16(int value)
-    {
-        if (value > short.MaxValue)
-            return short.MaxValue;
-        if (value < short.MinValue)
-            return short.MinValue;
-        return (short)value;
-    }
-
-    public static sbyte Clamp4(int value)
-    {
-        if (value > 7)
-            return 7;
-        if (value < -8)
-            return -8;
-        return (sbyte)value;
-    }
-
+    public static short Clamp16(int value) => (short) Math.Clamp(value, short.MinValue, short.MaxValue);
+    public static sbyte Clamp4(int value) => (sbyte) Math.Clamp(value, -8, 7);
     public static byte CombineNibbles(int high, int low) => (byte)((high << 4) | (low & 0xF));
 
     public static int SampleCountToNibbleCount(int sampleCount)
@@ -81,7 +42,7 @@ public static class AdpcmEncoder
         pcmBuffer[1] = config.History1;
 
         int frameCount = (int) Math.Ceiling((double)sampleCount / SamplesPerFrame);
-        var buffers = new AdpcmEncodeBuffers();
+        var buffers = new DspAdpcmEncodeBuffers();
 
         for (int frame = 0; frame < frameCount; frame++)
         {
@@ -100,9 +61,9 @@ public static class AdpcmEncoder
         return adpcm;
     }
 
-    public static void DspEncodeFrame(short[] pcmInOut, int sampleCount, byte[] adpcmOut, short[] coefsIn, AdpcmEncodeBuffers? b = null)
+    public static void DspEncodeFrame(short[] pcmInOut, int sampleCount, byte[] adpcmOut, short[] coefsIn, DspAdpcmEncodeBuffers? b = null)
     {
-        b ??= new AdpcmEncodeBuffers();
+        b ??= new DspAdpcmEncodeBuffers();
 
         for (int i = 0; i < 8; i++)
         {

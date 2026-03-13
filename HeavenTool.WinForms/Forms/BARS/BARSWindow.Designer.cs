@@ -32,13 +32,16 @@
             darkMenuStrip1 = new HeavenTool.Forms.Components.DarkMenuStrip();
             fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            unloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             itemPropertyGrid = new System.Windows.Forms.PropertyGrid();
             barsTreeView = new System.Windows.Forms.TreeView();
             barsContainer = new System.Windows.Forms.SplitContainer();
             timeLabel = new System.Windows.Forms.Label();
             playButton = new AltUI.Controls.DarkButton();
-            customWaveViewer1 = new HeavenTool.Forms.Components.CustomWaveViewer();
+            waveViewer = new HeavenTool.Forms.Components.CustomWaveViewer();
             darkMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)barsContainer).BeginInit();
             barsContainer.Panel1.SuspendLayout();
@@ -60,7 +63,7 @@
             // fileToolStripMenuItem
             // 
             fileToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { openToolStripMenuItem });
+            fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { openToolStripMenuItem, saveToolStripMenuItem, toolStripSeparator1, unloadToolStripMenuItem });
             fileToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
@@ -71,10 +74,41 @@
             openToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             openToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             openToolStripMenuItem.Image = Properties.Resources.open_file;
+            openToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             openToolStripMenuItem.Name = "openToolStripMenuItem";
-            openToolStripMenuItem.Size = new System.Drawing.Size(112, 22);
+            openToolStripMenuItem.Size = new System.Drawing.Size(188, 30);
             openToolStripMenuItem.Text = "Open...";
             openToolStripMenuItem.Click += OpenToolStripMenuItem_Click;
+            // 
+            // saveToolStripMenuItem
+            // 
+            saveToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            saveToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            saveToolStripMenuItem.Image = Properties.Resources.save_as;
+            saveToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
+            saveToolStripMenuItem.Name = "saveToolStripMenuItem";
+            saveToolStripMenuItem.Size = new System.Drawing.Size(188, 30);
+            saveToolStripMenuItem.Text = "Save As...";
+            saveToolStripMenuItem.Click += SaveToolStripMenuItem_Click;
+            // 
+            // toolStripSeparator1
+            // 
+            toolStripSeparator1.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            toolStripSeparator1.ForeColor = System.Drawing.Color.White;
+            toolStripSeparator1.Margin = new System.Windows.Forms.Padding(0, 0, 0, 1);
+            toolStripSeparator1.Name = "toolStripSeparator1";
+            toolStripSeparator1.Size = new System.Drawing.Size(185, 6);
+            // 
+            // unloadToolStripMenuItem
+            // 
+            unloadToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            unloadToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            unloadToolStripMenuItem.Image = Properties.Resources.cancel;
+            unloadToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
+            unloadToolStripMenuItem.Name = "unloadToolStripMenuItem";
+            unloadToolStripMenuItem.Size = new System.Drawing.Size(188, 30);
+            unloadToolStripMenuItem.Text = "Unload";
+            unloadToolStripMenuItem.Click += UnloadToolStripMenuItem_Click;
             // 
             // optionsToolStripMenuItem
             // 
@@ -103,7 +137,7 @@
             itemPropertyGrid.Margin = new System.Windows.Forms.Padding(3, 3, 3, 1);
             itemPropertyGrid.Name = "itemPropertyGrid";
             itemPropertyGrid.SelectedItemWithFocusForeColor = System.Drawing.Color.Black;
-            itemPropertyGrid.Size = new System.Drawing.Size(279, 339);
+            itemPropertyGrid.Size = new System.Drawing.Size(271, 339);
             itemPropertyGrid.TabIndex = 2;
             itemPropertyGrid.ToolbarVisible = false;
             itemPropertyGrid.ViewBackColor = System.Drawing.Color.FromArgb(26, 26, 26);
@@ -136,7 +170,7 @@
             // 
             barsContainer.Panel2.Controls.Add(timeLabel);
             barsContainer.Panel2.Controls.Add(playButton);
-            barsContainer.Panel2.Controls.Add(customWaveViewer1);
+            barsContainer.Panel2.Controls.Add(waveViewer);
             barsContainer.Panel2.Controls.Add(itemPropertyGrid);
             barsContainer.Panel2.Padding = new System.Windows.Forms.Padding(0, 5, 5, 5);
             barsContainer.Size = new System.Drawing.Size(500, 421);
@@ -147,7 +181,7 @@
             // timeLabel
             // 
             timeLabel.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
-            timeLabel.Location = new System.Drawing.Point(150, 351);
+            timeLabel.Location = new System.Drawing.Point(142, 351);
             timeLabel.Name = "timeLabel";
             timeLabel.Size = new System.Drawing.Size(129, 15);
             timeLabel.TabIndex = 7;
@@ -169,17 +203,17 @@
             playButton.TabIndex = 6;
             playButton.Click += PlayStopButton_Click;
             // 
-            // customWaveViewer1
+            // waveViewer
             // 
-            customWaveViewer1.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            customWaveViewer1.BackColor = System.Drawing.Color.FromArgb(26, 26, 26);
-            customWaveViewer1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            customWaveViewer1.Location = new System.Drawing.Point(0, 373);
-            customWaveViewer1.Margin = new System.Windows.Forms.Padding(3, 0, 3, 3);
-            customWaveViewer1.Name = "customWaveViewer1";
-            customWaveViewer1.Size = new System.Drawing.Size(279, 43);
-            customWaveViewer1.StartPosition = 0L;
-            customWaveViewer1.TabIndex = 3;
+            waveViewer.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            waveViewer.BackColor = System.Drawing.Color.FromArgb(26, 26, 26);
+            waveViewer.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            waveViewer.Location = new System.Drawing.Point(0, 373);
+            waveViewer.Margin = new System.Windows.Forms.Padding(3, 0, 3, 3);
+            waveViewer.Name = "waveViewer";
+            waveViewer.Size = new System.Drawing.Size(271, 43);
+            waveViewer.StartPosition = 0L;
+            waveViewer.TabIndex = 3;
             // 
             // BARSWindow
             // 
@@ -212,8 +246,11 @@
         private System.Windows.Forms.TreeView barsTreeView;
         private System.Windows.Forms.SplitContainer barsContainer;
         private System.Windows.Forms.ToolStripMenuItem optionsToolStripMenuItem;
-        private Components.CustomWaveViewer customWaveViewer1;
+        private Components.CustomWaveViewer waveViewer;
         private AltUI.Controls.DarkButton playButton;
         private System.Windows.Forms.Label timeLabel;
+        private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem unloadToolStripMenuItem;
     }
 }

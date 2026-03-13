@@ -133,7 +133,7 @@ namespace HeavenTool.ModManager
                 var romFsItems = zipFile.Entries.Where(x => PathUtilities.ContainsDirectory(x.FullName, "romfs") && !Path.EndsInDirectorySeparator(x.FullName));
 
                 if (!romFsItems.Any())
-                    ConsoleUtilities.WriteLine($"> {item.Name} does not contain a romfs folder", ConsoleColor.Red);
+                    ConsoleUtilities.WriteLine($"> {item.Name} does not contain a romfs folder and will not be merged.", ConsoleColor.Red);
                 else
                     ConsoleUtilities.WriteLine($"> {item.Name} found!", ConsoleColor.Green);
 
@@ -150,69 +150,6 @@ namespace HeavenTool.ModManager
             }
         }
 
-        //public void PatchAndExport()
-        //{
-        //    Directory.CreateDirectory(OutputDirectory);
-
-        //    foreach (var file in ModsUsedPaths)
-        //    {
-        //        ModFile baseFile = LoadVanillaContent(file);
-
-        //        foreach (var modZip in Directory.GetFiles(ModsFolder, "*.zip", SearchOption.TopDirectoryOnly))
-        //        {
-        //            var zipName = Path.GetFileName(modZip);
-
-        //            using var zipFile = ZipFile.OpenRead(modZip);
-
-        //            bool predicate(ZipArchiveEntry entry) {
-        //                var path = PathUtilities.GetRelativePathFromTarget(entry.FullName, "romfs");
-        //                if (path == null) return false;
-
-        //                return PathUtilities.ArePathsEqual(path, file);
-        //            }
-
-        //            if (zipFile.Entries.Any(predicate))
-        //            {
-        //                FileChanged?.Invoke(zipName, file);
-
-        //                var entry = zipFile.Entries.Single(predicate);
-        //                using var stream = entry.Open();
-
-        //                using var memoryStream = new MemoryStream();
-        //                stream.CopyTo(memoryStream);
-
-        //                var loadedFile = LoadModFile(memoryStream.ToArray(), file);
-        //                if (baseFile != null)                           
-        //                    baseFile.DoDiff(loadedFile);
-
-        //                else
-        //                    baseFile = loadedFile; // it's a new file, use as base file instead of a vanilla one
-        //            }
-
-        //        }
-
-        //        if (baseFile != null) {
-
-        //            var fileBytes = baseFile.SaveFile();
-
-        //            switch (baseFile.Compression)
-        //            {
-        //                case Compression.Zstd:
-        //                    ConsoleUtilities.WriteLine($"Compressing {baseFile.Name} to ZSTD", ConsoleColor.Blue);
-        //                    var compressionStream = new MemoryStream();
-        //                    ZstdCompressor.Compress(new MemoryStream(fileBytes), compressionStream);
-        //                    fileBytes = compressionStream.ToArray();
-        //                    break;
-        //            }
-
-        //            var outputPath = Path.Combine(OutputDirectory, file);
-
-        //            Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-        //            File.WriteAllBytes(outputPath, fileBytes);
-
-        //        }
-        //    }
-        //}
         private readonly Dictionary<string, ModFile> _patchedFiles = [];
 
         public void Patch()
@@ -229,17 +166,16 @@ namespace HeavenTool.ModManager
 
                     using var zipFile = ZipFile.OpenRead(modZip);
 
-                    bool predicate(ZipArchiveEntry entry)
+                    var entry = zipFile.Entries.FirstOrNull(entry =>
                     {
                         var path = PathUtilities.GetRelativePathFromTarget(entry.FullName, "romfs");
                         return path != null && PathUtilities.ArePathsEqual(path, filePath);
-                    }
+                    });
 
-                    if (zipFile.Entries.Any(predicate))
+                    if (entry != null)
                     {
                         FileChanged?.Invoke(zipName, filePath);
 
-                        var entry = zipFile.Entries.Single(predicate);
                         using var stream = entry.Open();
                         using var memoryStream = new MemoryStream();
                         stream.CopyTo(memoryStream);

@@ -1,10 +1,12 @@
-﻿using HeavenTool.IO.FileFormats.BARS;
+﻿using HeavenTool.IO;
+using HeavenTool.IO.FileFormats.BARS;
 using HeavenTool.IO.FileFormats.BWAV;
 using HeavenTool.Properties;
 using NAudio.Wave;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 
@@ -16,6 +18,10 @@ public partial class BARSWindow : Form
     private readonly WaveOutEvent audioPlayer = new();
     private IWaveProvider? currentWave;
     private readonly Timer playbackTimer = new();
+
+    private string loadedFileName = "";
+    private BARSFileReader? barsFile;
+    private BinaryWaveFile? bwavFile;
 
     public BARSWindow()
     {
@@ -40,6 +46,8 @@ public partial class BARSWindow : Form
 
         playbackTimer.Interval = 30;
         playbackTimer.Tick += (_, _) => UpdateTimeLabel();
+
+        unloadToolStripMenuItem.Enabled = false;
     }
 
     private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
@@ -58,10 +66,12 @@ public partial class BARSWindow : Form
 
     private void LoadFile(string fileName)
     {
-        TreeNodeActions.Clear();
+        UnloadFile();
 
         using var stream = new FileStream(fileName, FileMode.Open);
         using var reader = new BinaryReader(stream);
+
+        loadedFileName = Path.GetFileNameWithoutExtension(fileName);
 
         TreeNode AddNode(TreeNodeCollection collection, string name, Action action)
         {
@@ -80,9 +90,9 @@ public partial class BARSWindow : Form
             if (bwav == null)
                 return;
 
-            void InitializeBwav()
+            async void InitializeBwav()
             {
-                short[] pcm = GetPcm(bwav);
+                short[] pcm = await GetPcm(bwav);
 
                 byte[] buffer = new byte[pcm.Length * 2];
                 Buffer.BlockCopy(pcm, 0, buffer, 0, buffer.Length);
@@ -95,7 +105,16 @@ public partial class BARSWindow : Form
                 audioPlayer.Init(currentWave);
 
                 playButton.Enabled = true;
-                customWaveViewer1.WaveStream = (WaveStream)currentWave;
+                waveViewer.WaveStream = (WaveStream)currentWave;
+
+                waveViewer.ClearMarkers();
+
+                if (metadata != null && metadata.MarkerList != null)
+                    foreach(var marker in metadata.MarkerList)
+                        waveViewer.AddMarker(marker);
+                    
+
+                //waveViewer.Invalidate();
                 UpdateTimeLabel();
             }
 
@@ -114,6 +133,36 @@ public partial class BARSWindow : Form
                     itemPropertyGrid.SelectedObject = metadata;
                     InitializeBwav();
                 });
+
+                if (metadata.MarkerList != null)
+                {
+                    AddNode(metadataNode.Nodes, "Markers", () =>
+                    {
+                        itemPropertyGrid.SelectedObject = metadata.MarkerList;
+                        InitializeBwav();
+                    });
+                }
+
+                if (metadata.MINF != null)
+                {
+                    var minfNode = AddNode(metadataNode.Nodes, "MINF", () =>
+                    {
+                        itemPropertyGrid.SelectedObject = metadata.MINF;
+                        InitializeBwav();
+                    });
+
+                    if (metadata.MINF.SectionA != null)
+                        AddNode(minfNode.Nodes, "Section A", () =>
+                        {
+                            itemPropertyGrid.SelectedObject = metadata.MINF.SectionA;
+                        });
+
+                    if (metadata.MINF.ChordsSection != null)
+                        AddNode(minfNode.Nodes, "Chords Section", () =>
+                        {
+                            itemPropertyGrid.SelectedObject = metadata.MINF.ChordsSection;
+                        });
+                }
 
                 if (audioAsset.RawAudioMetadata != null)
                 {
@@ -163,9 +212,9 @@ public partial class BARSWindow : Form
                         }
                     }),
 
-                    new ToolStripMenuItem("Export as WAV...", null, (_, _) =>
+                    new ToolStripMenuItem("Export as WAV...", null, async (_, _) =>
                     {
-                        short[] pcm = GetPcm(bwav);
+                        short[] pcm = await GetPcm(bwav);
 
                         using var saveFileDialog = new SaveFileDialog
                         {
@@ -185,16 +234,48 @@ public partial class BARSWindow : Form
                     new ToolStripMenuItem("Preview Sound...", null, (_, _) =>
                     {
                         InitializeBwav();
-                        audioPlayer.Play();
-                        playbackTimer.Start();
-                        playButton.BackgroundImage = Resources.pause;
+                        PlayAudio();
                     }),
 
                     new ToolStripSeparator(),
 
                     new ToolStripMenuItem("Override...", null, (a, b) =>
                     {
-                        Console.WriteLine("Overriding");
+                        var openFileDialog = new OpenFileDialog
+                        {
+                            Title = "Select a .BWAV or .WAV file to override with",
+                            Filter = "Audio Files|*.bwav;*.wav",
+                            RestoreDirectory = true,
+                        };
+
+                        if (openFileDialog.ShowDialog() != DialogResult.OK)
+                            return;
+
+                        var selectedFile = openFileDialog.FileName;
+                        var ext = Path.GetExtension(selectedFile).ToLower();
+
+                        if (ext == ".wav")
+                        {
+                            // get pcm data from the wav file using NAudio
+                            using var reader = new WaveFileReader(selectedFile);
+                            byte[] buffer = new byte[reader.Length];
+                            int bytesRead = reader.Read(buffer, 0, buffer.Length);
+
+                            short[] samples = new short[buffer.Length / 2];
+                            Buffer.BlockCopy(buffer, 0, samples, 0, buffer.Length);
+
+                            var encoded = BinaryWaveChannel.Encode(samples, out var coeffs);
+                            var newBwav = new BinaryWaveFile(reader.WaveFormat.Channels);
+
+                            var newChannel = new BinaryWaveChannel(encoded, coeffs)
+                            {
+                                Codec = BinaryWaveChannel.CodecType.DSP_ADPCM,
+                                ChannelPan = BinaryWaveChannel.PanType.Center,
+                                SampleRate = reader.WaveFormat.SampleRate,
+                                TotalSamples = samples.Length,
+                            };
+                        }
+
                     })
 
                 }
@@ -211,16 +292,23 @@ public partial class BARSWindow : Form
         }
 
         var magic = reader.ReadString(4);
+        barsTreeView.SuspendLayout();
+        barsTreeView.BeginUpdate();
+
         switch (magic)
         {
             case "BARS":
                 {
                     stream.Position = 0;
-                    var bars = new BARSFileReader(stream);
+                    barsFile = new BARSFileReader(stream);
 
-                    foreach (var item in bars.AudioAssets)
+                    foreach (var item in barsFile.AudioAssets)
                     {
-                        if (item.BinaryWave == null) continue;
+                        if (item.BinaryWave == null)
+                        {
+                            ConsoleUtilities.WriteLine($"Audio asset with hash {item.Hash:X8} has no binary wave data.", ConsoleColor.Yellow);
+                            continue;
+                        }
 
                         AddItem(item.ToString(), item);
                     }
@@ -229,49 +317,74 @@ public partial class BARSWindow : Form
 
             case "BWAV":
                 {
-                    reader.Position = 0;
-                    var buffer = reader.ReadByteArray((int)stream.Length);
-                    var bwav = new BinaryWaveFile(buffer);
+                    stream.Position = 0;
+                    bwavFile = new BinaryWaveFile(stream);
 
                     var name = Path.GetFileNameWithoutExtension(fileName);
 
                     AddItem(name, new AudioAsset()
                     {
-                        BinaryWave = bwav
+                        BinaryWave = bwavFile
                     });
                     break;
                 }
         }
 
+        barsTreeView.EndUpdate();
+        barsTreeView.ResumeLayout();
         barsContainer.Enabled = true;
         barsTreeView.Enabled = true;
         itemPropertyGrid.Enabled = true;
+        unloadToolStripMenuItem.Enabled = true;
     }
 
-    private static short[] GetPcm(BinaryWaveFile binaryWave)
+    private void UnloadFile()
+    {
+        barsFile = null;
+        bwavFile = null;
+
+        if (currentWave is IDisposable ws)
+            ws.Dispose();
+
+        currentWave = null;
+
+        unloadToolStripMenuItem.Enabled = false;
+        barsTreeView.Nodes.Clear();
+        TreeNodeActions.Clear();
+        waveViewer.WaveStream = null;
+
+        UpdateTimeLabel();
+    }
+
+    private static async Task<short[]> GetPcm(BinaryWaveFile binaryWave)
     {
         var channels = binaryWave.Channels;
-        short[] pcm;
-        // Mono
-        if (channels.Length == 1)
+        int channelCount = channels.Length;
+
+        if (channelCount == 0)
+            throw new Exception("No channels found.");
+
+        int totalSamples = channels[0].TotalSamples;
+
+        // Decode all channels
+        short[][] decoded = new short[channelCount][];
+        for (int c = 0; c < channelCount; c++)
         {
-            pcm = channels[0].Decode();
+            decoded[c] = channels[c].Decode();
+
+            if (decoded[c].Length != totalSamples)
+                throw new Exception("Channel sample counts do not match.");
         }
-        // Stereo
-        else if (channels.Length == 2)
+
+        // Interleave samples
+        short[] pcm = new short[totalSamples * channelCount];
+
+        for (int i = 0; i < totalSamples; i++)
         {
-            var left = channels[0].Decode();
-            var right = channels[1].Decode();
-            pcm = new short[binaryWave.Channels[0].TotalSamples * 2];
-            for (int i = 0; i < binaryWave.Channels[0].TotalSamples; i++)
+            for (int c = 0; c < channelCount; c++)
             {
-                pcm[i * 2] = left[i];
-                pcm[i * 2 + 1] = right[i];
+                pcm[i * channelCount + c] = decoded[c][i];
             }
-        }
-        else
-        {
-            throw new Exception("Exporting a BWAV with more than 2 channels is not supported at this moment.");
         }
 
         return pcm;
@@ -299,18 +412,23 @@ public partial class BARSWindow : Form
             {
                 audioPlayer.Pause();
                 playbackTimer.Stop();
-                playButton.BackgroundImage = Resources.play; 
+                playButton.BackgroundImage = Resources.play;
             }
             else
             {
                 if (currentWave is WaveStream ws && ws.Position >= ws.Length)
                     ws.Position = 0; // rewind if finished
 
-                audioPlayer.Play();
-                playbackTimer.Start();
-                playButton.BackgroundImage = Resources.pause;
+                PlayAudio();
             }
         }
+    }
+
+    private void PlayAudio()
+    {
+        audioPlayer.Play();
+        playbackTimer.Start();
+        playButton.BackgroundImage = Resources.pause;
     }
 
     #region time label updating
@@ -319,7 +437,10 @@ public partial class BARSWindow : Form
     private void UpdateTimeLabel()
     {
         if (currentWave is not WaveStream ws)
+        {
+            timeLabel.Text = $"{FormatTime(TimeSpan.Zero)} / {FormatTime(TimeSpan.Zero)}";
             return;
+        }
 
         TimeSpan current = ws.CurrentTime;
         TimeSpan total = ws.TotalTime;
@@ -327,4 +448,32 @@ public partial class BARSWindow : Form
         timeLabel.Text = $"{FormatTime(current)} / {FormatTime(total)}";
     }
     #endregion
+
+    private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        if (barsFile != null)
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Title = "Save .BARS file",
+                Filter = "Audio Resource|*.bars",
+                RestoreDirectory = true,
+                FileName = $"{loadedFileName}.bars",
+            };
+
+            if (saveFileDialog.ShowDialog() != DialogResult.OK)
+                return;
+
+            
+
+        } else if (bwavFile != null)
+        {
+
+        }
+    }
+
+    private void UnloadToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        UnloadFile();
+    }
 }

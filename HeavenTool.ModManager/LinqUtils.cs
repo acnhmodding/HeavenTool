@@ -7,7 +7,6 @@
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(predicate);
             
-
             foreach (T element in source)
                 if (predicate(element))
                     return element;

@@ -1,4 +1,5 @@
-﻿using BinaryReader = AeonSake.BinaryTools.BinaryReader;
+﻿using HeavenTool.IO.FileFormats.BARS.MINF;
+using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BARS;
@@ -6,6 +7,17 @@ namespace HeavenTool.IO.FileFormats.BARS;
 // The property names are probably all wrong. It is guessed by the value and not tested.
 public class AudioMetadata
 {
+    [Flags]
+    public enum MetadataFlags
+    {
+        None = 0,           
+        Unknown1 = 1 << 0,
+        Unknown2 = 1 << 1,
+        IsLooped = 1 << 2, 
+        Unknown4 = 1 << 3,
+        Unknown5 = 1 << 4  
+    }
+
     public const string AMTA_MAGIC = "AMTA";
     public enum AudioMetadataVersion : ushort
     {
@@ -21,8 +33,6 @@ public class AudioMetadata
 
         using var stream = new MemoryStream(parent.RawAudioMetadata);
         using var reader = new BinaryReader(stream);
-
-        Parent = parent;
 
         var initialPosition = reader.Position;
 
@@ -46,31 +56,21 @@ public class AudioMetadata
         }
     }
 
-    public AudioAsset Parent;
+    // hide from inspector
 
-    //public bool BigEndian => Endian == 0xFEFF;
-    //private ushort Endian { get; set; }
+    public MarkerList? MarkerList { get; private set; }
+    private StringPool StringPool { get; set; } = new();
     public bool IsBigEndian { get; }
     public AudioMetadataVersion Version { get; private set; }
     public int Size { get; private set; }
 
     // V5-specific fields
-    public uint OffsetToData { get; private set; }
-    public uint OffsetToMarker { get; private set; }
-    public uint OffsetToMINF { get; private set; }
-
-    //public string NameHashTranslated => $"0x{NameHash:x}";
-
-    private uint OffsetToFooter;
-
-    public uint DataSize { get; private set; }
-    private uint NameHash { get; set; }
     public uint Unknown_C { get; private set; }
     public byte StreamCount { get; private set; }
     public byte ChannelCount { get; private set; }
-    public byte Flags { get; private set; }
+    public MetadataFlags Flags { get; private set; }
     public byte CodecId { get; private set; }
-    public int Unknown_D { get; private set; } // when datasize == 40, always 257
+    public int? Unknown_D { get; private set; } // when datasize == 40, always 257
     public int Unknown { get; private set; } // almost always 15
     public float LoopStart { get; private set; }
     public float LoopEnd { get; private set; }
@@ -82,29 +82,37 @@ public class AudioMetadata
     public uint? UnknownInt2 { get; private set; } = null;
     public string Type { get; private set; } = "";
     public byte UnknownByte { get; private set; }
+    public MINFReader? MINF { get; private set; }
 
     public void ReadAMTAV5(BinaryReader reader, long initialPosition)
     {
         reader.Skip(4); // padding - OFFSET to specific regions
-        OffsetToData = reader.ReadUInt32(); // Offset to "DATA" block
-        OffsetToMarker = reader.ReadUInt32();
-        OffsetToMINF = reader.ReadUInt32();
-
-        OffsetToFooter = reader.ReadUInt32();
+        var dataOffset = reader.ReadUInt32(); // Offset to "DATA" block
+        var markerOffset = reader.ReadUInt32();
+        var minfOffset = reader.ReadUInt32();
+        var footerOffset = reader.ReadUInt32();
         reader.Skip(4); // padding
 
-        DataSize = reader.ReadUInt32();
-        NameHash = reader.ReadUInt32();
+        var assetNameOffset = reader.ReadUInt32();
+        using (reader.CreateScope())
+            AssetName = reader.ReadTerminatedStringAt(reader.Position - 4 + assetNameOffset);
+
+        var assetNameHash = reader.ReadUInt32();
+
+        if (AssetName.ToCRC32() != assetNameHash)
+            ConsoleUtilities.WriteLine($"Asset name hash mismatch! Calculated: 0x{AssetName.ToCRC32():X8}, Expected: 0x{assetNameHash:X8}", ConsoleColor.Yellow);
+
         Unknown_C = reader.ReadUInt32(); // Seems to be "Type" where 1 is a external stream (located inside "Stream" folder),
                                          // 0 is inside the file itself, 3/5 probably is villager singing (MINF?)
 
         StreamCount = reader.ReadByte();
         ChannelCount = reader.ReadByte();
-        Flags = reader.ReadByte();
         CodecId = reader.ReadByte();
+        Flags = (MetadataFlags) reader.ReadByte();
 
-        if (OffsetToData == 56)
+        if (dataOffset == 56)
         {
+            // This is problably extra info, so probably 2 bytes with a 4-alignment
             Unknown_D = reader.ReadInt32();
         }
 
@@ -116,11 +124,16 @@ public class AudioMetadata
         Volume = reader.ReadSingle();
         Loudness = reader.ReadSingle();
 
+        // Read 'MARKER' block
+        if (markerOffset != 0)
+            MarkerList = new MarkerList(reader, initialPosition + markerOffset);
+
+        if (minfOffset != 0)
+            MINF = new MINFReader(reader, initialPosition + minfOffset);
+
         // Init of 'FOOTER' block
-        if (OffsetToFooter != 0)
-            ReadFileFooter(reader, initialPosition + OffsetToFooter);
-        
-        AssetName = reader.ReadTerminatedStringAt(initialPosition + DataSize + 36); // Data Size + 36 (Header Size)
+        if (footerOffset != 0)
+            ReadFileFooter(reader, initialPosition + footerOffset);
     }
 
     private void ReadFileFooter(BinaryReader reader, long location)
@@ -142,10 +155,8 @@ public class AudioMetadata
         binaryWriter.Write(AMTA_MAGIC);
         binaryWriter.Write((ushort) 0xFFFE);
         binaryWriter.Write((ushort) Version);
-        
-        var sizePosition = binaryWriter.Position;
-        binaryWriter.Write(0); // size
-        
+        var sizePosition = binaryWriter.CreatePointer();
+
         switch (Version)
         {
             case AudioMetadataVersion.V5:
@@ -157,44 +168,64 @@ public class AudioMetadata
 
         binaryWriter.Align(4);
 
-        using (binaryWriter.CreateScope())
-            binaryWriter.WriteAt(sizePosition, (int) binaryWriter.Length);
-
+        sizePosition.Resolve((uint) binaryWriter.Length);
         return ms.ToArray();
     }
 
     private void WriteAMTAV5(BinaryWriter writer)
     {
+        var initialPosition = writer.Position;
         writer.Skip(4);
-        writer.Write(OffsetToData);
-        writer.Write(OffsetToMarker);
-        writer.Write(OffsetToMINF);
-        writer.Write(OffsetToFooter);
+        var dataPointer = writer.CreatePointer();
+        var markerPointer = writer.CreatePointer();
+        var minfPointer = writer.CreatePointer();
+        var footerPointer = writer.CreatePointer();
         writer.Skip(4);
 
-        var currentDataPosition = (uint) writer.Position;
-        writer.Skip(4); // DataSize is written after FileFooter
+        var assetNamePointer = writer.CreatePointer();
 
-        writer.Write(NameHash);
+        writer.Write(AssetName.ToCRC32());
         writer.Write(Unknown_C); // ?
 
         writer.Write(StreamCount);
         writer.Write(ChannelCount);
-        writer.Write(Flags);
         writer.Write(CodecId);
+        writer.Write((byte)Flags);
 
-        writer.Write(Unknown);
+        if (Unknown_D.HasValue)
+            writer.Write(Unknown_D.Value);
 
-        writer.Write(LoopStart);
-        writer.Write(LoopEnd);
-        writer.Write(Volume);
-        writer.Write(Loudness);
+        // * "DATA" block * //
+        dataPointer.Resolve(w =>
+        {
+            w.Write(Unknown);
 
-        WriteFileFooter(writer);
+            w.Write(LoopStart);
+            w.Write(LoopEnd);
+            w.Write(Volume);
+            w.Write(Loudness);
+        }, initialPosition);
 
-        uint dataSize = (uint) writer.Length - currentDataPosition;
-        using (writer.CreateScope())
-            writer.WriteAt(currentDataPosition, dataSize);
+        // * "MARKER" block * //
+        if (MarkerList != null)
+            markerPointer.Resolve(w =>
+            {
+                MarkerList.Write(w, StringPool);
+            }, initialPosition);
+
+        // * "MINF" block * //
+        if (MINF != null)
+            minfPointer.Resolve(w => {
+                // MINF.Write(w, StringPool);
+            }, initialPosition);
+
+        // * "FOOTER" block * //
+        footerPointer.Resolve(WriteFileFooter, initialPosition);
+
+        StringPool.Write(writer);
+
+        uint assetNameOffset = (uint) writer.Position - (uint)assetNamePointer.Position;
+        assetNamePointer.Resolve(assetNameOffset);
 
         writer.WriteTerminatedString(AssetName);
         writer.Align(4);

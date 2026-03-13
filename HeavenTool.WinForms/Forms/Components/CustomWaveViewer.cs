@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static HeavenTool.IO.FileFormats.BARS.MarkerList;
 
 namespace HeavenTool.Forms.Components;
 
@@ -24,6 +25,7 @@ public partial class CustomWaveViewer : UserControl
     private Point lastMousePos;
 
     private readonly Dictionary<int, PeakData> peakCache = [];
+    private readonly List<MarkerEntry> markers = [];
 
     private class PeakData
     {
@@ -57,14 +59,11 @@ public partial class CustomWaveViewer : UserControl
             waveStream = value;
 
             peakCache.Clear();
+            StartPosition = 0;
 
             if (waveStream != null)
             {
-                bytesPerSample =
-                    (waveStream.WaveFormat.BitsPerSample / 8) *
-                    waveStream.WaveFormat.Channels;
-
-                StartPosition = 0;
+                bytesPerSample = waveStream.WaveFormat.BitsPerSample / 8 * waveStream.WaveFormat.Channels;
 
                 _ = BuildPeaksAsync(samplesPerPixel);
             }
@@ -165,6 +164,25 @@ public partial class CustomWaveViewer : UserControl
 
             e.Graphics.DrawLine(penColor, x, y1, x, y2);
         }
+
+        DrawMarkers(e, bytesPerPixel);
+    }
+
+    private void DrawMarkers(PaintEventArgs e, long bytesPerPixel)
+    {
+        foreach (var marker in markers)
+        {
+            // Convert marker StartPosition to pixel coordinate
+            int markerX = (int)((marker.StartPosition - startPosition) / bytesPerPixel);
+
+            if (markerX >= 0 && markerX < Width)
+            {
+                using var markerPen = new Pen(Color.Red, 2f); // You can customize the color and width
+                e.Graphics.DrawLine(markerPen, markerX, 0, markerX, Height);
+                if (SamplesPerPixel <= 128)
+                    e.Graphics.DrawString(marker.Name, Font, Brushes.Red, markerX + 2, 2); // Optional: Display marker name
+            }
+        }
     }
 
     private void DrawCenterLine(Graphics g)
@@ -246,6 +264,16 @@ public partial class CustomWaveViewer : UserControl
     public void ResetZoom()
     {
         SamplesPerPixel = 128;
+    }
+
+    public void AddMarker(MarkerEntry marker)
+    {
+        markers.Add(marker);
+    }
+
+    public void ClearMarkers()
+    {
+        markers.Clear();
     }
 
     // ============================================================
@@ -362,8 +390,6 @@ public partial class CustomWaveViewer : UserControl
                     Max = max
                 });
             }
-
-            stream.Position = startPosition;
         }
 
         return new PeakData
@@ -382,16 +408,16 @@ public partial class CustomWaveViewer : UserControl
         if (waveStream == null)
             return;
 
-        long visibleBytes =
-            (long)Width * samplesPerPixel * bytesPerSample;
+        var length = waveStream.Length;
 
-        long max =
-            Math.Max(0, waveStream.Length - visibleBytes);
+        // If stream is empty (bgm are usually empty) use marker data to determine the length of the stream, so that user can scroll to the end of the bgm
+        if (length == 0 && markers.Count > 0)
+            length = markers[^1].StartPosition + markers[^1].Length + 2;
 
-        if (startPosition < 0)
-            startPosition = 0;
+        var visibleBytes = Width * samplesPerPixel * bytesPerSample;
 
-        if (startPosition > max)
-            startPosition = max;
+        var max = Math.Max(0, length - visibleBytes);
+
+        startPosition = Math.Clamp(startPosition, 0, max);
     }
 }

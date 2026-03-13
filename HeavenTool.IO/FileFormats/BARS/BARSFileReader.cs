@@ -1,42 +1,19 @@
 ﻿using HeavenTool.IO.FileFormats.BWAV;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
+using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BARS;
 
-public class AudioAsset
-{
-    /// <summary>
-    /// CRC32 Hash for the Asset name
-    /// </summary>
-    public uint Hash { get; set; }
-
-    /// <summary>
-    /// Offset for the asset data, this is used to read the actual audio data from the file.
-    /// </summary>
-    public int AssetOffset { get; set; }
-    public bool IsPrefetch { get; set; } = false;
-
-    /// <summary>
-    /// Gets or sets the metadata information associated with the audio content.
-    /// </summary>
-    public AudioMetadata? AudioMetadata { get; set; }
-
-    /// <summary>
-    /// Gets or sets the binary wave file associated with the current instance.
-    /// </summary>
-    public BinaryWaveFile? BinaryWave { get; set; }
-
-    public byte[]? RawBinaryWave { get; set; }
-    public byte[]? RawAudioMetadata { get; internal set; }
-
-    public override string ToString()
-    {
-        return AudioMetadata?.AssetName ?? "[Metadata not found]";
-    }
-}
+// TODO: We need to hash the audio data to avoid duplicates, because some files shares the same assetOffset,
+// but different metadata (and thus different hash).
+//
+// Hashing the audio data allows us to identify duplicates without using much memory,
+// because we can just store the hash instead of the entire audio data in memory.
 
 public class BARSFileReader
 {
+    public const string MAGIC = "BARS";
+
     /// <summary>
     /// Indicates if file is on big-endian byte order.
     /// </summary>
@@ -60,7 +37,7 @@ public class BARSFileReader
 
         var magic = reader.ReadString(4);
 
-        if (magic != "BARS")
+        if (magic != MAGIC)
             throw new Exception("This is not a BARS file");
 
         var size = reader.ReadInt32();
@@ -91,20 +68,17 @@ public class BARSFileReader
             var audioAsset = AudioAssets[i];
 
             var metadataOffset = reader.ReadUInt32();
-            var bigEndian = reader.BigEndian;
 
             using (reader.CreateScopeAt(metadataOffset))
             {
-                reader.Skip(4);
-
-                reader.BigEndian = reader.ReadUInt16() == 0xFFFE;
+                reader.Skip(4); // magic
+                reader.Skip(2); // endianness
                 reader.Skip(2); // version
                 var metadataSize = reader.ReadInt32();
 
                 audioAsset.RawAudioMetadata = reader.ReadByteArrayAt(metadataOffset, metadataSize);
                 audioAsset.AudioMetadata = new AudioMetadata(audioAsset);
             }
-            reader.BigEndian = bigEndian;
 
             var checkHash = audioAsset.AudioMetadata.AssetName.ToCRC32();
             if (checkHash != audioAsset.Hash) 
@@ -130,9 +104,9 @@ public class BARSFileReader
                 throw new Exception("Invalid asset offset, file may be corrupted");
 
             // Read the magic string for BWAV check
-            var magicBwav = reader.ReadStringAt(assetOffset, 4);
-            if (magicBwav != "BWAV")
-                throw new Exception($"Only BWAV files are supported at this moment. (Got {magicBwav})");
+            var assetMagic = reader.ReadStringAt(assetOffset, 4);
+            if (assetMagic != "BWAV")
+                throw new Exception($"Only BWAV files are supported at this moment. (Got {assetMagic})");
 
             var nextAssetOffset = (i + 1 < groupCount) ? groups[i + 1].Key : (int) reader.Length;
             var assetData = reader.ReadByteArrayAt(assetOffset, nextAssetOffset - assetOffset);
@@ -145,5 +119,40 @@ public class BARSFileReader
                 audioAsset.RawBinaryWave = assetData;
             }
         }
+    }
+
+    public byte[] ToBytes()
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+
+        writer.Write(MAGIC);
+        var size = writer.CreatePointer();
+
+        // write endian
+        writer.Write((ushort)(BigEndian ? 0xFEFF : 0xFFFE));
+        writer.Write(VersionMajor);
+        writer.Write(VersionMinor);
+        writer.Write(AudioAssets.Length);
+
+        foreach(var audioAsset in AudioAssets)
+        {
+            writer.Write(audioAsset.Hash);
+        }
+
+        var pointers = new (WriterScopePointer metadataPointer, WriterScopePointer assetPointer)[AudioAssets.Length];
+
+        for (int i = 0; i < AudioAssets.Length; i++)
+            pointers[i] = (writer.CreatePointer(), writer.CreatePointer());
+
+        foreach (var audioAsset in AudioAssets)
+        {
+            writer.Write(audioAsset.AudioMetadata?.ToBytes() ?? throw new Exception($"Failed to save audio metadata"));
+        }
+        
+
+        // Write file size at the beginning of the file
+        size.Resolve((uint) writer.Length);
+        return stream.ToArray();
     }
 }
