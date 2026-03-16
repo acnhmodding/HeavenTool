@@ -1,4 +1,5 @@
 ﻿using HeavenTool.IO.FileFormats.BARS.MINF;
+using System.ComponentModel;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
@@ -56,10 +57,8 @@ public class AudioMetadata
         }
     }
 
-    // hide from inspector
-
-    public MarkerList? MarkerList { get; private set; }
     private StringPool StringPool { get; set; } = new();
+
     public bool IsBigEndian { get; }
     public AudioMetadataVersion Version { get; private set; }
     public int Size { get; private set; }
@@ -77,11 +76,12 @@ public class AudioMetadata
     public float Volume { get; private set; }
     public float Loudness { get; private set; }
     public string AssetName { get; private set; } = "";
+    public List<string> Identifiers { get; private set; } = [];
 
-    public uint? UnknownInt { get; private set; } = null;
-    public uint? UnknownInt2 { get; private set; } = null;
-    public string Type { get; private set; } = "";
-    public byte UnknownByte { get; private set; }
+    [Browsable(false)]
+    public MarkerList? MarkerList { get; private set; }
+
+    [Browsable(false)]
     public MINFReader? MINF { get; private set; }
 
     public void ReadAMTAV5(BinaryReader reader, long initialPosition)
@@ -140,10 +140,10 @@ public class AudioMetadata
     {
         using (reader.CreateScopeAt(location))
         {
-            UnknownInt = reader.ReadUInt32();
-            UnknownInt2 = reader.ReadUInt32();
+            var entries = reader.ReadInt32();
 
-            Type = reader.ReadTerminatedString(7);
+            for (uint i = 0; i < entries; i++)
+                Identifiers.Add(reader.ReadStringPointer());
         }
     }
 
@@ -233,12 +233,9 @@ public class AudioMetadata
 
     private void WriteFileFooter(BinaryWriter writer)
     {
-        if (UnknownInt != null && UnknownInt2 != null && Type != null)
-        {
-            writer.Write(UnknownInt.Value);
-            writer.Write(UnknownInt2.Value);
-            writer.WriteTerminatedString(Type);
-        }
+        writer.Write(Identifiers.Count);
+        foreach (var identifier in Identifiers)
+            StringPool.AddString(writer, identifier);   
     }
 
     public override string ToString() => AssetName;

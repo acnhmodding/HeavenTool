@@ -207,9 +207,9 @@ public class ResourceSizeTable : IDisposable
 
 
         // Start actual reading of our RSTB file
-        using var reader = new BinaryFileReader(uncompressedStream);
+        using var reader = new BinaryReader(uncompressedStream);
 
-        HEADER = reader.ReadString(4, Encoding.ASCII);
+        HEADER = reader.ReadString(4);
         if (HEADER != "RSTB" && HEADER != "RSTC")
         {
             ConsoleUtilities.WriteLine($"This is not a valid RSTB/RSTC file! ({HEADER})", ConsoleColor.Red);

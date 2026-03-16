@@ -30,6 +30,6 @@ public class AudioAsset
 
     public override string ToString()
     {
-        return AudioMetadata?.AssetName ?? "[Metadata not found]";
+        return AudioMetadata?.AssetName ?? $"[Metadata not found | Hash: {Hash:X}]";
     }
 }

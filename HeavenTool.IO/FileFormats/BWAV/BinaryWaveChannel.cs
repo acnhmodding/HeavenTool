@@ -5,7 +5,7 @@ using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BWAV;
 
-public class BinaryWaveChannel
+public class BinaryWaveChannel : IDisposable
 {
     public enum PanType : ushort
     {
@@ -40,22 +40,6 @@ public class BinaryWaveChannel
     [Category("Audio Configuration")]
     public short[] Coefficients { get; set; }
 
-#if DEBUG
-    [Category("Offsets")]
-#else
-    [Browsable(false)]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-#endif
-    public uint AudioOffsetNonPrefetch { get; internal set; }
-
-#if DEBUG
-    [Category("Offsets")]
-#else
-    [Browsable(false)]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-#endif
-    public uint AudioOffset { get; internal set; }
-
     [Category("Looping")]
     public uint Always1 { get; private set; }
 
@@ -65,18 +49,16 @@ public class BinaryWaveChannel
     [Category("Looping")]
     public int LoopStart { get; private set; }
 
-    [Category("Predictor")]
+    [Category("DSP_ADPCM")]
     public ushort Predictor { get; private set; }
 
-    [Category("History")]
+    [Category("DSP_ADPCM")]
     public short[] History { get; private set; }
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public byte[]? ChannelData { get; internal set; }
 
-    //internal long writeAudioOffset;
-    //internal long writeAudioOffsetNonPrefetch;
     internal WriterScopePointer? writeAudioOffsetNonPrefetch;
     internal WriterScopePointer? writeAudioOffsetPrefetch;
 
@@ -89,7 +71,7 @@ public class BinaryWaveChannel
         History = new short[2];
     }
 
-    public BinaryWaveChannel(BinaryReader reader)
+    public BinaryWaveChannel(BinaryReader reader, bool isPrefetched = false)
     {
         var codecType = reader.ReadUInt16();
         if (codecType < 0 || codecType > 1)
@@ -107,8 +89,8 @@ public class BinaryWaveChannel
         TotalSamplesPrefetch = reader.ReadUInt32();
         TotalSamples = reader.ReadInt32();
         Coefficients = reader.ReadInt16Array(16);
-        AudioOffsetNonPrefetch = reader.ReadUInt32();
-        AudioOffset = reader.ReadUInt32();
+        var audioOffsetPrefetched = reader.ReadUInt32();
+        var audioOffset = reader.ReadUInt32();
         Always1 = reader.ReadUInt32();
         LoopEnd = reader.ReadInt32();
         LoopStart = reader.ReadInt32();
@@ -117,10 +99,16 @@ public class BinaryWaveChannel
 
         reader.Skip(2); // padding
 
-        int encoded_size = DspAdpcmEncoder.SampleCountToByteCount(TotalSamples);
+        int encoded_size = TotalSamples * 2;
+
+        if (Codec == CodecType.DSP_ADPCM)
+            encoded_size = DspAdpcmEncoder.SampleCountToByteCount(TotalSamples);
 
         using (reader.CreateScope())
-            ChannelData = reader.ReadByteArrayAt(AudioOffset, encoded_size);
+            if (isPrefetched)
+                ChannelData = TotalSamplesPrefetch > 0 ? reader.ReadByteArrayAt(audioOffsetPrefetched, encoded_size) : [];
+            else
+                ChannelData = TotalSamples > 0 ? reader.ReadByteArrayAt(audioOffset, encoded_size) : [];
     }
 
     internal void Write(BinaryWriter writer)
@@ -144,19 +132,30 @@ public class BinaryWaveChannel
 
     public short[] Decode()
     {
+        if (ChannelData == null) return [];
+
         var newData = new short[TotalSamples];
 
-        var coeffs = new short[8][];
-
-        int currentCoeeff = 0;
-        for (int i = 0; i < 8; i++)
+        if (Codec == CodecType.DSP_ADPCM)
         {
-            coeffs[i] = new short[2];
-            for (int j = 0; j <= 1; j++)
-                coeffs[i][j] = Coefficients[currentCoeeff++];
-        }
+            var coeffs = new short[8][];
 
-        Decode(ChannelData, ref newData, History[0], History[1], coeffs, TotalSamples);
+            int currentCoeeff = 0;
+            for (int i = 0; i < 8; i++)
+            {
+                coeffs[i] = new short[2];
+                for (int j = 0; j <= 1; j++)
+                    coeffs[i][j] = Coefficients[currentCoeeff++];
+            }
+
+            Decode(ChannelData, ref newData, History[0], History[1], coeffs, TotalSamples);
+        }
+        else if (Codec == CodecType.PCM) {
+            for (int i = 0; i < TotalSamples; i++)
+            {
+                newData[i] = BitConverter.ToInt16(ChannelData, i * 2);
+            }
+        }
 
         return newData;
     }
@@ -224,5 +223,32 @@ public class BinaryWaveChannel
     {
         coeffs = DspAdpcmCoefficients.CalculateCoefficients(samples);
         return DspAdpcmEncoder.Encode(samples, coeffs);
+    }
+
+    private bool _disposed;
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            // Release managed resources
+            ChannelData = null;
+            Coefficients = null!;
+            History = null!;
+
+            writeAudioOffsetNonPrefetch = null;
+            writeAudioOffsetPrefetch = null;
+        }
+
+        _disposed = true;
     }
 }

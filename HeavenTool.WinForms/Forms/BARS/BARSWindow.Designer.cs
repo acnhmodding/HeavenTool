@@ -36,17 +36,26 @@
             toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             unloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            singersToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            readPrefetchedFilesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             itemPropertyGrid = new System.Windows.Forms.PropertyGrid();
             barsTreeView = new System.Windows.Forms.TreeView();
             barsContainer = new System.Windows.Forms.SplitContainer();
-            timeLabel = new System.Windows.Forms.Label();
+            searchBox = new System.Windows.Forms.TextBox();
+            viewerSplitContainer = new System.Windows.Forms.SplitContainer();
+            volumeSlider = new NAudio.Gui.VolumeSlider();
             playButton = new AltUI.Controls.DarkButton();
             waveViewer = new HeavenTool.Forms.Components.CustomWaveViewer();
+            timeLabel = new System.Windows.Forms.Label();
             darkMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)barsContainer).BeginInit();
             barsContainer.Panel1.SuspendLayout();
             barsContainer.Panel2.SuspendLayout();
             barsContainer.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)viewerSplitContainer).BeginInit();
+            viewerSplitContainer.Panel1.SuspendLayout();
+            viewerSplitContainer.Panel2.SuspendLayout();
+            viewerSplitContainer.SuspendLayout();
             SuspendLayout();
             // 
             // darkMenuStrip1
@@ -76,7 +85,7 @@
             openToolStripMenuItem.Image = Properties.Resources.open_file;
             openToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             openToolStripMenuItem.Name = "openToolStripMenuItem";
-            openToolStripMenuItem.Size = new System.Drawing.Size(188, 30);
+            openToolStripMenuItem.Size = new System.Drawing.Size(131, 30);
             openToolStripMenuItem.Text = "Open...";
             openToolStripMenuItem.Click += OpenToolStripMenuItem_Click;
             // 
@@ -87,7 +96,7 @@
             saveToolStripMenuItem.Image = Properties.Resources.save_as;
             saveToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             saveToolStripMenuItem.Name = "saveToolStripMenuItem";
-            saveToolStripMenuItem.Size = new System.Drawing.Size(188, 30);
+            saveToolStripMenuItem.Size = new System.Drawing.Size(131, 30);
             saveToolStripMenuItem.Text = "Save As...";
             saveToolStripMenuItem.Click += SaveToolStripMenuItem_Click;
             // 
@@ -97,7 +106,7 @@
             toolStripSeparator1.ForeColor = System.Drawing.Color.White;
             toolStripSeparator1.Margin = new System.Windows.Forms.Padding(0, 0, 0, 1);
             toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new System.Drawing.Size(185, 6);
+            toolStripSeparator1.Size = new System.Drawing.Size(128, 6);
             // 
             // unloadToolStripMenuItem
             // 
@@ -106,21 +115,40 @@
             unloadToolStripMenuItem.Image = Properties.Resources.cancel;
             unloadToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             unloadToolStripMenuItem.Name = "unloadToolStripMenuItem";
-            unloadToolStripMenuItem.Size = new System.Drawing.Size(188, 30);
+            unloadToolStripMenuItem.Size = new System.Drawing.Size(131, 30);
             unloadToolStripMenuItem.Text = "Unload";
             unloadToolStripMenuItem.Click += UnloadToolStripMenuItem_Click;
             // 
             // optionsToolStripMenuItem
             // 
             optionsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { singersToolStripMenuItem, readPrefetchedFilesToolStripMenuItem });
             optionsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
             optionsToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
             optionsToolStripMenuItem.Text = "Options";
             // 
+            // singersToolStripMenuItem
+            // 
+            singersToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            singersToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            singersToolStripMenuItem.Name = "singersToolStripMenuItem";
+            singersToolStripMenuItem.Size = new System.Drawing.Size(186, 22);
+            singersToolStripMenuItem.Text = "Singers";
+            // 
+            // readPrefetchedFilesToolStripMenuItem
+            // 
+            readPrefetchedFilesToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            readPrefetchedFilesToolStripMenuItem.Checked = true;
+            readPrefetchedFilesToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            readPrefetchedFilesToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            readPrefetchedFilesToolStripMenuItem.Name = "readPrefetchedFilesToolStripMenuItem";
+            readPrefetchedFilesToolStripMenuItem.Size = new System.Drawing.Size(186, 22);
+            readPrefetchedFilesToolStripMenuItem.Text = "Read Prefetched Files";
+            readPrefetchedFilesToolStripMenuItem.Click += ReadPrefetchedFilesToolStripMenuItem_Click;
+            // 
             // itemPropertyGrid
             // 
-            itemPropertyGrid.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             itemPropertyGrid.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             itemPropertyGrid.CanShowVisualStyleGlyphs = false;
             itemPropertyGrid.CategoryForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
@@ -129,15 +157,16 @@
             itemPropertyGrid.CommandsForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             itemPropertyGrid.CommandsVisibleIfAvailable = false;
             itemPropertyGrid.DisabledItemForeColor = System.Drawing.Color.FromArgb(127, 255, 255, 255);
+            itemPropertyGrid.Dock = System.Windows.Forms.DockStyle.Fill;
             itemPropertyGrid.HelpBackColor = System.Drawing.Color.FromArgb(26, 26, 26);
             itemPropertyGrid.HelpForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             itemPropertyGrid.HelpVisible = false;
             itemPropertyGrid.LineColor = System.Drawing.Color.FromArgb(26, 26, 26);
-            itemPropertyGrid.Location = new System.Drawing.Point(0, 5);
+            itemPropertyGrid.Location = new System.Drawing.Point(0, 0);
             itemPropertyGrid.Margin = new System.Windows.Forms.Padding(3, 3, 3, 1);
             itemPropertyGrid.Name = "itemPropertyGrid";
             itemPropertyGrid.SelectedItemWithFocusForeColor = System.Drawing.Color.Black;
-            itemPropertyGrid.Size = new System.Drawing.Size(271, 339);
+            itemPropertyGrid.Size = new System.Drawing.Size(282, 339);
             itemPropertyGrid.TabIndex = 2;
             itemPropertyGrid.ToolbarVisible = false;
             itemPropertyGrid.ViewBackColor = System.Drawing.Color.FromArgb(26, 26, 26);
@@ -145,11 +174,11 @@
             // 
             // barsTreeView
             // 
+            barsTreeView.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             barsTreeView.BackColor = System.Drawing.Color.FromArgb(26, 26, 26);
-            barsTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
-            barsTreeView.Location = new System.Drawing.Point(5, 5);
+            barsTreeView.Location = new System.Drawing.Point(5, 34);
             barsTreeView.Name = "barsTreeView";
-            barsTreeView.Size = new System.Drawing.Size(202, 411);
+            barsTreeView.Size = new System.Drawing.Size(202, 399);
             barsTreeView.TabIndex = 3;
             // 
             // barsContainer
@@ -157,46 +186,73 @@
             barsContainer.CausesValidation = false;
             barsContainer.Dock = System.Windows.Forms.DockStyle.Fill;
             barsContainer.Location = new System.Drawing.Point(0, 24);
-            barsContainer.Margin = new System.Windows.Forms.Padding(4);
             barsContainer.Name = "barsContainer";
             // 
             // barsContainer.Panel1
             // 
             barsContainer.Panel1.CausesValidation = false;
+            barsContainer.Panel1.Controls.Add(searchBox);
             barsContainer.Panel1.Controls.Add(barsTreeView);
             barsContainer.Panel1.Padding = new System.Windows.Forms.Padding(5, 5, 0, 5);
             // 
             // barsContainer.Panel2
             // 
-            barsContainer.Panel2.Controls.Add(timeLabel);
-            barsContainer.Panel2.Controls.Add(playButton);
-            barsContainer.Panel2.Controls.Add(waveViewer);
-            barsContainer.Panel2.Controls.Add(itemPropertyGrid);
+            barsContainer.Panel2.Controls.Add(viewerSplitContainer);
             barsContainer.Panel2.Padding = new System.Windows.Forms.Padding(0, 5, 5, 5);
-            barsContainer.Size = new System.Drawing.Size(500, 421);
+            barsContainer.Size = new System.Drawing.Size(500, 433);
             barsContainer.SplitterDistance = 207;
             barsContainer.SplitterWidth = 6;
             barsContainer.TabIndex = 4;
             // 
-            // timeLabel
+            // searchBox
             // 
-            timeLabel.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
-            timeLabel.Location = new System.Drawing.Point(142, 351);
-            timeLabel.Name = "timeLabel";
-            timeLabel.Size = new System.Drawing.Size(129, 15);
-            timeLabel.TabIndex = 7;
-            timeLabel.Text = "0:000:000";
-            timeLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            searchBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            searchBox.Dock = System.Windows.Forms.DockStyle.Top;
+            searchBox.Location = new System.Drawing.Point(5, 5);
+            searchBox.Name = "searchBox";
+            searchBox.Size = new System.Drawing.Size(202, 23);
+            searchBox.TabIndex = 3;
+            searchBox.TextChanged += SearchBox_TextChanged;
+            // 
+            // viewerSplitContainer
+            // 
+            viewerSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            viewerSplitContainer.Location = new System.Drawing.Point(0, 5);
+            viewerSplitContainer.Name = "viewerSplitContainer";
+            viewerSplitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            // 
+            // viewerSplitContainer.Panel1
+            // 
+            viewerSplitContainer.Panel1.Controls.Add(itemPropertyGrid);
+            // 
+            // viewerSplitContainer.Panel2
+            // 
+            viewerSplitContainer.Panel2.Controls.Add(volumeSlider);
+            viewerSplitContainer.Panel2.Controls.Add(playButton);
+            viewerSplitContainer.Panel2.Controls.Add(waveViewer);
+            viewerSplitContainer.Panel2.Controls.Add(timeLabel);
+            viewerSplitContainer.Panel2MinSize = 80;
+            viewerSplitContainer.Size = new System.Drawing.Size(282, 423);
+            viewerSplitContainer.SplitterDistance = 339;
+            viewerSplitContainer.TabIndex = 8;
+            // 
+            // volumeSlider
+            // 
+            volumeSlider.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            volumeSlider.Location = new System.Drawing.Point(26, 3);
+            volumeSlider.Name = "volumeSlider";
+            volumeSlider.Size = new System.Drawing.Size(118, 18);
+            volumeSlider.TabIndex = 8;
             // 
             // playButton
             // 
-            playButton.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
             playButton.BackgroundImage = Properties.Resources.play;
             playButton.BorderColour = System.Drawing.Color.Empty;
             playButton.ButtonStyle = AltUI.Controls.DarkButtonStyle.Image;
             playButton.Enabled = false;
             playButton.ImagePadding = 0;
-            playButton.Location = new System.Drawing.Point(0, 347);
+            playButton.Location = new System.Drawing.Point(0, 0);
+            playButton.Margin = new System.Windows.Forms.Padding(0);
             playButton.Name = "playButton";
             playButton.Padding = new System.Windows.Forms.Padding(5);
             playButton.Size = new System.Drawing.Size(23, 23);
@@ -205,22 +261,31 @@
             // 
             // waveViewer
             // 
-            waveViewer.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            waveViewer.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             waveViewer.BackColor = System.Drawing.Color.FromArgb(26, 26, 26);
             waveViewer.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            waveViewer.Location = new System.Drawing.Point(0, 373);
-            waveViewer.Margin = new System.Windows.Forms.Padding(3, 0, 3, 3);
+            waveViewer.Location = new System.Drawing.Point(0, 26);
             waveViewer.Name = "waveViewer";
-            waveViewer.Size = new System.Drawing.Size(271, 43);
+            waveViewer.Size = new System.Drawing.Size(282, 54);
             waveViewer.StartPosition = 0L;
             waveViewer.TabIndex = 3;
+            // 
+            // timeLabel
+            // 
+            timeLabel.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            timeLabel.Location = new System.Drawing.Point(150, 4);
+            timeLabel.Name = "timeLabel";
+            timeLabel.Size = new System.Drawing.Size(129, 15);
+            timeLabel.TabIndex = 7;
+            timeLabel.Text = "0:000:000";
+            timeLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // BARSWindow
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            ClientSize = new System.Drawing.Size(500, 445);
+            ClientSize = new System.Drawing.Size(500, 457);
             Controls.Add(barsContainer);
             Controls.Add(darkMenuStrip1);
             Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
@@ -231,9 +296,14 @@
             darkMenuStrip1.ResumeLayout(false);
             darkMenuStrip1.PerformLayout();
             barsContainer.Panel1.ResumeLayout(false);
+            barsContainer.Panel1.PerformLayout();
             barsContainer.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)barsContainer).EndInit();
             barsContainer.ResumeLayout(false);
+            viewerSplitContainer.Panel1.ResumeLayout(false);
+            viewerSplitContainer.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)viewerSplitContainer).EndInit();
+            viewerSplitContainer.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -252,5 +322,10 @@
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem unloadToolStripMenuItem;
+        private System.Windows.Forms.SplitContainer viewerSplitContainer;
+        private System.Windows.Forms.ToolStripMenuItem singersToolStripMenuItem;
+        private System.Windows.Forms.TextBox searchBox;
+        private System.Windows.Forms.ToolStripMenuItem readPrefetchedFilesToolStripMenuItem;
+        private NAudio.Gui.VolumeSlider volumeSlider;
     }
 }

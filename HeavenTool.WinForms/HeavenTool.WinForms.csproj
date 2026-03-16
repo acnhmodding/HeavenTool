@@ -11,7 +11,7 @@
     <Product>Heaven Tool</Product>
     <Description>A GUI editor to deal with ACNH game files.</Description>
     <Authors>Rafacasari</Authors>
-    <Version>1.8.3</Version>
+    <Version>1.8.4</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Copyright>Copyright © 2024 – 2026 Rafacasari</Copyright>
     <ApplicationIcon>Resources\leaf.ico</ApplicationIcon>

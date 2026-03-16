@@ -1,4 +1,5 @@
 ﻿using HeavenTool.IO.FileFormats.BWAV;
+using System.Reflection.PortableExecutable;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
@@ -10,7 +11,7 @@ namespace HeavenTool.IO.FileFormats.BARS;
 // Hashing the audio data allows us to identify duplicates without using much memory,
 // because we can just store the hash instead of the entire audio data in memory.
 
-public class BARSFileReader
+public class BARSFileReader : IDisposable
 {
     public const string MAGIC = "BARS";
 
@@ -154,5 +155,20 @@ public class BARSFileReader
         // Write file size at the beginning of the file
         size.Resolve((uint) writer.Length);
         return stream.ToArray();
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    private bool _disposed;
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+
+        _disposed = true;
     }
 }

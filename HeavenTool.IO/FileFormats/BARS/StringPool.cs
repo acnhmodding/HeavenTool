@@ -1,4 +1,5 @@
-﻿using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
+﻿using System.Text;
+using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BARS;
 
@@ -10,7 +11,11 @@ public class StringPool
     {
         ArgumentNullException.ThrowIfNull(writer);
 
-        foreach (var (str, scopes) in Strings)
+        // Need to order 
+        var comparer = Comparer<byte[]>.Create((a, b) => a.SequenceCompareTo(b));
+        var ordered = Strings.OrderBy(x => Encoding.UTF8.GetBytes(x.Key), comparer);
+
+        foreach (var (str, scopes) in ordered)
         {
             foreach (var scope in scopes)
             {

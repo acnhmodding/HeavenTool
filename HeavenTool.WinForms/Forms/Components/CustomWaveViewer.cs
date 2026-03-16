@@ -26,10 +26,12 @@ public partial class CustomWaveViewer : UserControl
 
     private readonly Dictionary<int, PeakData> peakCache = [];
     private readonly List<MarkerEntry> markers = [];
+    private int loopStart = -1;
+    private int loopEnd = -1;
 
     private class PeakData
     {
-        public Peak[] Peaks = Array.Empty<Peak>();
+        public Peak[] Peaks = [];
         public long BytesPerPixel;
     }
 
@@ -63,6 +65,8 @@ public partial class CustomWaveViewer : UserControl
 
             if (waveStream != null)
             {
+                waveStream.Position = 0;
+
                 bytesPerSample = waveStream.WaveFormat.BitsPerSample / 8 * waveStream.WaveFormat.Channels;
 
                 _ = BuildPeaksAsync(samplesPerPixel);
@@ -165,37 +169,61 @@ public partial class CustomWaveViewer : UserControl
             e.Graphics.DrawLine(penColor, x, y1, x, y2);
         }
 
-        DrawMarkers(e, bytesPerPixel);
-    }
-
-    private void DrawMarkers(PaintEventArgs e, long bytesPerPixel)
-    {
-        foreach (var marker in markers)
-        {
-            // Convert marker StartPosition to pixel coordinate
-            int markerX = (int)((marker.StartPosition - startPosition) / bytesPerPixel);
-
-            if (markerX >= 0 && markerX < Width)
-            {
-                using var markerPen = new Pen(Color.Red, 2f); // You can customize the color and width
-                e.Graphics.DrawLine(markerPen, markerX, 0, markerX, Height);
-                if (SamplesPerPixel <= 128)
-                    e.Graphics.DrawString(marker.Name, Font, Brushes.Red, markerX + 2, 2); // Optional: Display marker name
-            }
-        }
+        DrawLoop(e.Graphics, bytesPerPixel);
+        DrawMarkers(e.Graphics, bytesPerPixel);
+        DrawPlayhead(e.Graphics, bytesPerPixel);
     }
 
     private void DrawCenterLine(Graphics g)
     {
         using Pen p = new(Color.FromArgb(50, Color.Gray));
+        g.DrawLine(p, 0, Height / 2, Width, Height / 2);
+    }
 
-        g.DrawLine(
-            p,
-            0,
-            Height / 2,
-            Width,
-            Height / 2
-        );
+    private void DrawLoop(Graphics g, long bytesPerPixel)
+    {
+        if (loopEnd == -1) return;
+
+        int loopStartPosition = (int)((loopStart - startPosition) / bytesPerPixel);
+        int loopEndPosition = (int)((loopEnd - startPosition) / bytesPerPixel);
+
+        using var markerPen = new Pen(Color.Green, 2f);
+
+        g.DrawLine(markerPen, loopStartPosition, 0, loopStartPosition, Height);
+        g.DrawLine(markerPen, loopEndPosition, 0, loopEndPosition, Height);
+    }
+
+    private void DrawMarkers(Graphics g, long bytesPerPixel)
+    {
+        if (SamplesPerPixel >= 2048)
+            return;
+
+        foreach (var marker in markers)
+        {
+            int markerX = (int)((marker.StartPosition - startPosition) / bytesPerPixel);
+
+            if (markerX >= 0 && markerX < Width)
+            {
+                using var markerPen = new Pen(Color.Red, 2f);
+                g.DrawLine(markerPen, markerX, Height / 2, markerX, Height);
+                if (SamplesPerPixel <= 128)
+                    g.DrawString(marker.Name, Font, Brushes.Red, markerX + 2, (Height / 2) + 2);
+            }
+        }
+    }
+
+    private void DrawPlayhead(Graphics g, long bytesPerPixel)
+    {
+        if (waveStream == null)
+            return;
+
+        int x = (int)((waveStream.Position - startPosition) / bytesPerPixel);
+
+        if (x >= 0 && x < Width)
+        {
+            using var pen = new Pen(Color.Yellow, 2f); // playhead color
+            g.DrawLine(pen, x, 0, x, Height);
+        }
     }
 
     // ============================================================
@@ -275,6 +303,17 @@ public partial class CustomWaveViewer : UserControl
     {
         markers.Clear();
     }
+    public void SetLoop(int start, int end)
+    {
+        loopStart = start;
+        loopEnd = end;
+    }
+
+    public void RemoveLoop()
+    {
+        loopStart = -1;
+        loopEnd = -1;
+    }
 
     // ============================================================
     // Peak Building
@@ -325,6 +364,7 @@ public partial class CustomWaveViewer : UserControl
 
         lock (stream)
         {
+            var oldPosition = stream.Position;
             stream.Position = 0;
 
             while (true)
@@ -390,6 +430,8 @@ public partial class CustomWaveViewer : UserControl
                     Max = max
                 });
             }
+
+            stream.Position = oldPosition;
         }
 
         return new PeakData

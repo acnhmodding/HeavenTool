@@ -11,12 +11,13 @@ public class MINFReader
     public const string MAGIC = "MINF";
 
     [Browsable(false)]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public SectionA? SectionA { get; private set; }
 
     [Browsable(false)]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public ChordsSection? ChordsSection { get; private set; } // SectionB
+    public SectionB? SectionB { get; private set; } 
+
+    [Browsable(false)]
+    public SectionH? SectionH { get; private set; } 
 
     public MINFReader(BinaryReader reader, long location)
     {
@@ -53,7 +54,7 @@ public class MINFReader
             if (sectionA != 0) SectionA = new SectionA(reader, reader.Position + sectionA - 4);
 
             var sectionB = reader.ReadUInt32();
-            if (sectionB != 0) ChordsSection = new ChordsSection(reader, reader.Position + sectionB - 4);
+            if (sectionB != 0) SectionB = new SectionB(reader, reader.Position + sectionB - 4);
 
             _ = reader.ReadUInt32(); // Section C is never used in ACNH
 
@@ -62,6 +63,7 @@ public class MINFReader
             var sectionF = reader.ReadUInt32();
             var sectionG = reader.ReadUInt32();
             var sectionH = reader.ReadUInt32();
+            if (sectionH != 0) SectionH = new SectionH(reader, reader.Position + sectionH - 4);
         }
 
     }
@@ -102,8 +104,11 @@ public class MINFReader
 
             });
 
-        if (ChordsSection != null)
-            sectionB.Resolve(ChordsSection.Write);
+        if (SectionB != null)
+            sectionB.Resolve(SectionB.Write);
+
+        if (SectionH != null)
+            sectionH.Resolve(SectionH.Write);
 
         size.Resolve((uint)writer.Position - start);
     }

@@ -1,5 +1,8 @@
 ﻿using System.Text;
 
+using BinaryReader = AeonSake.BinaryTools.BinaryReader;
+using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
+
 namespace HeavenTool.IO.FileFormats.BCSV;
 
 // Thanks to https://nintendo-formats.com/games/acnh/bcsv.html
@@ -99,7 +102,7 @@ public class BinaryCSV
 
     internal int HeaderVersion { get; private set; }
 
-    private static ReadOnlySpan<byte> Magic => "VSCB"u8;
+    private static ReadOnlySpan<byte> MAGIC => "VSCB"u8;
 
     public object this[int row, int column]
     {
@@ -165,7 +168,7 @@ public class BinaryCSV
     {
         HashManager.InitializeHashes();
 
-        using var reader = new BinaryFileReader(stream);
+        using var reader = new BinaryReader(stream);
 
         reader.Position = 0;
         var entryCount = reader.ReadUInt32();
@@ -177,15 +180,15 @@ public class BinaryCSV
 
         if (HasExtendedHeader == 1)
         {
-            var magic = reader.ReadBytes(4); 
+            var magic = reader.ReadByteArray(4); 
 
-            if (!Magic.SequenceEqual(magic))
+            if (!MAGIC.SequenceEqual(magic))
                 throw new Exception("File is not a BCSV!");
 
             HeaderVersion = reader.ReadInt32();
 
             // 8 byte padding
-            reader.Position += 8;
+            reader.Skip(8);
         }
 
         // Read Fields
@@ -233,13 +236,12 @@ public class BinaryCSV
                 var currentField = Fields[fieldId];
 
                 reader.Position = entryPosition + currentField.Offset;
-                //reader.SeekBegin(entryPosition + currentField.Offset);
 
                 object value = 0;
                 switch (currentField.DataType)
                 {
                     case DataType.BitField:
-                        value = reader.ReadBytes(currentField.Size);
+                        value = reader.ReadByteArray(currentField.Size);
                         break;
 
                     case DataType.S8:
@@ -303,11 +305,11 @@ public class BinaryCSV
 
         if (HasExtendedHeader == 1)
         {
-            writer.Write(Magic);
+            writer.Write(MAGIC);
             writer.Write(HeaderVersion);
 
             // Padding
-            writer.Seek(8, SeekOrigin.Current);
+            writer.Pad(8);
         }
 
 
@@ -319,14 +321,13 @@ public class BinaryCSV
 
         for (int currentEntry = 0; currentEntry < Entries.Count; currentEntry++)
         {
-
             int pos = (int) writer.BaseStream.Position;
             writer.Write(pos);
 
             for (int fieldId = 0; fieldId < Fields.Length; fieldId++)
             {
                 var field = Fields[fieldId];
-                writer.Seek(pos + field.Offset, SeekOrigin.Begin);
+                writer.Position = pos + field.Offset;
 
                 var entryValue = Entries[currentEntry][fieldId];
                 switch (field.DataType)
@@ -386,8 +387,10 @@ public class BinaryCSV
 
             }
 
-            writer.Seek(pos + EntrySize, SeekOrigin.Begin);
+            writer.Position = pos + EntrySize;
         }
+
+        writer.Align(4);
 
         return stream.ToArray();
     }

@@ -1,18 +1,16 @@
-﻿using HeavenTool.IO.FileFormats.BARS;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BWAV;
 
-public class BinaryWaveFile
+public class BinaryWaveFile : IDisposable
 {
     public int FileSize { get; }
     public bool IsBigEndian { get; }
     public ushort Version { get; }
     private uint Hash { get; }
     public ushort IsPrefetch { get; }
-    public AudioMetadata? Metadata { get; set; }
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -23,16 +21,14 @@ public class BinaryWaveFile
         Channels = new BinaryWaveChannel[channelQuantity];
     }
 
-    public BinaryWaveFile(byte[] buffer, AudioMetadata? metadata = null) : this(new MemoryStream(buffer), metadata)
+    public BinaryWaveFile(byte[] buffer) : this(new MemoryStream(buffer))
     { 
     
     }
 
-    public BinaryWaveFile(Stream stream, AudioMetadata? metadata = null)
+    public BinaryWaveFile(Stream stream, bool isPrefetched = false)
     {
         using var reader = new BinaryReader(stream);
-
-        Metadata = metadata;
 
         var MAGIC = reader.ReadString(4);
         if (MAGIC != "BWAV") throw new Exception($"File is not a BWAV ({MAGIC})!");
@@ -47,7 +43,7 @@ public class BinaryWaveFile
         Channels = new BinaryWaveChannel[channelCount];
 
         for (int i = 0; i < channelCount; i++)
-            Channels[i] = new BinaryWaveChannel(reader);
+            Channels[i] = new BinaryWaveChannel(reader, isPrefetched);
     }
 
     public bool ValidateHash(string fileName) => fileName.ToCRC32() != Hash;
@@ -84,5 +80,27 @@ public class BinaryWaveFile
         }
 
         return stream.ToArray();
+    }
+
+    private bool _disposed;
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            foreach (var channel in Channels)
+                channel.Dispose();
+        }
+
+        _disposed = true;
     }
 }

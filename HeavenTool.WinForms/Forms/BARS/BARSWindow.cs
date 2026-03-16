@@ -1,11 +1,14 @@
 ﻿using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BARS;
+using HeavenTool.IO.FileFormats.BARS.MINF.Sections.SectionH_SubSections;
 using HeavenTool.IO.FileFormats.BWAV;
 using HeavenTool.Properties;
 using NAudio.Wave;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
@@ -14,21 +17,36 @@ namespace HeavenTool.Forms.BARS;
 
 public partial class BARSWindow : Form
 {
+    public record class Singer(string Name, string FileName)
+    {
+        public bool Checked { get; set; }
+    }
+
     private readonly Dictionary<TreeNode, Action> TreeNodeActions = [];
     private readonly WaveOutEvent audioPlayer = new();
     private IWaveProvider? currentWave;
     private readonly Timer playbackTimer = new();
 
-    private string loadedFileName = "";
+    private string loadedFileName = string.Empty;
+    internal string lastLoadedPath = string.Empty;
     private BARSFileReader? barsFile;
     private BinaryWaveFile? bwavFile;
+
+    public List<Singer> Singers =
+    [
+        new("Girl", "Npc_Vocal_Girl.bars") {
+            Checked = true
+        },
+        new("Boy", "Npc_Vocal_Boy.bars"),
+        new("Man", "Npc_Vocal_Man.bars")
+    ];
 
     public BARSWindow()
     {
         InitializeComponent();
 
         timeLabel.Text = "";
-        barsTreeView.NodeMouseClick += (_, e) =>
+        barsTreeView.AfterSelect += (_, e) =>
         {
             if (e.Node != null && TreeNodeActions.TryGetValue(e.Node, out Action? onNodeSelected))
                 onNodeSelected?.Invoke();
@@ -44,10 +62,65 @@ public partial class BARSWindow : Form
             playbackTimer.Stop();
         };
 
+        volumeSlider.Volume = audioPlayer.Volume;
+        volumeSlider.VolumeChanged += (_, e) => audioPlayer.Volume = volumeSlider.Volume;
         playbackTimer.Interval = 30;
         playbackTimer.Tick += (_, _) => UpdateTimeLabel();
 
         unloadToolStripMenuItem.Enabled = false;
+
+        searchBox.Enabled = false;
+        barsTreeView.DrawMode = TreeViewDrawMode.OwnerDrawText;
+        barsTreeView.DrawNode += (_, e) =>
+        {
+
+            var searchText = searchBox.Text;
+            if (string.IsNullOrEmpty(searchText) || e.Node == null)
+            {
+                e.DrawDefault = true;
+                return;
+            }
+
+            if (e.Node.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            {
+                e.Graphics.FillRectangle(Brushes.DarkGray, e.Bounds);
+                TextRenderer.DrawText(e.Graphics, e.Node.Text, barsTreeView.Font, e.Bounds, Color.White, TextFormatFlags.GlyphOverhangPadding);
+            }
+            else
+            {
+                e.DrawDefault = true;
+            }
+        };
+
+        // Maybe ask if user really want to close the file
+        FormClosing += (_, _) => UnloadFile();
+    }
+
+    private async void LoadSingers()
+    {
+        singersToolStripMenuItem.DropDownItems.Clear();
+        foreach (var singer in Singers)
+        {
+            var item = singersToolStripMenuItem.DropDownItems.Add(singer.Name);
+            if (item is not ToolStripMenuItem singerMenuItem) continue;
+
+            var path = Path.Combine(lastLoadedPath, singer.FileName);
+            if (File.Exists(path))
+            {
+                item.Click += (_, e) =>
+                {
+                    singer.Checked = !singer.Checked;
+                    singerMenuItem.Checked = singer.Checked;
+
+                };
+
+                singerMenuItem.Checked = singer.Checked;
+            }
+            else
+            {
+                item.Enabled = false;
+            }
+        }
     }
 
     private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
@@ -64,7 +137,7 @@ public partial class BARSWindow : Form
             LoadFile(openFileDialog.FileName);
     }
 
-    private void LoadFile(string fileName)
+    private async void LoadFile(string fileName)
     {
         UnloadFile();
 
@@ -72,12 +145,16 @@ public partial class BARSWindow : Form
         using var reader = new BinaryReader(stream);
 
         loadedFileName = Path.GetFileNameWithoutExtension(fileName);
+        lastLoadedPath = Path.GetDirectoryName(fileName) ?? string.Empty;
 
-        TreeNode AddNode(TreeNodeCollection collection, string name, Action action)
+        LoadSingers();
+
+        TreeNode AddNode(TreeNodeCollection collection, string name, Action? action = null)
         {
             var node = collection.Add(name);
 
-            TreeNodeActions.Add(node, action);
+            if (action != null)
+                TreeNodeActions.Add(node, action);
 
             return node;
         }
@@ -94,6 +171,32 @@ public partial class BARSWindow : Form
             {
                 short[] pcm = await GetPcm(bwav);
 
+                // If pcm is empty so probably data is in `Stream` folder
+                if (pcm.Length == 0)
+                {
+                    pcm = new short[bwav.Channels[0].TotalSamplesPrefetch * bwav.Channels.Length];
+
+                    var loadPrefetchedFiles = readPrefetchedFilesToolStripMenuItem.Checked;
+                    if (loadPrefetchedFiles && audioAsset.AudioMetadata != null)
+                    {
+                        var fileName = audioAsset.AudioMetadata.AssetName;
+                        var fileLocation = Path.Combine(lastLoadedPath, "Stream", $"{fileName}.bwav");
+
+                        if (File.Exists(fileLocation))
+                        {
+                            using var reader = File.OpenRead(fileLocation);
+                            using var prefetched_bwav = new BinaryWaveFile(reader, true);
+
+                            pcm = await GetPcm(prefetched_bwav);
+                        }
+                    }
+                }
+
+
+                if (audioAsset.AudioMetadata?.MINF?.SectionH?.Notes is NotesSubSection notesSection)
+                    AddSingingToPcm(pcm, bwav, notesSection.Notes);
+
+                // Convert PCM16 buffer to bytes
                 byte[] buffer = new byte[pcm.Length * 2];
                 Buffer.BlockCopy(pcm, 0, buffer, 0, buffer.Length);
 
@@ -107,14 +210,17 @@ public partial class BARSWindow : Form
                 playButton.Enabled = true;
                 waveViewer.WaveStream = (WaveStream)currentWave;
 
+                if (bwav.Channels[0].LoopEnd > 0)
+                    waveViewer.SetLoop(bwav.Channels[0].LoopStart, bwav.Channels[0].LoopEnd);
+                else
+                    waveViewer.RemoveLoop();
+
                 waveViewer.ClearMarkers();
 
-                if (metadata != null && metadata.MarkerList != null)
-                    foreach(var marker in metadata.MarkerList)
+                if (metadata?.MarkerList != null)
+                    foreach (var marker in metadata.MarkerList)
                         waveViewer.AddMarker(marker);
-                    
 
-                //waveViewer.Invalidate();
                 UpdateTimeLabel();
             }
 
@@ -157,11 +263,22 @@ public partial class BARSWindow : Form
                             itemPropertyGrid.SelectedObject = metadata.MINF.SectionA;
                         });
 
-                    if (metadata.MINF.ChordsSection != null)
+                    if (metadata.MINF.SectionB != null)
                         AddNode(minfNode.Nodes, "Chords Section", () =>
                         {
-                            itemPropertyGrid.SelectedObject = metadata.MINF.ChordsSection;
+                            itemPropertyGrid.SelectedObject = metadata.MINF.SectionB;
                         });
+
+                    if (metadata.MINF.SectionH != null)
+                    {
+                        var sectionH = AddNode(minfNode.Nodes, "Section H");
+
+                        if (metadata.MINF.SectionH.Notes != null)
+                            AddNode(sectionH.Nodes, "Notes", () =>
+                            {
+                                itemPropertyGrid.SelectedObject = metadata.MINF.SectionH.Notes;
+                            });
+                    }
                 }
 
                 if (audioAsset.RawAudioMetadata != null)
@@ -291,9 +408,9 @@ public partial class BARSWindow : Form
             }
         }
 
-        var magic = reader.ReadString(4);
         barsTreeView.SuspendLayout();
         barsTreeView.BeginUpdate();
+        var magic = reader.ReadString(4);
 
         switch (magic)
         {
@@ -336,12 +453,62 @@ public partial class BARSWindow : Form
         barsTreeView.Enabled = true;
         itemPropertyGrid.Enabled = true;
         unloadToolStripMenuItem.Enabled = true;
+        searchBox.Enabled = true;
+    }
+
+    private static readonly Dictionary<string, short[]> singingCache = [];
+    private async void AddSingingToPcm(short[] target, BinaryWaveFile bwav, List<NotesSubSection.Note> notes)
+    {
+        foreach (var singer in Singers)
+        {
+            if (!singer.Checked) continue;
+
+            string singerName = Path.GetFileNameWithoutExtension(singer.FileName);
+            string path = Path.Combine(lastLoadedPath, singer.FileName);
+
+            if (!File.Exists(path)) continue;
+
+            using var reader = File.OpenRead(path);
+            using var bars = new BARSFileReader(reader);
+
+            var audioFiles = bars.AudioAssets.ToDictionary(x => x.ToString(), y => y.BinaryWave);
+
+            async Task<short[]> GetAudioPCM16(string assetName)
+            {
+                if (singingCache.TryGetValue(assetName, out var cached))
+                    return cached;
+
+                short[] pcm;
+                if (audioFiles.TryGetValue(assetName, out var data) && data != null)
+                    pcm = await GetPcm(data);
+                else pcm = [];
+
+                return singingCache[assetName] = pcm;
+            }
+
+            foreach (var note in notes)
+            {
+                short[] audio = await GetAudioPCM16($"{singerName}_{note.Vowel}_{note.Pitch}");
+
+                if (audio.Length == 0) continue;
+
+                int channels = bwav.Channels.Length;
+                int noteSamples = note.Length;
+
+                SingHelper.MixCountPCM16(audio, target, channels, note.Start, 0, note.Length, note.Volume, false);
+            }
+        }
     }
 
     private void UnloadFile()
     {
+        barsFile?.Dispose();
         barsFile = null;
+        bwavFile?.Dispose();
         bwavFile = null;
+
+        if (audioPlayer.PlaybackState == PlaybackState.Playing)
+            audioPlayer.Stop();
 
         if (currentWave is IDisposable ws)
             ws.Dispose();
@@ -352,38 +519,58 @@ public partial class BARSWindow : Form
         barsTreeView.Nodes.Clear();
         TreeNodeActions.Clear();
         waveViewer.WaveStream = null;
+        searchBox.Enabled = false;
+
+        singingCache.Clear();
 
         UpdateTimeLabel();
     }
 
     private static async Task<short[]> GetPcm(BinaryWaveFile binaryWave)
     {
-        var channels = binaryWave.Channels;
-        int channelCount = channels.Length;
+        int channelCount = binaryWave.Channels.Length;
 
         if (channelCount == 0)
             throw new Exception("No channels found.");
 
-        int totalSamples = channels[0].TotalSamples;
+        int totalSamples = binaryWave.Channels[0].TotalSamples;
 
-        // Decode all channels
+        // TODO: Probably a pre-fetched file, need to open it from 'Stream' folder
+        if (totalSamples == 0)
+            return [];
+
         short[][] decoded = new short[channelCount][];
         for (int c = 0; c < channelCount; c++)
-        {
-            decoded[c] = channels[c].Decode();
+            decoded[c] = binaryWave.Channels[c].Decode();
 
-            if (decoded[c].Length != totalSamples)
-                throw new Exception("Channel sample counts do not match.");
+        short[][] ordered = new short[channelCount][];
+
+        for (int i = 0; i < channelCount; i++)
+        {
+            var ch = binaryWave.Channels[i];
+            int index = ch.ChannelPan switch
+            {
+                BinaryWaveChannel.PanType.Left => 0,
+                BinaryWaveChannel.PanType.Right => channelCount > 1 ? 1 : 0,
+                BinaryWaveChannel.PanType.Center => channelCount > 2 ? 2 : channelCount - 1,
+                _ => 0
+            };
+
+            ordered[index] = decoded[i];
         }
 
-        // Interleave samples
-        short[] pcm = new short[totalSamples * channelCount];
+        for (int i = 0; i < channelCount; i++)
+        {
+            if (ordered[i] == null)
+                ordered[i] = decoded[0];
+        }
 
+        short[] pcm = new short[totalSamples * channelCount];
         for (int i = 0; i < totalSamples; i++)
         {
             for (int c = 0; c < channelCount; c++)
             {
-                pcm[i * channelCount + c] = decoded[c][i];
+                pcm[i * channelCount + c] = ordered[c][i];
             }
         }
 
@@ -429,6 +616,7 @@ public partial class BARSWindow : Form
         audioPlayer.Play();
         playbackTimer.Start();
         playButton.BackgroundImage = Resources.pause;
+        waveViewer.Invalidate();
     }
 
     #region time label updating
@@ -446,6 +634,7 @@ public partial class BARSWindow : Form
         TimeSpan total = ws.TotalTime;
 
         timeLabel.Text = $"{FormatTime(current)} / {FormatTime(total)}";
+        waveViewer.Invalidate();
     }
     #endregion
 
@@ -464,16 +653,36 @@ public partial class BARSWindow : Form
             if (saveFileDialog.ShowDialog() != DialogResult.OK)
                 return;
 
-            
 
-        } else if (bwavFile != null)
+
+        }
+        else if (bwavFile != null)
         {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Title = "Save .BWAV file",
+                Filter = "Binary Wave|*.bwav",
+                RestoreDirectory = true,
+                FileName = $"{loadedFileName}.bwav",
+            };
 
+            if (saveFileDialog.ShowDialog() != DialogResult.OK)
+                return;
         }
     }
 
     private void UnloadToolStripMenuItem_Click(object sender, EventArgs e)
     {
         UnloadFile();
+    }
+
+    private void SearchBox_TextChanged(object sender, EventArgs e)
+    {
+        barsTreeView.Invalidate();
+    }
+
+    private void ReadPrefetchedFilesToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        readPrefetchedFilesToolStripMenuItem.Checked = !readPrefetchedFilesToolStripMenuItem.Checked;
     }
 }
