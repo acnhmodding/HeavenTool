@@ -20,8 +20,22 @@ public class AudioMetadata
     }
 
     public const string AMTA_MAGIC = "AMTA";
+
+    /// <summary>
+    /// <see cref="V5"/> seems to be a complete rewrite of AMTA, with significally changes to all sections:
+    /// <list type="table">
+    /// <item>- DATA doesn't have any header/magic and a lot of fields has been removed</item>
+    /// <item>- Marker doesn't have any header/magic</item>
+    /// <item>- EXT section has been replaced with MINF section</item>
+    /// <item>- The string section seems to be replaced by some that looks like 'identifiers' and the string section comes right after it</item>
+    /// </list>
+    /// </summary>
     public enum AudioMetadataVersion : ushort
     {
+        V1 = 0x0100,
+        V2 = 0X0200, 
+        V3 = 0x0300,
+        V4 = 0x0400,
         V5 = 0x0500
     }
 
@@ -129,8 +143,16 @@ public class AudioMetadata
             MarkerList = new MarkerList(reader, initialPosition + markerOffset);
 
         if (minfOffset != 0)
-            MINF = new MINFReader(reader, initialPosition + minfOffset);
+        {
+            // TODO: Get MINF as raw bytes and feed it into a different BinaryReader
+            //uint minfSize;
+            //using (reader.CreateScope())
+            //{
+            //    minfSize = reader.ReadUInt32At(initialPosition + minfOffset + 8);
+            //}
 
+            MINF = new MINFReader(reader, initialPosition + minfOffset);
+        }
         // Init of 'FOOTER' block
         if (footerOffset != 0)
             ReadFileFooter(reader, initialPosition + footerOffset);

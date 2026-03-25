@@ -1,45 +1,133 @@
-﻿using HeavenTool.IO.FileFormats.PBC;
+﻿using HeavenTool.Forms.Components;
+using HeavenTool.Forms.Editor;
+using HeavenTool.IO.FileFormats.PBC;
 using HeavenTool.Utility;
 using HeavenTool.Utility.UndoSystem;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
+using WeifenLuo.WinFormsUI.Docking;
 
 namespace HeavenTool.Forms.PBC;
 
-public partial class PBCEditor : Form
+public partial class PBCEditor : BaseEditor
 {
-    public PBCFileReader CurrentPBC;
+    #region IEditor
+    public override void LoadFile(Stream stream)
+    {
+        CurrentPBC = new PBCFileReader(stream);
+
+        ReloadPBCImage();
+    }
+
+    public override void SaveFile()
+    {
+        if (string.IsNullOrEmpty(FilePath)) return;
+
+        // TODO: Probably this editor needs a new interface "IChildFile" that contains a field that points to the parent file (in that case an SARC file)
+    }
+    #endregion
+
+    public TileEditor Preview { get; } =  new()
+    {
+        BackColor = Color.Black, 
+        CurrentView = ViewType.Collision
+    };
+
+    public PropertyGrid PropertyGrid { get; } = new()
+    {
+        HelpVisible = false
+    };
+
+    public ListBox ColorList { get; } = new();
+
+    public PBCFileReader? CurrentPBC;
 
     private readonly Action<byte[]>? saveFunction;
-    public UndoManager UndoManager { get; } = new();
 
-    public PBCEditor(byte[] fileContent, string fileName, Action<byte[]> saveFunction)
+
+    public PBCEditor()
     {
         InitializeComponent();
-        this.saveFunction = saveFunction;
 
-        pbcPreview.ZoomChanged += ZoomChanged;
-        pbcPreview.MouseMove += (_, _) => UpdateStatusLabel();
-        pbcPreview.QuadrantSelected += QuadrantSelected;
+        dockPanel.Theme = new VS2015DarkTheme();
+        dockPanel.Dock = DockStyle.Fill;
+        dockPanel.DocumentStyle = DocumentStyle.DockingWindow;
+    
+        var editor = DockableControl.Create(Preview, "Editor");
+        var colorControl = DockableControl.Create(ColorList, "Colors");
+        var inspector = DockableControl.Create(PropertyGrid, "Inspector");
+
+        editor.Show(dockPanel, DockState.Document);
+        colorControl.Show(dockPanel, DockState.DockRight);
+        inspector.Show(colorControl.Pane, DockAlignment.Bottom, 0.5);
+
+        Preview.ZoomChanged += ZoomChanged;
+        Preview.QuadrantSelected += (q) => PropertyGrid.SelectedObject = q;
+        ColorList.DrawMode = DrawMode.OwnerDrawVariable;
+        ColorList.DrawItem += ColorList_DrawItem;
+        ColorList.SelectedIndexChanged += ColorList_SelectedIndexChanged;
+
+        gridToolStripMenuItem.Checked = Preview.DisplayGrid;
+        viewIDToolStripMenuItem.Checked = Preview.ShowType;
+
+        PropertyGrid.PropertyValueChanged += PropertyGrid_PropertyValueChanged;
+
+        foreach (TileType color in Enum.GetValues<TileType>())
+            ColorList.Items.Add(color);
+
+        Preview.TileBrush = TileType.Null;
+        ColorList.SelectedIndex = ColorList.Items.IndexOf(TileType.Null);
+
+        #region build view submenu
+        viewMenuItem.AddSeparator();
+
+        var viewMenuItems = new Dictionary<ViewType, ToolStripMenuItem>();
+        var tools = new Dictionary<ViewType, Tools.TileEditorTool>
+        {
+            { ViewType.HeightMap, Preview.Tools.InspectorTool },
+            { ViewType.Collision, Preview.Tools.CollisionBrush },
+        };
+        foreach (var view in Enum.GetValues<ViewType>())
+        {
+            viewMenuItems[view] = viewMenuItem.AddItem(view.ToString(), () =>
+            {
+                Preview.CurrentView = view;
+                if (tools.TryGetValue(view, out var tool))
+                    Preview.ActiveTool = tool;
+                PropertyGrid.SelectedObject = CurrentPBC;
+                ColorList.Enabled = view == ViewType.Collision;
+
+                foreach (var (itemView, item) in viewMenuItems)
+                    item.Checked = view == itemView;
+
+                ReloadPBCImage();
+            });
+
+            viewMenuItems[view].Checked = Preview.CurrentView == view;
+        }
+
+        viewMenuItem.AddSeparator();
+
+        LayerView[] layers = Enum.GetValues<LayerView>();
+        for (int i = 0; i < layers.Length; i++)
+        {
+            var layer = layers[i];
+            viewMenuItem.AddItem($"Layer {i}", () => Preview.ChangeLayerView(layer));
+        }
+        #endregion
+    }
+
+    public PBCEditor(byte[] fileContent, string fileName, Action<byte[]> saveFunction) : this()
+    {
+        this.saveFunction = saveFunction;
 
         Text = $"PBC Editor: {fileName}";
         CurrentPBC = new PBCFileReader(fileContent);
-        UpdateStatusLabel();
-
-        gridToolStripMenuItem.Checked = pbcPreview.DisplayGrid;
-        viewIDToolStripMenuItem.Checked = pbcPreview.ShowType;
-
-        propertyGrid.PropertyValueChanged += PropertyGrid_PropertyValueChanged;
 
         ReloadPBCImage();
-
-        var colors = Enum.GetValues<TileType>();
-        foreach (TileType color in colors)
-            colorList.Items.Add(color);
-
-        pbcPreview.TileBrush = TileType.Null;
-        colorList.SelectedIndex = colorList.Items.IndexOf(TileType.Null);
     }
 
     private void PropertyGrid_PropertyValueChanged(object? s, PropertyValueChangedEventArgs e)
@@ -59,28 +147,6 @@ public partial class PBCEditor : Form
         Invalidate();
     }
 
-    private void QuadrantSelected(PBCFileReader.Quadrant quadrant)
-    {
-        propertyGrid.SelectedObject = quadrant;
-    }
-
-    private void UpdateStatusLabel()
-    {
-        if (pbcPreview == null || CurrentPBC == null)
-        {
-            statusLabel.Text = "No PBC loaded.";
-            return;
-        }
-
-        var statusText = $"Width: {CurrentPBC.Width * 2} | Height: {CurrentPBC.Height * 2} | Offset: (X {CurrentPBC.OffsetX}, Y {CurrentPBC.OffsetY}) ";
-
-        if (pbcPreview.CurrentView == ViewType.Collision && pbcPreview.TileBrush != null)
-            statusText += $"| Brush: {pbcPreview.TileBrush}";
-
-        statusText += pbcPreview.HighlightedHeight != null ? $"| Highlithed Height: {pbcPreview.HighlightedHeight}" : "";
-
-        statusLabel.Text = statusText;
-    }
 
     private void ZoomChanged(int zoom)
     {
@@ -89,62 +155,59 @@ public partial class PBCEditor : Form
 
     public void ReloadPBCImage()
     {
-        pbcPreview.PBCFile = CurrentPBC;
-        pbcPreview.Invalidate();
+        Preview.PBCFile = CurrentPBC;
+        Preview.Invalidate();
 
-        heightMapToolStripMenuItem.Checked = pbcPreview.CurrentView == ViewType.HeightMap;
-        collisionMapToolStripMenuItem.Checked = pbcPreview.CurrentView == ViewType.Collision;
-
-        propertyGrid.SelectedObject = CurrentPBC;
+        PropertyGrid.SelectedObject = CurrentPBC;
     }
 
     private void ZoomPlusButton_Click(object sender, EventArgs e)
     {
-        pbcPreview.Zoom++;
+        Preview.Zoom++;
 
-        ZoomChanged(pbcPreview.Zoom);
+        ZoomChanged(Preview.Zoom);
         ReloadPBCImage();
     }
 
     private void ZoomMinusButton_Click(object sender, EventArgs e)
     {
-        if (pbcPreview.Zoom > 1)
-            pbcPreview.Zoom--;
+        if (Preview.Zoom > 1)
+            Preview.Zoom--;
 
-        ZoomChanged(pbcPreview.Zoom);
+        ZoomChanged(Preview.Zoom);
         ReloadPBCImage();
     }
 
     private void ViewIDToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        pbcPreview.ShowType = !pbcPreview.ShowType;
-        viewIDToolStripMenuItem.Checked = pbcPreview.ShowType;
+        Preview.ShowType = !Preview.ShowType;
+        viewIDToolStripMenuItem.Checked = Preview.ShowType;
 
         ReloadPBCImage();
     }
 
     private void GridToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        pbcPreview.DisplayGrid = !pbcPreview.DisplayGrid;
-        gridToolStripMenuItem.Checked = pbcPreview.DisplayGrid;
+        Preview.DisplayGrid = !Preview.DisplayGrid;
+        gridToolStripMenuItem.Checked = Preview.DisplayGrid;
 
         ReloadPBCImage();
     }
 
     private void CollisionMapToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        pbcPreview.CurrentView = ViewType.Collision;
-        pbcPreview.ActiveTool = pbcPreview.Tools.CollisionBrush;
-        propertyGrid.SelectedObject = CurrentPBC;
-        colorList.Enabled = true;
+        Preview.CurrentView = ViewType.Collision;
+        Preview.ActiveTool = Preview.Tools.CollisionBrush;
+        PropertyGrid.SelectedObject = CurrentPBC;
+        ColorList.Enabled = true;
         ReloadPBCImage();
     }
 
     private void HeightMapToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        pbcPreview.CurrentView = ViewType.HeightMap;
-        pbcPreview.ActiveTool = pbcPreview.Tools.InspectorTool;
-        colorList.Enabled = false;
+        Preview.CurrentView = ViewType.HeightMap;
+        Preview.ActiveTool = Preview.Tools.InspectorTool;
+        ColorList.Enabled = false;
         ReloadPBCImage();
     }
 
@@ -154,34 +217,24 @@ public partial class PBCEditor : Form
             saveFunction?.Invoke(CurrentPBC.SaveAsBytes());
     }
 
-    private void SaveButton_Click(object sender, EventArgs e)
+    private void ColorList_SelectedIndexChanged(object? sender, EventArgs e)
     {
-        if (CurrentPBC != null)
-            saveFunction?.Invoke(CurrentPBC.SaveAsBytes());
+        if (ColorList.SelectedItem != null && ColorList.SelectedItem is TileType tileType)
+            Preview.TileBrush = tileType;
     }
 
-    private void ColorList_SelectedIndexChanged(object sender, EventArgs e)
+    private void ColorList_DrawItem(object? sender, DrawItemEventArgs e)
     {
-        if (colorList.SelectedItem != null && colorList.SelectedItem is TileType tileType)
-            pbcPreview.TileBrush = tileType;
+        if (e.Index == -1 || ColorList.Items[e.Index] is not TileType tileType) return;
 
-        UpdateStatusLabel();
-    }
-
-    private void ColorList_DrawItem(object sender, DrawItemEventArgs e)
-    {
-        if (e.Index == -1) return;
-
-        var tileType = (TileType)colorList.Items[e.Index];
         byte tileNumber = (byte)tileType;
 
         e.DrawBackground();
         var rect = new Rectangle(e.Bounds.X + 10, e.Bounds.Y + 2, 12, e.Bounds.Height - 4);
-        using (SolidBrush brush = new(PBCImageUtilities.GetColor(tileType)))
-        {
-            e.Graphics.FillRectangle(brush, rect);
-        }
 
+        using (SolidBrush brush = new(PBCImageUtilities.GetColor(tileType)))
+            e.Graphics.FillRectangle(brush, rect);
+        
         var ft = new StringFormat()
         {
             LineAlignment = StringAlignment.Center,
@@ -197,39 +250,12 @@ public partial class PBCEditor : Form
         e.DrawFocusRectangle();
     }
 
-    private void Layer0ToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        pbcPreview.ChangeLayerView(LayerView.Layer0);
-    }
-
-    private void Layer1ToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        pbcPreview.ChangeLayerView(LayerView.Layer1);
-    }
-
-    private void Layer2ToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        pbcPreview.ChangeLayerView(LayerView.Layer2);
-    }
-
     protected override void OnInvalidated(InvalidateEventArgs e)
     {
-        pbcPreview.Invalidate();
+        Preview.Invalidate();
+        ColorList.Invalidate();
+
         base.OnInvalidated(e);
-    }
-
-    public void Undo()
-    {
-        UndoManager.Undo();
-
-        Invalidate();
-    }
-
-    public void Redo()
-    {
-        UndoManager.Redo();
-
-        Invalidate();
     }
 
     private void UndoToolStripMenuItem_Click(object sender, EventArgs e) => Undo();

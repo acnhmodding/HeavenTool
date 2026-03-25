@@ -41,7 +41,7 @@ public class BinaryWaveChannel : IDisposable
     public short[] Coefficients { get; set; }
 
     [Category("Looping")]
-    public uint Always1 { get; private set; }
+    public uint LoopCount { get; private set; }
 
     [Category("Looping")]
     public int LoopEnd { get; private set; }
@@ -91,7 +91,15 @@ public class BinaryWaveChannel : IDisposable
         Coefficients = reader.ReadInt16Array(16);
         var audioOffsetPrefetched = reader.ReadUInt32();
         var audioOffset = reader.ReadUInt32();
-        Always1 = reader.ReadUInt32();
+        LoopCount = reader.ReadUInt32(); // Seems to be always 1 (or at least minimum 1)
+
+        // Loops = new Loops[LoopCount];
+        //for (uint i = 0; i < LoopCount; i++)
+        //{
+        //    var loopEnd = reader.ReadInt32();
+        //    var loopStart = reader.ReadInt32();
+        //}
+
         LoopEnd = reader.ReadInt32();
         LoopStart = reader.ReadInt32();
         Predictor = reader.ReadUInt16();
@@ -122,12 +130,12 @@ public class BinaryWaveChannel : IDisposable
         writer.Write(Coefficients);
         writeAudioOffsetNonPrefetch = writer.CreatePointer();
         writeAudioOffsetPrefetch = writer.CreatePointer();
-        writer.Write(Always1);
+        writer.Write(LoopCount);
         writer.Write(LoopEnd);
         writer.Write(LoopStart);
         writer.Write(Predictor);
         writer.Write(History);
-        writer.Skip(2);
+        writer.Pad(2);
     }
 
     public short[] Decode()

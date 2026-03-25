@@ -6,6 +6,9 @@ using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BARS.MINF;
 
+/// <summary>
+/// Music Info
+/// </summary>
 public class MINFReader
 {
     public const string MAGIC = "MINF";
@@ -14,7 +17,13 @@ public class MINFReader
     public SectionA? SectionA { get; private set; }
 
     [Browsable(false)]
-    public SectionB? SectionB { get; private set; } 
+    public SectionB? SectionB { get; private set; }
+
+    [Browsable(false)]
+    public SectionD? SectionD { get; private set; }
+
+    [Browsable(false)]
+    public SectionE? SectionE { get; private set; }
 
     [Browsable(false)]
     public SectionH? SectionH { get; private set; } 
@@ -34,7 +43,7 @@ public class MINFReader
             reader.BigEndian = BigEndian = endian != 0xFEFF;
             VersionMajor = reader.ReadByte();
             VersionMinor = reader.ReadByte();
-            var minfSize = reader.ReadUInt32();
+            _ = reader.ReadUInt32(); // MINF size
 
             EnglishName = reader.ReadStringPointer();
             JapaneseName = reader.ReadStringPointer();
@@ -59,9 +68,14 @@ public class MINFReader
             _ = reader.ReadUInt32(); // Section C is never used in ACNH
 
             var sectionD = reader.ReadUInt32();
+            if (sectionD != 0) SectionD = new SectionD(reader, reader.Position + sectionD - 4);
+
             var sectionE = reader.ReadUInt32();
+            if (sectionE != 0) SectionE = new SectionE(reader, reader.Position + sectionE - 4);
+
             var sectionF = reader.ReadUInt32();
             var sectionG = reader.ReadUInt32();
+
             var sectionH = reader.ReadUInt32();
             if (sectionH != 0) SectionH = new SectionH(reader, reader.Position + sectionH - 4);
         }
@@ -99,13 +113,18 @@ public class MINFReader
         var sectionH = writer.CreatePointer();
 
         if (SectionA != null)
-            sectionA.Resolve(w =>
-            {
-
-            });
+            sectionA.Resolve(SectionA.Write);
 
         if (SectionB != null)
             sectionB.Resolve(SectionB.Write);
+
+        // section C is unused in ACNH 
+
+        if (SectionD != null)
+            sectionD.Resolve(SectionD.Write);
+
+        if (SectionE != null)
+            sectionE.Resolve(SectionE.Write);
 
         if (SectionH != null)
             sectionH.Resolve(SectionH.Write);

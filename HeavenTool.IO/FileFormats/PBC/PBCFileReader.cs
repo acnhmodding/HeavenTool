@@ -166,9 +166,13 @@ public partial class PBCFileReader
     }
 
 
-    public PBCFileReader(byte[] buffer)
+    public PBCFileReader(byte[] buffer) : this(new MemoryStream(buffer))
     {
-        using var stream = new MemoryStream(buffer);
+
+    }
+
+    public PBCFileReader(Stream stream)
+    {
         using var reader = new BinaryReader(stream);
 
         if (!CheckMagic(reader.ReadByteArray(4)))

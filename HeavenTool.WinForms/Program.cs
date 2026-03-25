@@ -107,7 +107,7 @@ internal static partial class Program
         {
             case ".bcsv":
                 var bcsvEditor = new BCSVForm();
-                bcsvEditor.LoadBCSVFile(path);
+                bcsvEditor.LoadFile(path);
                 return bcsvEditor;
 
             case ".srsizetable":

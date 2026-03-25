@@ -61,7 +61,7 @@ public class ResourceSizeTable : IDisposable
         {
             get
             {
-                if (CRCHash > 0 && _fileName == null && !unknownHash)
+                if (CRCHash > 0 && string.IsNullOrEmpty(_fileName) && !unknownHash)
                 {
                     // Try to get the file name using our files
                     _fileName = RomFsNameManager.GetValue(CRCHash);
@@ -208,6 +208,7 @@ public class ResourceSizeTable : IDisposable
 
         // Start actual reading of our RSTB file
         using var reader = new BinaryReader(uncompressedStream);
+        reader.Position = 0;
 
         HEADER = reader.ReadString(4);
         if (HEADER != "RSTB" && HEADER != "RSTC")

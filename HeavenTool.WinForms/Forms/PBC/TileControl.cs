@@ -1,4 +1,5 @@
-﻿using HeavenTool.Forms.PBC.Tools;
+﻿using HeavenTool.Forms.Editor;
+using HeavenTool.Forms.PBC.Tools;
 using HeavenTool.IO.FileFormats.PBC;
 using HeavenTool.Utility;
 using System;
@@ -22,8 +23,8 @@ public partial class TileEditor : Control
     {
         get
         {
-            if (FindForm() is PBCEditor pbcEditor)
-                return pbcEditor.UndoManager;
+            if (FindForm() is BaseEditor editor)
+                return editor.UndoManager;
 
             return _localUndoManager;
         }

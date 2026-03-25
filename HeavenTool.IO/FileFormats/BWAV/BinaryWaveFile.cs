@@ -72,8 +72,9 @@ public class BinaryWaveFile : IDisposable
             if (channel.ChannelData == null)
                 continue;
 
-            channel.writeAudioOffsetNonPrefetch?.Resolve((uint) writer.Position);
-            channel.writeAudioOffsetPrefetch?.Resolve((uint)writer.Position);
+            var offsetPosition = (uint) writer.Position;
+            channel.writeAudioOffsetNonPrefetch?.Resolve(offsetPosition);
+            channel.writeAudioOffsetPrefetch?.Resolve(offsetPosition);
 
             writer.Write(channel.ChannelData);
             writer.Align(0x40);

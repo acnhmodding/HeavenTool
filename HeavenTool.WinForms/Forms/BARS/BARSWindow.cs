@@ -3,6 +3,7 @@ using HeavenTool.IO.FileFormats.BARS;
 using HeavenTool.IO.FileFormats.BARS.MINF.Sections.SectionH_SubSections;
 using HeavenTool.IO.FileFormats.BWAV;
 using HeavenTool.Properties;
+using HeavenTool.Utility;
 using NAudio.Wave;
 using System;
 using System.Collections.Generic;
@@ -22,12 +23,11 @@ public partial class BARSWindow : Form
         public bool Checked { get; set; }
     }
 
-    private readonly Dictionary<TreeNode, Action> TreeNodeActions = [];
     private readonly WaveOutEvent audioPlayer = new();
     private IWaveProvider? currentWave;
     private readonly Timer playbackTimer = new();
 
-    private string loadedFileName = string.Empty;
+    private string? loadedFileName = null;
     internal string lastLoadedPath = string.Empty;
     private BARSFileReader? barsFile;
     private BinaryWaveFile? bwavFile;
@@ -48,8 +48,8 @@ public partial class BARSWindow : Form
         timeLabel.Text = "";
         barsTreeView.AfterSelect += (_, e) =>
         {
-            if (e.Node != null && TreeNodeActions.TryGetValue(e.Node, out Action? onNodeSelected))
-                onNodeSelected?.Invoke();
+            if (e.Node?.Tag is Action action)
+                action();
         };
 
         barsContainer.Enabled = false;
@@ -73,7 +73,6 @@ public partial class BARSWindow : Form
         barsTreeView.DrawMode = TreeViewDrawMode.OwnerDrawText;
         barsTreeView.DrawNode += (_, e) =>
         {
-
             var searchText = searchBox.Text;
             if (string.IsNullOrEmpty(searchText) || e.Node == null)
             {
@@ -92,11 +91,10 @@ public partial class BARSWindow : Form
             }
         };
 
-        // Maybe ask if user really want to close the file
-        FormClosing += (_, _) => UnloadFile();
+        FormClosing += (_, e) => WinFormsUtility.FormClosingConfirmation(e, loadedFileName != null, UnloadFile);
     }
 
-    private async void LoadSingers()
+    private void LoadSingers()
     {
         singersToolStripMenuItem.DropDownItems.Clear();
         foreach (var singer in Singers)
@@ -111,7 +109,6 @@ public partial class BARSWindow : Form
                 {
                     singer.Checked = !singer.Checked;
                     singerMenuItem.Checked = singer.Checked;
-
                 };
 
                 singerMenuItem.Checked = singer.Checked;
@@ -149,14 +146,21 @@ public partial class BARSWindow : Form
 
         LoadSingers();
 
-        TreeNode AddNode(TreeNodeCollection collection, string name, Action? action = null)
+        TreeNode AddNode(TreeNodeCollection collection, string name, Action? onSelect = null, Action<TreeNodeCollection>? parentBuilder = null)
         {
             var node = collection.Add(name);
-
-            if (action != null)
-                TreeNodeActions.Add(node, action);
+            node.Tag = onSelect;
+            parentBuilder?.Invoke(node.Nodes);
 
             return node;
+        }
+
+        TreeNode? AddPropertyNode(TreeNodeCollection collection, string name, object? objectToSelect, Action<TreeNodeCollection>? parentBuilder = null)
+        {
+            if (objectToSelect == null) 
+                return null;
+
+            return AddNode(collection, name, () => itemPropertyGrid.SelectedObject = objectToSelect, parentBuilder);
         }
 
         void AddItem(string assetName, AudioAsset audioAsset)
@@ -167,69 +171,10 @@ public partial class BARSWindow : Form
             if (bwav == null)
                 return;
 
-            async void InitializeBwav()
-            {
-                short[] pcm = await GetPcm(bwav);
-
-                // If pcm is empty so probably data is in `Stream` folder
-                if (pcm.Length == 0)
-                {
-                    pcm = new short[bwav.Channels[0].TotalSamplesPrefetch * bwav.Channels.Length];
-
-                    var loadPrefetchedFiles = readPrefetchedFilesToolStripMenuItem.Checked;
-                    if (loadPrefetchedFiles && audioAsset.AudioMetadata != null)
-                    {
-                        var fileName = audioAsset.AudioMetadata.AssetName;
-                        var fileLocation = Path.Combine(lastLoadedPath, "Stream", $"{fileName}.bwav");
-
-                        if (File.Exists(fileLocation))
-                        {
-                            using var reader = File.OpenRead(fileLocation);
-                            using var prefetched_bwav = new BinaryWaveFile(reader, true);
-
-                            pcm = await GetPcm(prefetched_bwav);
-                        }
-                    }
-                }
-
-
-                if (audioAsset.AudioMetadata?.MINF?.SectionH?.Notes is NotesSubSection notesSection)
-                    AddSingingToPcm(pcm, bwav, notesSection.Notes);
-
-                // Convert PCM16 buffer to bytes
-                byte[] buffer = new byte[pcm.Length * 2];
-                Buffer.BlockCopy(pcm, 0, buffer, 0, buffer.Length);
-
-                var ms = new MemoryStream(buffer);
-                currentWave = new RawSourceWaveStream(ms,
-                    new WaveFormat(bwav.Channels[0].SampleRate, 16, bwav.Channels.Length));
-
-                audioPlayer.Stop();
-                audioPlayer.Init(currentWave);
-
-                playButton.Enabled = true;
-                waveViewer.WaveStream = (WaveStream)currentWave;
-
-                if (bwav.Channels[0].LoopEnd > 0)
-                    waveViewer.SetLoop(bwav.Channels[0].LoopStart, bwav.Channels[0].LoopEnd);
-                else
-                    waveViewer.RemoveLoop();
-
-                waveViewer.ClearMarkers();
-
-                if (metadata?.MarkerList != null)
-                    foreach (var marker in metadata.MarkerList)
-                        waveViewer.AddMarker(marker);
-
-                UpdateTimeLabel();
-            }
-
-            var nodeItem = barsTreeView.Nodes.Add(assetName);
-
-            TreeNodeActions.Add(nodeItem, () =>
+            var nodeItem = AddNode(barsTreeView.Nodes, assetName, () =>
             {
                 itemPropertyGrid.SelectedObject = bwav;
-                InitializeBwav();
+                InitializeBwav(assetName, audioAsset);
             });
 
             if (metadata != null)
@@ -237,175 +182,124 @@ public partial class BARSWindow : Form
                 var metadataNode = AddNode(nodeItem.Nodes, "Metadata", () =>
                 {
                     itemPropertyGrid.SelectedObject = metadata;
-                    InitializeBwav();
+                    InitializeBwav(assetName, audioAsset);
+                }, metadataNodes =>
+                {
+                    if (metadata.MarkerList != null)
+                    {
+                        AddNode(metadataNodes, "Markers", () =>
+                        {
+                            itemPropertyGrid.SelectedObject = metadata.MarkerList;
+                            InitializeBwav(assetName, audioAsset);
+                        });
+                    }
+
+                    if (metadata.MINF != null)
+                    {
+                        var minfNode = AddNode(metadataNodes, "MINF", () =>
+                        {
+                            itemPropertyGrid.SelectedObject = metadata.MINF;
+                            InitializeBwav(assetName, audioAsset);
+                        }, minfNodes =>
+                        {
+                            AddPropertyNode(minfNodes, "Section A", metadata.MINF.SectionA);
+                            AddPropertyNode(minfNodes, "Chords Section", metadata.MINF.SectionB);
+                            AddPropertyNode(minfNodes, "Section D", metadata.MINF.SectionD);
+                            AddPropertyNode(minfNodes, "Section E", metadata.MINF.SectionE);
+                            AddPropertyNode(minfNodes, "Section H", metadata.MINF.SectionH, h =>
+                            {
+                                AddPropertyNode(h, "Notes", metadata.MINF.SectionH?.Notes);
+                            });
+                        });
+                    }
                 });
 
-                if (metadata.MarkerList != null)
-                {
-                    AddNode(metadataNode.Nodes, "Markers", () =>
-                    {
-                        itemPropertyGrid.SelectedObject = metadata.MarkerList;
-                        InitializeBwav();
-                    });
-                }
-
-                if (metadata.MINF != null)
-                {
-                    var minfNode = AddNode(metadataNode.Nodes, "MINF", () =>
-                    {
-                        itemPropertyGrid.SelectedObject = metadata.MINF;
-                        InitializeBwav();
-                    });
-
-                    if (metadata.MINF.SectionA != null)
-                        AddNode(minfNode.Nodes, "Section A", () =>
-                        {
-                            itemPropertyGrid.SelectedObject = metadata.MINF.SectionA;
-                        });
-
-                    if (metadata.MINF.SectionB != null)
-                        AddNode(minfNode.Nodes, "Chords Section", () =>
-                        {
-                            itemPropertyGrid.SelectedObject = metadata.MINF.SectionB;
-                        });
-
-                    if (metadata.MINF.SectionH != null)
-                    {
-                        var sectionH = AddNode(minfNode.Nodes, "Section H");
-
-                        if (metadata.MINF.SectionH.Notes != null)
-                            AddNode(sectionH.Nodes, "Notes", () =>
-                            {
-                                itemPropertyGrid.SelectedObject = metadata.MINF.SectionH.Notes;
-                            });
-                    }
-                }
 
                 if (audioAsset.RawAudioMetadata != null)
                 {
-                    metadataNode.ContextMenuStrip = new ContextMenuStrip()
+                    metadataNode.ContextMenuStrip = WinFormsUtility.ContextMenu(b =>
                     {
-                        Items =
+                        b.AddItem("Export Metadata...", () =>
                         {
-                            new ToolStripMenuItem("Export Metadata...", null, (_, _) =>
-                            {
-                                using var saveFileDialog = new SaveFileDialog
-                                {
-                                    Filter = "BWAV Metadata (*.bwav.meta)|*.bwav.meta",
-                                    FilterIndex = 1,
-                                    RestoreDirectory = true,
-                                    OverwritePrompt = true,
-                                    FileName = metadata != null ? $"{metadata.AssetName}.bwav.meta" : $"{assetName}.bwav.meta",
-                                };
+                            var fileName = metadata != null ? $"{metadata.AssetName}.bwav.meta" : $"{assetName}.bwav.meta";
 
-                                if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                                {
-                                    File.WriteAllBytes(saveFileDialog.FileName, audioAsset.RawAudioMetadata);
-                                }
-                            }),
-                        }
-                    };
+                            if (WinFormsUtility.SaveDialog("BWAV Metadata (*.bwav.meta)|*.bwav.meta", fileName, out string? result))
+                                File.WriteAllBytes(result, audioAsset.RawAudioMetadata);
+                        });
+                    });
                 }
             }
-
-            nodeItem.ContextMenuStrip = new ContextMenuStrip()
-            {
-                Items =
-                {
-                    new ToolStripMenuItem("Export BWAV...", null, (_, _) =>
-                    {
-                        using var saveFileDialog = new SaveFileDialog
-                        {
-                            Filter = "Binary Waveform (*.bwav)|*.bwav",
-                            FilterIndex = 1,
-                            RestoreDirectory = true,
-                            OverwritePrompt = true,
-                            FileName = metadata != null ? $"{metadata.AssetName}.bwav" : $"{assetName}.bwav",
-                        };
-
-                        if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                        {
-                            File.WriteAllBytes(saveFileDialog.FileName, audioAsset.RawBinaryWave ?? []);
-                        }
-                    }),
-
-                    new ToolStripMenuItem("Export as WAV...", null, async (_, _) =>
-                    {
-                        short[] pcm = await GetPcm(bwav);
-
-                        using var saveFileDialog = new SaveFileDialog
-                        {
-                            Filter = "Waveform (*.wav)|*.wav",
-                            FilterIndex = 1,
-                            RestoreDirectory = true,
-                            OverwritePrompt = true,
-                            FileName = metadata != null ? $"{metadata.AssetName}.wav" : $"{assetName}.wav",
-                        };
-
-                        if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                        {
-                            SaveWave(pcm, bwav.Channels[0].SampleRate, bwav.Channels.Length, saveFileDialog.FileName);
-                        }
-                    }),
-
-                    new ToolStripMenuItem("Preview Sound...", null, (_, _) =>
-                    {
-                        InitializeBwav();
-                        PlayAudio();
-                    }),
-
-                    new ToolStripSeparator(),
-
-                    new ToolStripMenuItem("Override...", null, (a, b) =>
-                    {
-                        var openFileDialog = new OpenFileDialog
-                        {
-                            Title = "Select a .BWAV or .WAV file to override with",
-                            Filter = "Audio Files|*.bwav;*.wav",
-                            RestoreDirectory = true,
-                        };
-
-                        if (openFileDialog.ShowDialog() != DialogResult.OK)
-                            return;
-
-                        var selectedFile = openFileDialog.FileName;
-                        var ext = Path.GetExtension(selectedFile).ToLower();
-
-                        if (ext == ".wav")
-                        {
-                            // get pcm data from the wav file using NAudio
-                            using var reader = new WaveFileReader(selectedFile);
-                            byte[] buffer = new byte[reader.Length];
-                            int bytesRead = reader.Read(buffer, 0, buffer.Length);
-
-                            short[] samples = new short[buffer.Length / 2];
-                            Buffer.BlockCopy(buffer, 0, samples, 0, buffer.Length);
-
-                            var encoded = BinaryWaveChannel.Encode(samples, out var coeffs);
-                            var newBwav = new BinaryWaveFile(reader.WaveFormat.Channels);
-
-                            var newChannel = new BinaryWaveChannel(encoded, coeffs)
-                            {
-                                Codec = BinaryWaveChannel.CodecType.DSP_ADPCM,
-                                ChannelPan = BinaryWaveChannel.PanType.Center,
-                                SampleRate = reader.WaveFormat.SampleRate,
-                                TotalSamples = samples.Length,
-                            };
-                        }
-
-                    })
-
-                }
-            };
 
             for (int channelIndex = 0; channelIndex < bwav.Channels.Length; channelIndex++)
+                AddPropertyNode(nodeItem.Nodes, $"Channel #{channelIndex}", bwav.Channels[channelIndex]);
+
+            nodeItem.ContextMenuStrip = WinFormsUtility.ContextMenu(b =>
             {
-                var channel = bwav.Channels[channelIndex];
-                AddNode(nodeItem.Nodes, $"Channel #{channelIndex}", () =>
+                b.AddItem("Export BWAV...", () =>
                 {
-                    itemPropertyGrid.SelectedObject = channel;
+                    var dialogFileName = metadata != null ? $"{metadata.AssetName}.bwav" : $"{assetName}.bwav";
+
+                    if (WinFormsUtility.SaveDialog("Binary Waveform (*.bwav)|*.bwav", dialogFileName, out string? result))
+                        File.WriteAllBytes(result, audioAsset.RawBinaryWave ?? []);
                 });
-            }
+
+                b.AddItem("Export as WAV...", async () =>
+                {
+                    var dialogFileName = metadata != null ? $"{metadata.AssetName}.wav" : $"{assetName}.wav";
+
+                    if (WinFormsUtility.SaveDialog("Waveform (*.wav)|*.wav", dialogFileName, out string? result))
+                    {
+                        short[] pcm = await GetAudioData(assetName, audioAsset);
+                        SaveWave(pcm, bwav.Channels[0].SampleRate, bwav.Channels.Length, result);
+                    }
+                });
+
+                b.AddItem("Preview Sound...", () =>
+                {
+                    InitializeBwav(assetName, audioAsset);
+                    PlayAudio();
+                });
+
+                b.AddSeparator();
+
+                b.AddItem("Override...", () =>
+                {
+                    var openFileDialog = new OpenFileDialog
+                    {
+                        Title = "Select a .BWAV or .WAV file to override with",
+                        Filter = "Audio Files|*.bwav;*.wav",
+                        RestoreDirectory = true,
+                    };
+
+                    if (openFileDialog.ShowDialog() != DialogResult.OK)
+                        return;
+
+                    var selectedFile = openFileDialog.FileName;
+                    var ext = Path.GetExtension(selectedFile).ToLower();
+
+                    if (ext == ".wav")
+                    {
+                        // get pcm data from the wav file using NAudio
+                        using var reader = new WaveFileReader(selectedFile);
+                        byte[] buffer = new byte[reader.Length];
+                        int bytesRead = reader.Read(buffer, 0, buffer.Length);
+
+                        short[] samples = new short[buffer.Length / 2];
+                        Buffer.BlockCopy(buffer, 0, samples, 0, buffer.Length);
+
+                        var encoded = BinaryWaveChannel.Encode(samples, out var coeffs);
+                        var newBwav = new BinaryWaveFile(reader.WaveFormat.Channels);
+
+                        var newChannel = new BinaryWaveChannel(encoded, coeffs)
+                        {
+                            Codec = BinaryWaveChannel.CodecType.DSP_ADPCM,
+                            ChannelPan = BinaryWaveChannel.PanType.Center,
+                            SampleRate = reader.WaveFormat.SampleRate,
+                            TotalSamples = samples.Length,
+                        };
+                    }
+                });
+            });            
         }
 
         barsTreeView.SuspendLayout();
@@ -456,6 +350,71 @@ public partial class BARSWindow : Form
         searchBox.Enabled = true;
     }
 
+    private async Task<short[]> GetAudioData(string assetName, AudioAsset audioAsset)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(assetName);
+        ArgumentNullException.ThrowIfNull(audioAsset);
+
+        var bwav = audioAsset.BinaryWave ?? throw new Exception("BWAV not found!");
+
+        short[] pcm = await GetPcm(bwav);
+
+        if (pcm.Length == 0 || bwav.IsPrefetch == 1)
+        {
+            pcm = new short[bwav.Channels[0].TotalSamplesPrefetch * bwav.Channels.Length];
+
+            var loadPrefetchedFiles = readPrefetchedFilesToolStripMenuItem.Checked;
+            var fileLocation = Path.Combine(lastLoadedPath, "Stream", $"{assetName}.bwav");
+
+            if (loadPrefetchedFiles && File.Exists(fileLocation))
+            {
+                using var reader = File.OpenRead(fileLocation);
+                using var prefetched_bwav = new BinaryWaveFile(reader, true);
+
+                pcm = await GetPcm(prefetched_bwav);
+            }
+        }
+
+        if (audioAsset.AudioMetadata?.MINF?.SectionH?.Notes is NotesSubSection notesSection)
+            AddSingingToPcm(pcm, bwav, notesSection.Notes);
+
+        return pcm;
+    }
+
+    private async void InitializeBwav(string assetName, AudioAsset audioAsset)
+    {
+        var metadata = audioAsset.AudioMetadata;
+        var bwav = audioAsset.BinaryWave ?? throw new Exception("BWAV not found!");
+
+        short[] pcm = await GetAudioData(assetName, audioAsset);
+
+        // Convert PCM16 buffer to bytes
+        byte[] buffer = new byte[pcm.Length * 2];
+        Buffer.BlockCopy(pcm, 0, buffer, 0, buffer.Length);
+
+        var ms = new MemoryStream(buffer);
+        currentWave = new RawSourceWaveStream(ms, new WaveFormat(bwav.Channels[0].SampleRate, 16, bwav.Channels.Length));
+
+        audioPlayer.Stop();
+        audioPlayer.Init(currentWave);
+
+        playButton.Enabled = true;
+        waveViewer.WaveStream = (WaveStream)currentWave;
+
+        if (bwav.Channels[0].LoopEnd > 0)
+            waveViewer.SetLoop(bwav.Channels[0].LoopStart, bwav.Channels[0].LoopEnd);
+        else
+            waveViewer.RemoveLoop();
+
+        waveViewer.ClearMarkers();
+
+        if (metadata?.MarkerList != null)
+            foreach (var marker in metadata.MarkerList)
+                waveViewer.AddMarker(marker);
+
+        UpdateTimeLabel();
+    }
+
     private static readonly Dictionary<string, short[]> singingCache = [];
     private async void AddSingingToPcm(short[] target, BinaryWaveFile bwav, List<NotesSubSection.Note> notes)
     {
@@ -502,13 +461,16 @@ public partial class BARSWindow : Form
 
     private void UnloadFile()
     {
+        itemPropertyGrid.SelectedObject = null;
+
         barsFile?.Dispose();
-        barsFile = null;
         bwavFile?.Dispose();
+        barsFile = null;
         bwavFile = null;
 
-        if (audioPlayer.PlaybackState == PlaybackState.Playing)
-            audioPlayer.Stop();
+        loadedFileName = null;
+
+        audioPlayer.Stop();
 
         if (currentWave is IDisposable ws)
             ws.Dispose();
@@ -517,7 +479,6 @@ public partial class BARSWindow : Form
 
         unloadToolStripMenuItem.Enabled = false;
         barsTreeView.Nodes.Clear();
-        TreeNodeActions.Clear();
         waveViewer.WaveStream = null;
         searchBox.Enabled = false;
 
@@ -535,7 +496,6 @@ public partial class BARSWindow : Form
 
         int totalSamples = binaryWave.Channels[0].TotalSamples;
 
-        // TODO: Probably a pre-fetched file, need to open it from 'Stream' folder
         if (totalSamples == 0)
             return [];
 
@@ -582,11 +542,7 @@ public partial class BARSWindow : Form
     {
         using var waveFile = new WaveFileWriter(outputPath, new WaveFormat(sampleRate, 16, channels));
         byte[] buffer = new byte[pcm.Length * 2]; // 16-bit = 2 bytes
-        for (int i = 0; i < pcm.Length; i++)
-        {
-            buffer[i * 2] = (byte)(pcm[i] & 0xFF);
-            buffer[i * 2 + 1] = (byte)((pcm[i] >> 8) & 0xFF);
-        }
+        Buffer.BlockCopy(pcm, 0, buffer, 0, buffer.Length);
         waveFile.Write(buffer, 0, buffer.Length);
     }
 
@@ -642,32 +598,18 @@ public partial class BARSWindow : Form
     {
         if (barsFile != null)
         {
-            var saveFileDialog = new SaveFileDialog
+            if (WinFormsUtility.SaveDialog("Audio Resource|*.bars", $"{loadedFileName}.bars", out string? result))
             {
-                Title = "Save .BARS file",
-                Filter = "Audio Resource|*.bars",
-                RestoreDirectory = true,
-                FileName = $"{loadedFileName}.bars",
-            };
 
-            if (saveFileDialog.ShowDialog() != DialogResult.OK)
-                return;
-
-
+            }
 
         }
         else if (bwavFile != null)
         {
-            var saveFileDialog = new SaveFileDialog
+            if (WinFormsUtility.SaveDialog("Binary Wave|*.bwav", $"{loadedFileName}.bwav", out string? result))
             {
-                Title = "Save .BWAV file",
-                Filter = "Binary Wave|*.bwav",
-                RestoreDirectory = true,
-                FileName = $"{loadedFileName}.bwav",
-            };
 
-            if (saveFileDialog.ShowDialog() != DialogResult.OK)
-                return;
+            }
         }
     }
 

@@ -40,4 +40,7 @@ public class UndoManager
         _undo.Clear();
         _redo.Clear();
     }
+
+    public int GetUndoCount() => _undo.Count;
+    public int GetRedoCount() => _redo.Count;
 }

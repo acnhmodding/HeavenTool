@@ -48,6 +48,7 @@ namespace HeavenTool
             sarcEditorButton = new DarkButton();
             itemParamHelperButton = new DarkButton();
             barsEditorButton = new DarkButton();
+            editorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             topMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
@@ -89,33 +90,33 @@ namespace HeavenTool
             // 
             compressionToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { yaz0ToolStripMenuItem });
             compressionToolStripMenuItem.Name = "compressionToolStripMenuItem";
-            compressionToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            compressionToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
             compressionToolStripMenuItem.Text = "Compression";
             // 
             // yaz0ToolStripMenuItem
             // 
             yaz0ToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { yaz0DecompressToolStripMenuItem, yaz0CompressToolStripMenuItem });
             yaz0ToolStripMenuItem.Name = "yaz0ToolStripMenuItem";
-            yaz0ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            yaz0ToolStripMenuItem.Size = new System.Drawing.Size(97, 22);
             yaz0ToolStripMenuItem.Text = "Yaz0";
             // 
             // yaz0DecompressToolStripMenuItem
             // 
             yaz0DecompressToolStripMenuItem.Name = "yaz0DecompressToolStripMenuItem";
-            yaz0DecompressToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            yaz0DecompressToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
             yaz0DecompressToolStripMenuItem.Text = "Decompress";
             yaz0DecompressToolStripMenuItem.Click += Yaz0DecompressToolStripMenuItem_Click;
             // 
             // yaz0CompressToolStripMenuItem
             // 
             yaz0CompressToolStripMenuItem.Name = "yaz0CompressToolStripMenuItem";
-            yaz0CompressToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            yaz0CompressToolStripMenuItem.Size = new System.Drawing.Size(139, 22);
             yaz0CompressToolStripMenuItem.Text = "Compress";
             yaz0CompressToolStripMenuItem.Click += Yaz0CompressToolStripMenuItem_Click;
             // 
             // devToolsToolStripMenuItem
             // 
-            devToolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { bCSVToolStripMenuItem });
+            devToolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { bCSVToolStripMenuItem, editorToolStripMenuItem });
             devToolsToolStripMenuItem.Name = "devToolsToolStripMenuItem";
             devToolsToolStripMenuItem.Size = new System.Drawing.Size(70, 20);
             devToolsToolStripMenuItem.Text = "Dev Tools";
@@ -132,7 +133,7 @@ namespace HeavenTool
             exportLabelsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             exportLabelsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportLabelsToolStripMenuItem.Name = "exportLabelsToolStripMenuItem";
-            exportLabelsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            exportLabelsToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
             exportLabelsToolStripMenuItem.Text = "Export Labels";
             exportLabelsToolStripMenuItem.Click += ExportLabelsToolStripMenuItem_Click;
             // 
@@ -141,7 +142,7 @@ namespace HeavenTool
             exportEnumsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             exportEnumsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportEnumsToolStripMenuItem.Name = "exportEnumsToolStripMenuItem";
-            exportEnumsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            exportEnumsToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
             exportEnumsToolStripMenuItem.Text = "Export Enums";
             exportEnumsToolStripMenuItem.Click += ExportEnumsToolStripMenuItem_Click;
             // 
@@ -150,7 +151,7 @@ namespace HeavenTool
             exportUsedHashesToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             exportUsedHashesToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportUsedHashesToolStripMenuItem.Name = "exportUsedHashesToolStripMenuItem";
-            exportUsedHashesToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            exportUsedHashesToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
             exportUsedHashesToolStripMenuItem.Text = "Export Used Hashes";
             exportUsedHashesToolStripMenuItem.Click += ExportUsedHashesToolStripMenuItem_Click;
             // 
@@ -220,6 +221,13 @@ namespace HeavenTool
             barsEditorButton.Text = "Open BARS Editor";
             barsEditorButton.Click += BarsEditorButton_Click;
             // 
+            // editorToolStripMenuItem
+            // 
+            editorToolStripMenuItem.Name = "editorToolStripMenuItem";
+            editorToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            editorToolStripMenuItem.Text = "Editor";
+            editorToolStripMenuItem.Click += editorToolStripMenuItem_Click;
+            // 
             // HeavenMain
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -265,5 +273,6 @@ namespace HeavenTool
         private System.Windows.Forms.ToolStripMenuItem exportUsedHashesToolStripMenuItem;
         private DarkButton barsEditorButton;
         private System.Windows.Forms.ToolStripMenuItem yaz0CompressToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem editorToolStripMenuItem;
     }
 }

@@ -3,7 +3,7 @@ using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BARS.MINF.Sections;
 
-public class SectionB
+public class SectionB(BinaryReader reader, long offset) : SectionBase<SectionB.Chord>(reader, offset)
 {
     public class Chord
     {
@@ -37,7 +37,6 @@ public class SectionB
         {
             writer.Write(SamplePos);
             chordPointer = writer.CreatePointer();
-
         }
 
         public void WriteChord()
@@ -64,36 +63,21 @@ public class SectionB
         }
     }
 
-    public List<Chord> Chords { get; private set; } = [];
+    protected override Chord ReadEntry(BinaryReader reader) => new(reader);
 
-    public short Unknown { get; private set; }
-
-    public SectionB(BinaryReader reader, long offset)
+    public override void Write(BinaryWriter writer)
     {
-        Chords = [];
+        ArgumentNullException.ThrowIfNull(writer);
 
-        using (reader.CreateScopeAt(offset))
-        {
-            var count = reader.ReadUInt16();
-            Unknown = reader.ReadInt16(); // i really want to know wtf this do
-
-            for (var i = 0; i < count; i++)
-                Chords.Add(new Chord(reader));
-
-        }
-    }
-
-    public void Write(BinaryWriter writer)
-    {
-        writer.Write((ushort)Chords.Count);
-        writer.Write(Unknown);
+        writer.Write(Count);
+        writer.Write(LoopEntry);
 
         // First, we write the chord entries, which will create pointers for the chord data
-        foreach (var chord in Chords)
+        foreach (var chord in Entries)
             chord.Write(writer);
 
         // After writing all chords, we need to write the chord data
-        foreach (var chord in Chords)
+        foreach (var chord in Entries)
             chord.WriteChord();
     }
 }

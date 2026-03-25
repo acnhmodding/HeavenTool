@@ -19,13 +19,42 @@ using System.Text.RegularExpressions;
 using HeavenTool.Forms.BCSV.Controls.Entries;
 using HeavenTool.Utility;
 using HeavenTool.Utility.UndoSystem;
-using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
+using HeavenTool.Forms.Editor;
 
 namespace HeavenTool;
 
-public partial class BCSVForm : Form, ISearchable
+public partial class BCSVForm : BaseEditor, ISearchable
 {
+    #region IEditor
+
+    public override void BuildContextMenu(ContextMenuStrip contextMenu)
+    {
+
+    }
+
+    public new void Undo()
+    {
+        if (LoadedFile == null) return;
+
+        base.Undo();
+
+        // forces a refresh on all values and set the actual row count length, in case the undo/redo was an add/remove row
+        ChangedRowCount(LoadedFile.Length);
+    }
+
+    public new void Redo()
+    {
+        if (LoadedFile == null) return;
+
+        base.Redo();
+
+        ChangedRowCount(LoadedFile.Length);
+    }
+    #endregion
+
+    public bool IsEditor { get; }
+
     private static readonly StringFormat RowHeaderStringFormat = new()
     {
         Alignment = StringAlignment.Center,
@@ -33,15 +62,16 @@ public partial class BCSVForm : Form, ISearchable
     };
 
     private static readonly Brush RowHeaderBrush = new SolidBrush(Color.FromArgb(110, 110, 110));
-    private static readonly string OriginalFormName = "Heaven Tool - BCSV Editor";
+    private static readonly string OriginalFormName = "BCSV Editor";
 
 
     private BinaryCSV? LoadedFile { get; set; }
-    private UndoManager UndoManager { get; } = new UndoManager();
 
-    public BCSVForm()
+    public BCSVForm(bool isEditor = false)
     {
         InitializeComponent();
+
+        IsEditor = isEditor;
 
         // Dock dragInfo (cause having it docked by default makes everything hard when editing the form)
         dragInfo.Dock = DockStyle.Fill;
@@ -64,8 +94,7 @@ public partial class BCSVForm : Form, ISearchable
         mainDataGridView.RowHeadersWidth = 50;
         mainDataGridView.EditMode = DataGridViewEditMode.EditOnF2;
 
-        versionNumberLabel.Text = Program.VERSION;
-        Text = OriginalFormName;
+        Text = OriginalFormName + $" | {Program.VERSION}";
 
         associateBcsvToolStripMenuItem.Checked = ProgramAssociation.GetAssociatedProgram(".bcsv") == Application.ExecutablePath;
 
@@ -92,6 +121,8 @@ public partial class BCSVForm : Form, ISearchable
                 ForeColor = Color.White
             });
         }
+
+        FormClosing += (_, e) => WinFormsUtility.FormClosingConfirmation(e, LoadedFile != null, UnloadFile);
     }
 
     private void MainDataGridView_CellParsing(object? sender, DataGridViewCellParsingEventArgs e)
@@ -249,6 +280,7 @@ public partial class BCSVForm : Form, ISearchable
         }
 
         UndoManager.Execute(changes);
+        SetDirty(true);
     }
 
     internal static (string formattedValue, bool isFormatted) GetFormattedValue(object[] values, int index, Field field)
@@ -452,9 +484,7 @@ public partial class BCSVForm : Form, ISearchable
             return;
         }
 
-        var infos = new List<string> {
-            $"CRC32 Hashes: {HashManager.CRC32_Hashes.Count} | Murmur Hashes: {HashManager.MMH3_Hashes.Count}"
-        };
+        var infos = new List<string>();
 
         if (mainDataGridView.Columns.Count > 0)
             infos.Add("Columns: " + mainDataGridView.ColumnCount);
@@ -480,7 +510,8 @@ public partial class BCSVForm : Form, ISearchable
     private void ClearDataGrid()
     {
         ClearSearchCache();
-        Text = OriginalFormName;
+        if (!IsEditor)
+            Text = OriginalFormName;
 
         mainDataGridView.CancelEdit();
         mainDataGridView.EndEdit();
@@ -519,7 +550,7 @@ public partial class BCSVForm : Form, ISearchable
 
             if (!File.Exists(path)) return;
 
-            LoadBCSVFile(path);
+            LoadFile(path);
         }
     }
 
@@ -533,7 +564,7 @@ public partial class BCSVForm : Form, ISearchable
         switch (extension)
         {
             case ".bcsv":
-                LoadBCSVFile(path);
+                LoadFile(path);
                 break;
         }
     }
@@ -541,29 +572,33 @@ public partial class BCSVForm : Form, ISearchable
     [GeneratedRegex(@"^(.*?)(?:Color([RGB]))?\s+f32$")]
     private static partial Regex ColorRegex();
 
-    internal async void LoadBCSVFile(string path)
+
+    public async void LoadFile(string path)
+    {
+        LoadedFile = null;
+
+        using var stream = File.OpenRead(path);
+        LoadFile(stream);
+
+        if (LoadedFile != null)
+        {
+            FilePath = path;
+
+            if (!IsEditor)
+                Text = $"{OriginalFormName} | {Program.VERSION}: {Path.GetFileName(path)}";
+            else Text = Path.GetFileName(path);
+        }
+    }
+
+
+    public async override void LoadFile(Stream stream)
     {
         ClearDataGrid();
 
-        LoadedFile = null;
-        try
-        {
-            LoadedFile = await Task.Run(() =>
-            {
-                using var reader = File.OpenRead(path);
-                return new BinaryCSV(reader);
-            });
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Failed to load BCSV: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return;
-        }
-
+        LoadedFile = new BinaryCSV(stream);
+        
         if (LoadedFile == null)
             return;
-
-        Text = $"{OriginalFormName}: {Path.GetFileName(path)}";
 
         viewColumnsMenuItem.DropDownItems.Clear();
 
@@ -680,6 +715,15 @@ public partial class BCSVForm : Form, ISearchable
         ReloadInfo();
     }
 
+    public override void SaveFile()
+    {
+        if (LoadedFile != null && !string.IsNullOrEmpty(FilePath))
+        {
+            File.WriteAllBytes(FilePath, LoadedFile.Save());
+            SetDirty(false);
+        }
+    }
+
     public void UnloadFile()
     {
         ClearDataGrid();
@@ -772,7 +816,8 @@ public partial class BCSVForm : Form, ISearchable
 
             ConsoleUtilities.WriteLine($"Adding new entry: {string.Join(", ", newEntry)}", ConsoleColor.Cyan);
             UndoManager.Execute(new NewRowCommand(LoadedFile, newEntry));
-
+            SetDirty(true);
+            
             ChangedRowCount(LoadedFile.Length);
             mainDataGridView.FirstDisplayedScrollingRowIndex = LoadedFile.Length - 1;
 
@@ -868,6 +913,7 @@ public partial class BCSVForm : Form, ISearchable
             // TODO: Check UniqueId and assign one?
             ConsoleUtilities.WriteLine($"Duplicating row {selectedRow.Index} (Entry {atualIndex})", ConsoleColor.Cyan);
             UndoManager.Execute(new NewRowCommand(LoadedFile, newEntry));
+            SetDirty(true);
 
             ChangedRowCount(LoadedFile.Length);
         }
@@ -898,6 +944,7 @@ public partial class BCSVForm : Form, ISearchable
                 changes.deletedRows.Add(index, LoadedFile.Entries[index]);
 
             UndoManager.Execute(changes);
+            SetDirty(true);
 
             ChangedRowCount(LoadedFile.Length);
         }
@@ -1003,21 +1050,10 @@ public partial class BCSVForm : Form, ISearchable
             {
                 if (Path.GetExtension(filePath) == ".bcsv")
                 {
-                    LoadBCSVFile(filePath);
+                    LoadFile(filePath);
                     break; // Load only the first .bcsv and then ignore the rest
                 }
             }
-        }
-    }
-
-    private void MainFrm_FormClosing(object? sender, FormClosingEventArgs e)
-    {
-        if (LoadedFile != null)
-        {
-            var result = MessageBox.Show("Do you really want to close this file?\nUnsaved changes will be lost!", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (result == DialogResult.Yes)
-                UnloadFile();
-            else e.Cancel = true;
         }
     }
 
@@ -1461,6 +1497,7 @@ public partial class BCSVForm : Form, ISearchable
                 }
 
                 UndoManager.Execute(new NewRowCommand(LoadedFile, newEntry));
+                SetDirty(true);
             }
 
             ChangedRowCount(LoadedFile.Length);
@@ -1596,24 +1633,9 @@ public partial class BCSVForm : Form, ISearchable
 
 
 
-    private void Undo(object sender, EventArgs e)
-    {
-        if (LoadedFile == null) return;
+    private void UndoClicked(object sender, EventArgs e) => Undo();
 
-        UndoManager.Undo();
-
-        // forces a refresh on all values and set the actual row count length, in case the undo/redo was an add/remove row
-        ChangedRowCount(LoadedFile.Length);
-    }
-
-    private void Redo(object sender, EventArgs e)
-    {
-        if (LoadedFile == null) return;
-
-        UndoManager.Redo();
-
-        ChangedRowCount(LoadedFile.Length);
-    }
+    private void RedoClicked(object sender, EventArgs e) => Redo();
 
     private void HideAllColumnsToolStripMenuItem_Click(object sender, EventArgs e)
     {

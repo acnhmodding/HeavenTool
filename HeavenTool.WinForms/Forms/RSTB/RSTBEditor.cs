@@ -29,7 +29,7 @@ public partial class RSTBEditor : Form, ISearchable
     {
         InitializeComponent();
 
-        Text = $"Heaven Tool | {Program.VERSION} | RSTB Editor";
+        Text = $"RSTB Editor {Program.VERSION}";
         OriginalText = Text;
 
        

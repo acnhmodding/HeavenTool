@@ -70,7 +70,6 @@ namespace HeavenTool
             hashFinderToolStripMenuItem = new ToolStripMenuItem();
             statusStripMenu = new StatusStrip();
             infoLabel = new ToolStripStatusLabel();
-            versionNumberLabel = new ToolStripStatusLabel();
             mainDataGridView = new DataGridView();
             validHeaderContextMenu = new ContextMenuStrip(components);
             hideColumnToolStripMenuItem = new ToolStripMenuItem();
@@ -261,7 +260,7 @@ namespace HeavenTool
             undoButton.ShortcutKeys = Keys.Control | Keys.Z;
             undoButton.Size = new System.Drawing.Size(213, 30);
             undoButton.Text = "Undo";
-            undoButton.Click += Undo;
+            undoButton.Click += UndoClicked;
             // 
             // redoButton
             // 
@@ -271,7 +270,7 @@ namespace HeavenTool
             redoButton.ShortcutKeys = Keys.Control | Keys.Y;
             redoButton.Size = new System.Drawing.Size(213, 30);
             redoButton.Text = "Redo";
-            redoButton.Click += Redo;
+            redoButton.Click += RedoClicked;
             // 
             // viewToolStripMenuItem
             // 
@@ -285,21 +284,21 @@ namespace HeavenTool
             // toggleAllColumnsVisibilityToolStripMenuItem
             // 
             toggleAllColumnsVisibilityToolStripMenuItem.Name = "toggleAllColumnsVisibilityToolStripMenuItem";
-            toggleAllColumnsVisibilityToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            toggleAllColumnsVisibilityToolStripMenuItem.Size = new System.Drawing.Size(167, 22);
             toggleAllColumnsVisibilityToolStripMenuItem.Text = "Hide All Columns";
             toggleAllColumnsVisibilityToolStripMenuItem.Click += HideAllColumnsToolStripMenuItem_Click;
             // 
             // viewColumnsMenuItem
             // 
             viewColumnsMenuItem.Name = "viewColumnsMenuItem";
-            viewColumnsMenuItem.Size = new System.Drawing.Size(180, 22);
+            viewColumnsMenuItem.Size = new System.Drawing.Size(167, 22);
             viewColumnsMenuItem.Text = "View Columns";
             // 
             // selectionTypeMenuItem
             // 
             selectionTypeMenuItem.DropDownItems.AddRange(new ToolStripItem[] { rowSelectToolStripMenuItem, cellSelectToolStripMenuItem });
             selectionTypeMenuItem.Name = "selectionTypeMenuItem";
-            selectionTypeMenuItem.Size = new System.Drawing.Size(180, 22);
+            selectionTypeMenuItem.Size = new System.Drawing.Size(167, 22);
             selectionTypeMenuItem.Text = "Selection Type";
             // 
             // rowSelectToolStripMenuItem
@@ -309,7 +308,7 @@ namespace HeavenTool
             rowSelectToolStripMenuItem.CheckState = CheckState.Checked;
             rowSelectToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             rowSelectToolStripMenuItem.Name = "rowSelectToolStripMenuItem";
-            rowSelectToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            rowSelectToolStripMenuItem.Size = new System.Drawing.Size(131, 22);
             rowSelectToolStripMenuItem.Text = "Row Select";
             rowSelectToolStripMenuItem.Click += RowSelectToolStripMenuItem_Click;
             // 
@@ -318,7 +317,7 @@ namespace HeavenTool
             cellSelectToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             cellSelectToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             cellSelectToolStripMenuItem.Name = "cellSelectToolStripMenuItem";
-            cellSelectToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            cellSelectToolStripMenuItem.Size = new System.Drawing.Size(131, 22);
             cellSelectToolStripMenuItem.Text = "Cell Select";
             cellSelectToolStripMenuItem.Click += CellSelectToolStripMenuItem_Click;
             // 
@@ -370,7 +369,7 @@ namespace HeavenTool
             statusStripMenu.AutoSize = false;
             statusStripMenu.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             statusStripMenu.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
-            statusStripMenu.Items.AddRange(new ToolStripItem[] { infoLabel, versionNumberLabel });
+            statusStripMenu.Items.AddRange(new ToolStripItem[] { infoLabel });
             statusStripMenu.LayoutStyle = ToolStripLayoutStyle.HorizontalStackWithOverflow;
             statusStripMenu.Location = new System.Drawing.Point(0, 306);
             statusStripMenu.Name = "statusStripMenu";
@@ -385,14 +384,6 @@ namespace HeavenTool
             infoLabel.Name = "infoLabel";
             infoLabel.Size = new System.Drawing.Size(28, 17);
             infoLabel.Text = "Info";
-            // 
-            // versionNumberLabel
-            // 
-            versionNumberLabel.Alignment = ToolStripItemAlignment.Right;
-            versionNumberLabel.BackColor = System.Drawing.Color.Transparent;
-            versionNumberLabel.Name = "versionNumberLabel";
-            versionNumberLabel.Size = new System.Drawing.Size(31, 17);
-            versionNumberLabel.Text = "1.0.0";
             // 
             // mainDataGridView
             // 
@@ -528,9 +519,8 @@ namespace HeavenTool
             MainMenuStrip = topMenuStrip;
             Margin = new Padding(4, 3, 4, 3);
             Name = "BCSVForm";
-            Text = "ACNH Heaven Tool | v1.0.0 | BCSV Editor";
+            Text = "BCSV Editor | v1.0.0";
             TransparencyKey = System.Drawing.Color.Pink;
-            FormClosing += MainFrm_FormClosing;
             DragDrop += MainFrm_DragDrop;
             DragEnter += MainFrm_DragEnter;
             topMenuStrip.ResumeLayout(false);
@@ -563,7 +553,6 @@ namespace HeavenTool
         private ToolStripMenuItem deleteRowsToolStripMenuItem;
         private ContextMenuStrip validHeaderContextMenu;
         private ToolStripMenuItem exportValuesAstxtFileToolStripMenuItem;
-        private ToolStripStatusLabel versionNumberLabel;
         private ToolStripMenuItem exportToCSVFileToolStripMenuItem;
         private ToolStripMenuItem compareRowsToolStripMenuItem;
         private ToolStripMenuItem searchToolStripMenuItem;

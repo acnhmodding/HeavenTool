@@ -168,6 +168,14 @@ public class BinaryCSV
     {
         HashManager.InitializeHashes();
 
+        if (!stream.CanSeek)
+        {
+            var newStream = new MemoryStream();
+            stream.CopyTo(newStream);
+            newStream.Position = 0;
+            stream = newStream;
+        }
+
         using var reader = new BinaryReader(stream);
 
         reader.Position = 0;

@@ -1,4 +1,5 @@
-﻿using HeavenTool.Forms.BARS;
+﻿using HeavenTool.Forms;
+using HeavenTool.Forms.BARS;
 using HeavenTool.Forms.Pack;
 using HeavenTool.Forms.RSTB;
 using HeavenTool.Forms.SARC;
@@ -278,5 +279,10 @@ public partial class HeavenMain : Form
                 File.WriteAllBytes(savePath, compressedBytes);
             }
         }
+    }
+
+    private void editorToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        new EditorForm().Show();
     }
 }

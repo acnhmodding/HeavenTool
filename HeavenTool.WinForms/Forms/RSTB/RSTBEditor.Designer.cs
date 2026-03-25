@@ -53,12 +53,12 @@ namespace HeavenTool.Forms.RSTB
             searchToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             associateRstbToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             compareDifferenceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             devToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             updateHashListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             statusBar = new System.Windows.Forms.StatusStrip();
             statusProgressBar = new System.Windows.Forms.ToolStripProgressBar();
             statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
-            copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)dataGrid).BeginInit();
             TopMenu.SuspendLayout();
             statusBar.SuspendLayout();
@@ -146,7 +146,6 @@ namespace HeavenTool.Forms.RSTB
             // 
             // TopMenu
             // 
-            TopMenu.BackColor = System.Drawing.Color.Transparent;
             TopMenu.ForeColor = System.Drawing.Color.White;
             TopMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { fileToolStripMenuItem, optionsToolStripMenuItem, devToolStripMenuItem });
             TopMenu.Location = new System.Drawing.Point(0, 0);
@@ -158,17 +157,13 @@ namespace HeavenTool.Forms.RSTB
             // 
             // fileToolStripMenuItem
             // 
-            fileToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { openToolStripMenuItem, saveAsButton, toolStripSeparator1, addNewEntriesToolStripMenuItem, updateFromModdedRomFs, toolStripSeparator2, closeFileButton });
-            fileToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
             fileToolStripMenuItem.Text = "File";
             // 
             // openToolStripMenuItem
             // 
-            openToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            openToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             openToolStripMenuItem.Image = Properties.Resources.open_file;
             openToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             openToolStripMenuItem.Name = "openToolStripMenuItem";
@@ -180,8 +175,6 @@ namespace HeavenTool.Forms.RSTB
             // 
             // saveAsButton
             // 
-            saveAsButton.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            saveAsButton.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             saveAsButton.Image = Properties.Resources.save_as;
             saveAsButton.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             saveAsButton.Name = "saveAsButton";
@@ -197,8 +190,6 @@ namespace HeavenTool.Forms.RSTB
             // 
             // addNewEntriesToolStripMenuItem
             // 
-            addNewEntriesToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            addNewEntriesToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             addNewEntriesToolStripMenuItem.Name = "addNewEntriesToolStripMenuItem";
             addNewEntriesToolStripMenuItem.Size = new System.Drawing.Size(245, 30);
             addNewEntriesToolStripMenuItem.Text = "Add new entries";
@@ -206,8 +197,6 @@ namespace HeavenTool.Forms.RSTB
             // 
             // updateFromModdedRomFs
             // 
-            updateFromModdedRomFs.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            updateFromModdedRomFs.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             updateFromModdedRomFs.Image = Properties.Resources.update;
             updateFromModdedRomFs.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             updateFromModdedRomFs.Name = "updateFromModdedRomFs";
@@ -222,8 +211,6 @@ namespace HeavenTool.Forms.RSTB
             // 
             // closeFileButton
             // 
-            closeFileButton.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            closeFileButton.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             closeFileButton.Image = Properties.Resources.cancel;
             closeFileButton.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             closeFileButton.Name = "closeFileButton";
@@ -233,17 +220,13 @@ namespace HeavenTool.Forms.RSTB
             // 
             // optionsToolStripMenuItem
             // 
-            optionsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { searchToolStripMenuItem, associateRstbToolStripMenuItem, compareDifferenceToolStripMenuItem, copyToolStripMenuItem });
-            optionsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
             optionsToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
             optionsToolStripMenuItem.Text = "Options";
             // 
             // searchToolStripMenuItem
             // 
-            searchToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            searchToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             searchToolStripMenuItem.Name = "searchToolStripMenuItem";
             searchToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.F;
             searchToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
@@ -252,8 +235,6 @@ namespace HeavenTool.Forms.RSTB
             // 
             // associateRstbToolStripMenuItem
             // 
-            associateRstbToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            associateRstbToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             associateRstbToolStripMenuItem.Name = "associateRstbToolStripMenuItem";
             associateRstbToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
             associateRstbToolStripMenuItem.Text = "Associate srsizetable";
@@ -261,26 +242,27 @@ namespace HeavenTool.Forms.RSTB
             // 
             // compareDifferenceToolStripMenuItem
             // 
-            compareDifferenceToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            compareDifferenceToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             compareDifferenceToolStripMenuItem.Name = "compareDifferenceToolStripMenuItem";
             compareDifferenceToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
             compareDifferenceToolStripMenuItem.Text = "Compare Difference";
             compareDifferenceToolStripMenuItem.Click += CompareDifferenceToolStripMenuItem_Click;
             // 
+            // copyToolStripMenuItem
+            // 
+            copyToolStripMenuItem.Name = "copyToolStripMenuItem";
+            copyToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
+            copyToolStripMenuItem.Text = "Copy";
+            copyToolStripMenuItem.Click += CopyToolStripMenuItem_Click;
+            // 
             // devToolStripMenuItem
             // 
-            devToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             devToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { updateHashListToolStripMenuItem });
-            devToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             devToolStripMenuItem.Name = "devToolStripMenuItem";
             devToolStripMenuItem.Size = new System.Drawing.Size(39, 20);
             devToolStripMenuItem.Text = "Dev";
             // 
             // updateHashListToolStripMenuItem
             // 
-            updateHashListToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            updateHashListToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             updateHashListToolStripMenuItem.Name = "updateHashListToolStripMenuItem";
             updateHashListToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             updateHashListToolStripMenuItem.Text = "Update Hash List";
@@ -291,7 +273,6 @@ namespace HeavenTool.Forms.RSTB
             statusBar.AllowDrop = true;
             statusBar.AllowMerge = false;
             statusBar.AutoSize = false;
-            statusBar.BackColor = System.Drawing.Color.Transparent;
             statusBar.ForeColor = System.Drawing.Color.White;
             statusBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { statusProgressBar, statusLabel });
             statusBar.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
@@ -314,24 +295,15 @@ namespace HeavenTool.Forms.RSTB
             // statusLabel
             // 
             statusLabel.Font = new System.Drawing.Font("Segoe UI", 8F);
-            statusLabel.ForeColor = System.Drawing.Color.FromArgb(230, 230, 230);
             statusLabel.Margin = new System.Windows.Forms.Padding(2, 0, 0, 0);
             statusLabel.Name = "statusLabel";
             statusLabel.Size = new System.Drawing.Size(58, 16);
             statusLabel.Text = "Loading...";
             // 
-            // copyToolStripMenuItem
-            // 
-            copyToolStripMenuItem.Name = "copyToolStripMenuItem";
-            copyToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
-            copyToolStripMenuItem.Text = "Copy";
-            copyToolStripMenuItem.Click += CopyToolStripMenuItem_Click;
-            // 
             // RSTBEditor
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             ClientSize = new System.Drawing.Size(406, 345);
             Controls.Add(statusBar);
             Controls.Add(dataGrid);
