@@ -213,7 +213,12 @@ public partial class BCSVForm : BaseEditor, ISearchable
         }
         else
         {
+
             var targetField = LoadedFile.Fields[fieldIndex];
+
+            if (e.Value is DBNull)
+                e.Value = targetField.GetFieldDefaultValue();
+
             changes.Commands.Add(new EditValueCommand(LoadedFile)
             {
                 rowIndex = entryIndex,
@@ -332,7 +337,12 @@ public partial class BCSVForm : BaseEditor, ISearchable
                 }
 
             default:
-                return (val.ToString() ?? "<null>", true);
+                {
+                    if (val == null && field.DataType == DataType.String)
+                        val = "";
+
+                    return (val?.ToString() ?? "<null>", true);
+                }
         }
     }
 
