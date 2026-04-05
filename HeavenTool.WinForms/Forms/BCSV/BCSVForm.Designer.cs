@@ -1,4 +1,4 @@
-﻿using AltUI.Controls;
+using AltUI.Controls;
 using System.Windows.Forms;
 
 namespace HeavenTool
@@ -50,6 +50,7 @@ namespace HeavenTool
             unloadFileToolStripMenuItem = new ToolStripMenuItem();
             editToolStripMenuItem = new ToolStripMenuItem();
             searchToolStripMenuItem = new ToolStripMenuItem();
+            findReplaceToolStripMenuItem = new ToolStripMenuItem();
             newEntryToolStripMenuItem = new ToolStripMenuItem();
             duplicateRowToolStripMenuItem = new ToolStripMenuItem();
             deleteRowsToolStripMenuItem = new ToolStripMenuItem();
@@ -180,7 +181,7 @@ namespace HeavenTool
             // editToolStripMenuItem
             // 
             editToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            editToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchToolStripMenuItem, newEntryToolStripMenuItem, duplicateRowToolStripMenuItem, deleteRowsToolStripMenuItem, compareRowsToolStripMenuItem, copyToolStripMenuItem1, undoButton, redoButton });
+            editToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchToolStripMenuItem, findReplaceToolStripMenuItem, newEntryToolStripMenuItem, duplicateRowToolStripMenuItem, deleteRowsToolStripMenuItem, compareRowsToolStripMenuItem, copyToolStripMenuItem1, undoButton, redoButton });
             editToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             editToolStripMenuItem.Name = "editToolStripMenuItem";
             editToolStripMenuItem.Size = new System.Drawing.Size(39, 20);
@@ -197,6 +198,17 @@ namespace HeavenTool
             searchToolStripMenuItem.Text = "Search";
             searchToolStripMenuItem.ToolTipText = "Search for a line on this file";
             searchToolStripMenuItem.Click += SearchToolStripMenuItem_Click;
+            // 
+            // findReplaceToolStripMenuItem
+            // 
+            findReplaceToolStripMenuItem.Image = Properties.Resources.update;
+            findReplaceToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
+            findReplaceToolStripMenuItem.Name = "findReplaceToolStripMenuItem";
+            findReplaceToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.H;
+            findReplaceToolStripMenuItem.Size = new System.Drawing.Size(213, 30);
+            findReplaceToolStripMenuItem.Text = "Find and Replace";
+            findReplaceToolStripMenuItem.ToolTipText = "Replace cells whose displayed text exactly matches";
+            findReplaceToolStripMenuItem.Click += FindReplaceToolStripMenuItem_Click;
             // 
             // newEntryToolStripMenuItem
             // 
@@ -556,6 +568,7 @@ namespace HeavenTool
         private ToolStripMenuItem exportToCSVFileToolStripMenuItem;
         private ToolStripMenuItem compareRowsToolStripMenuItem;
         private ToolStripMenuItem searchToolStripMenuItem;
+        private ToolStripMenuItem findReplaceToolStripMenuItem;
         private ToolStripMenuItem importFromFileToolStripMenuItem;
         private ToolStripMenuItem exportSelectionToolStripMenuItem;
         private ToolStripSeparator toolStripSeparator1;
