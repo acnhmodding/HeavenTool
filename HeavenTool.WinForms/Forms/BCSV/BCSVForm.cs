@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 using System.Text;
 using System.Windows.Forms;
 using HeavenTool.Forms;
@@ -24,7 +25,7 @@ using HeavenTool.Forms.Editor;
 
 namespace HeavenTool;
 
-public partial class BCSVForm : BaseEditor, ISearchable
+public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 {
     #region IEditor
 
@@ -1229,6 +1230,18 @@ public partial class BCSVForm : BaseEditor, ISearchable
 
 
     private SearchBox? searchBox;
+    private FindReplaceBox? findReplaceBox;
+
+    private void FindReplaceToolStripMenuItem_Click(object? sender, EventArgs e)
+    {
+        findReplaceBox ??= new FindReplaceBox(this)
+        {
+            StartPosition = FormStartPosition.CenterParent
+        };
+        findReplaceBox.Show();
+        findReplaceBox.BringToFront();
+    }
+
     private void SearchToolStripMenuItem_Click(object? sender, EventArgs e)
     {
         // Create SearchBox Window if needed
@@ -1423,6 +1436,391 @@ public partial class BCSVForm : BaseEditor, ISearchable
                     currentSearchIndex++;
             }
         }
+    }
+
+    private readonly struct ReplacePlan
+    {
+        public bool IsColor { get; init; }
+        public object? Scalar { get; init; }
+        public float ColorR { get; init; }
+        public float ColorG { get; init; }
+        public float ColorB { get; init; }
+        public Dictionary<string, int>? ColorFieldIndexes { get; init; }
+    }
+
+    private static void RegisterCrc32LabelForColumn(string columnHexName, string label)
+    {
+        var hash = label.ToCRC32();
+        if (uint.TryParse(columnHexName, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var enumHash)
+            && enumHash > 0
+            && HashManager.EnumListCRC32.TryGetValue(enumHash, out var list)
+            && !list.Contains(hash))
+        {
+            list.Add(hash);
+            HashManager.CRC32_Hashes.TryAdd(hash, label);
+        }
+    }
+
+    private string? GetCellDisplayString(int columnIndex, int rowIndex)
+    {
+        if (LoadedFile == null
+            || rowIndex < 0
+            || rowIndex >= reorderableIndexDictionary.Count
+            || columnIndex < 0
+            || columnIndex >= mainDataGridView.ColumnCount
+            || mainDataGridView.Columns[columnIndex] is not IndexableDataGridColumn indexableColumn
+            || indexableColumn.HeaderIndex >= LoadedFile.Fields.Length)
+            return null;
+
+        var entryIndex = reorderableIndexDictionary[rowIndex];
+        var entry = LoadedFile.Entries[entryIndex];
+        var field = LoadedFile.Fields[indexableColumn.HeaderIndex];
+
+        if (indexableColumn.CellTemplate is ColorDataGridCell colorCell)
+        {
+            static float Component(Dictionary<string, int> map, string key, object[] row)
+            {
+                if (!map.TryGetValue(key, out var idx) || idx < 0 || idx >= row.Length)
+                    return 0f;
+                return row[idx] is float f ? f : 0f;
+            }
+
+            var r = Component(colorCell.ColorFieldIndexes, "R", entry);
+            var g = Component(colorCell.ColorFieldIndexes, "G", entry);
+            var b = Component(colorCell.ColorFieldIndexes, "B", entry);
+            var color = ColorDataGridCell.GetColor(r, g, b);
+            return $"{color.R}, {color.G}, {color.B}";
+        }
+
+        var (formattedValue, isFormatted) = GetFormattedValue(entry, indexableColumn.HeaderIndex, field);
+        return isFormatted ? formattedValue : null;
+    }
+
+    private static bool TryBuildReplacePlan(IndexableDataGridColumn column, Field field, string text, [MaybeNullWhen(false)] out ReplacePlan plan, [MaybeNullWhen(true)] out string? errorMessage)
+    {
+        if (column.CellTemplate is ColorDataGridCell cdc)
+        {
+            var parts = text.Split(',');
+            if (parts.Length != 3)
+            {
+                errorMessage = "Color columns expect \"R, G, B\" with three integers (0–255).";
+                plan = default;
+                return false;
+            }
+
+            if (!int.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var ri)
+                || !int.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var gi)
+                || !int.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var bi))
+            {
+                errorMessage = "Invalid color components.";
+                plan = default;
+                return false;
+            }
+
+            plan = new ReplacePlan
+            {
+                IsColor = true,
+                ColorR = ri / 255f,
+                ColorG = gi / 255f,
+                ColorB = bi / 255f,
+                ColorFieldIndexes = cdc.ColorFieldIndexes,
+            };
+            errorMessage = null;
+            return true;
+        }
+
+        errorMessage = null;
+        switch (field.DataType)
+        {
+            case DataType.U8:
+                if (!byte.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var u8))
+                {
+                    errorMessage = "Invalid byte value.";
+                    plan = default;
+                    return false;
+                }
+
+                plan = new ReplacePlan { Scalar = u8 };
+                return true;
+
+            case DataType.S8:
+                if (!sbyte.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var s8))
+                {
+                    errorMessage = "Invalid sbyte value.";
+                    plan = default;
+                    return false;
+                }
+
+                plan = new ReplacePlan { Scalar = s8 };
+                return true;
+
+            case DataType.Int16:
+                if (!short.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i16))
+                {
+                    errorMessage = "Invalid Int16 value.";
+                    plan = default;
+                    return false;
+                }
+
+                plan = new ReplacePlan { Scalar = i16 };
+                return true;
+
+            case DataType.UInt16:
+                if (text == "-1")
+                {
+                    plan = new ReplacePlan { Scalar = ushort.MaxValue };
+                    return true;
+                }
+
+                if (!ushort.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var u16))
+                {
+                    errorMessage = "Invalid UInt16 value.";
+                    plan = default;
+                    return false;
+                }
+
+                plan = new ReplacePlan { Scalar = u16 };
+                return true;
+
+            case DataType.Int32:
+                if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i32))
+                {
+                    errorMessage = "Invalid Int32 value.";
+                    plan = default;
+                    return false;
+                }
+
+                plan = new ReplacePlan { Scalar = i32 };
+                return true;
+
+            case DataType.UInt32:
+                if (text == "-1")
+                {
+                    plan = new ReplacePlan { Scalar = uint.MaxValue };
+                    return true;
+                }
+
+                if (!uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var u32))
+                {
+                    errorMessage = "Invalid UInt32 value.";
+                    plan = default;
+                    return false;
+                }
+
+                plan = new ReplacePlan { Scalar = u32 };
+                return true;
+
+            case DataType.Float32:
+                if (!float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var f32))
+                {
+                    errorMessage = "Invalid float value.";
+                    plan = default;
+                    return false;
+                }
+
+                plan = new ReplacePlan { Scalar = f32 };
+                return true;
+
+            case DataType.String:
+                plan = new ReplacePlan { Scalar = text };
+                return true;
+
+            case DataType.CRC32:
+                RegisterCrc32LabelForColumn(column.Name, text);
+                plan = new ReplacePlan { Scalar = text.ToCRC32() };
+                return true;
+
+            case DataType.MMH3:
+                plan = new ReplacePlan { Scalar = text.ToMurmur() };
+                return true;
+
+            case DataType.BitField:
+                {
+                    var bitField = new byte[field.Size];
+                    var split = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    for (var i = 0; i < bitField.Length; i++)
+                    {
+                        if (i >= split.Length || !byte.TryParse(split[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out var b))
+                        {
+                            errorMessage = "BitField must be space-separated byte values.";
+                            plan = default;
+                            return false;
+                        }
+
+                        bitField[i] = b;
+                    }
+
+                    plan = new ReplacePlan { Scalar = bitField };
+                    return true;
+                }
+
+            default:
+                errorMessage = $"Column type {field.DataType} is not supported for replace.";
+                plan = default;
+                return false;
+        }
+    }
+
+    private static bool ValueEquals(object? a, object? b)
+    {
+        if (a is byte[] ba && b is byte[] bb)
+        {
+            if (ba.Length != bb.Length) return false;
+            for (var i = 0; i < ba.Length; i++)
+            {
+                if (ba[i] != bb[i]) return false;
+            }
+
+            return true;
+        }
+
+        return Equals(a, b);
+    }
+
+    private bool TryApplyReplacePlan(ReplacePlan plan, IndexableDataGridColumn column, int entryIndex, MergedUndoCommand changes, out int editsApplied)
+    {
+        editsApplied = 0;
+        if (LoadedFile == null) return false;
+
+        if (plan.IsColor && plan.ColorFieldIndexes != null)
+        {
+            foreach (var (key, fieldIdx) in plan.ColorFieldIndexes)
+            {
+                var newVal = key switch
+                {
+                    "R" => plan.ColorR,
+                    "G" => plan.ColorG,
+                    "B" => plan.ColorB,
+                    _ => 0f,
+                };
+
+                if (fieldIdx < 0 || fieldIdx >= LoadedFile.Fields.Length) continue;
+
+                var oldVal = LoadedFile[entryIndex, fieldIdx];
+                if (ValueEquals(oldVal, newVal)) continue;
+
+                changes.Commands.Add(new EditValueCommand(LoadedFile)
+                {
+                    rowIndex = entryIndex,
+                    columnIndex = fieldIdx,
+                    oldValue = oldVal!,
+                    newValue = newVal,
+                });
+                editsApplied++;
+            }
+
+            return editsApplied > 0;
+        }
+
+        var fi = column.HeaderIndex;
+        var oldScalar = LoadedFile[entryIndex, fi];
+        if (ValueEquals(oldScalar, plan.Scalar)) return false;
+
+        changes.Commands.Add(new EditValueCommand(LoadedFile)
+        {
+            rowIndex = entryIndex,
+            columnIndex = fi,
+            oldValue = oldScalar!,
+            newValue = plan.Scalar!,
+        });
+        editsApplied = 1;
+        return true;
+    }
+
+    /// <inheritdoc />
+    public int ReplaceAllExact(string find, string replace, bool caseSensitive, IReadOnlyList<string>? excludedColumnNames = null)
+    {
+        if (LoadedFile == null)
+            return 0;
+
+        HashSet<string>? excludedHeaders = null;
+        if (excludedColumnNames is { Count: > 0 })
+        {
+            excludedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var name in excludedColumnNames)
+            {
+                var t = name.Trim();
+                if (t.Length > 0)
+                    excludedHeaders.Add(t);
+            }
+
+            if (excludedHeaders.Count == 0)
+                excludedHeaders = null;
+        }
+
+        var findNorm = caseSensitive ? find : find.ToLowerInvariant();
+
+        var matches = new List<(int EntryIndex, int ColumnIndex, IndexableDataGridColumn Column, Field Field)>();
+        for (var columnIndex = 0; columnIndex < mainDataGridView.Columns.Count; columnIndex++)
+        {
+            if (mainDataGridView.Columns[columnIndex] is not IndexableDataGridColumn indexableColumn) continue;
+            if (indexableColumn.HeaderIndex >= LoadedFile.Fields.Length) continue;
+
+            if (excludedHeaders != null
+                && excludedHeaders.Contains(indexableColumn.HeaderText.Trim()))
+                continue;
+
+            var field = LoadedFile.Fields[indexableColumn.HeaderIndex];
+
+            for (var rowIndex = 0; rowIndex < mainDataGridView.RowCount; rowIndex++)
+            {
+                var display = GetCellDisplayString(columnIndex, rowIndex);
+                if (display == null) continue;
+
+                var displayNorm = caseSensitive ? display : display.ToLowerInvariant();
+                if (displayNorm != findNorm) continue;
+
+                var entryIndex = reorderableIndexDictionary[rowIndex];
+                matches.Add((entryIndex, columnIndex, indexableColumn, field));
+            }
+        }
+
+        if (matches.Count == 0)
+        {
+            MessageBox.Show("No matches found.", "Find and Replace", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return 0;
+        }
+
+        var planByColumn = new Dictionary<int, ReplacePlan>();
+        foreach (var colIdx in matches.Select(m => m.ColumnIndex).Distinct())
+        {
+            if (mainDataGridView.Columns[colIdx] is not IndexableDataGridColumn col
+                || col.HeaderIndex >= LoadedFile.Fields.Length) continue;
+
+            var fld = LoadedFile.Fields[col.HeaderIndex];
+            if (!TryBuildReplacePlan(col, fld, replace, out var plan, out var err))
+            {
+                MessageBox.Show(
+                    $"Cannot parse replacement for column \"{col.HeaderText}\": {err}",
+                    "Find and Replace",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return 0;
+            }
+
+            planByColumn[colIdx] = plan;
+        }
+
+        var merged = new MergedUndoCommand();
+        var cellsTouched = 0;
+        foreach (var m in matches)
+        {
+            var plan = planByColumn[m.ColumnIndex];
+            if (TryApplyReplacePlan(plan, m.Column, m.EntryIndex, merged, out _))
+                cellsTouched++;
+        }
+
+        if (merged.Commands.Count == 0)
+        {
+            MessageBox.Show("No cells needed changes (replacement equals current value).", "Find and Replace", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return 0;
+        }
+
+        UndoManager.Execute(merged);
+        SetDirty(true);
+        mainDataGridView.Invalidate();
+        ClearSearchCache();
+        return cellsTouched;
     }
 
     private void ExportSelectionToolStripMenuItem_Click(object sender, EventArgs e)
