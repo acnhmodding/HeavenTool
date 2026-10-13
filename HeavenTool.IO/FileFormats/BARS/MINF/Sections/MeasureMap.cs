@@ -1,14 +1,15 @@
-﻿using BinaryReader = AeonSake.BinaryTools.BinaryReader;
+using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BARS.MINF.Sections;
 
-public class SectionE(BinaryReader reader, long offset) : SectionBase<uint>(reader, offset)
+/// <summary>Measure start positions in samples.</summary>
+public class MeasureMap(BinaryReader reader, long offset) : SectionBase<uint>(reader, offset)
 {
     public override void Write(BinaryWriter writer)
     {
         writer.Write(Count);
-        writer.Write(LoopEntry);
+        writer.Write(LoopIndex);
 
         foreach (var entry in Entries)
             writer.Write(entry);

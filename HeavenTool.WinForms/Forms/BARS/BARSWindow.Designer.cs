@@ -1,4 +1,4 @@
-﻿namespace HeavenTool.Forms.BARS
+namespace HeavenTool.Forms.BARS
 {
     partial class BARSWindow
     {
@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(BARSWindow));
+            var resources = new System.ComponentModel.ComponentResourceManager(typeof(BARSWindow));
             darkMenuStrip1 = new HeavenTool.Forms.Components.DarkMenuStrip();
             fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -38,6 +38,7 @@
             optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             singersToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             readPrefetchedFilesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            whistlingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             itemPropertyGrid = new System.Windows.Forms.PropertyGrid();
             barsTreeView = new System.Windows.Forms.TreeView();
             barsContainer = new System.Windows.Forms.SplitContainer();
@@ -47,6 +48,8 @@
             playButton = new AltUI.Controls.DarkButton();
             waveViewer = new HeavenTool.Forms.Components.CustomWaveViewer();
             timeLabel = new System.Windows.Forms.Label();
+            baseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            loopToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             darkMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)barsContainer).BeginInit();
             barsContainer.Panel1.SuspendLayout();
@@ -98,7 +101,7 @@
             saveToolStripMenuItem.Name = "saveToolStripMenuItem";
             saveToolStripMenuItem.Size = new System.Drawing.Size(131, 30);
             saveToolStripMenuItem.Text = "Save As...";
-            saveToolStripMenuItem.Click += SaveToolStripMenuItem_Click;
+            saveToolStripMenuItem.Enabled = false;
             // 
             // toolStripSeparator1
             // 
@@ -122,7 +125,7 @@
             // optionsToolStripMenuItem
             // 
             optionsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
-            optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { singersToolStripMenuItem, readPrefetchedFilesToolStripMenuItem });
+            optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { baseToolStripMenuItem, singersToolStripMenuItem, readPrefetchedFilesToolStripMenuItem, whistlingToolStripMenuItem, loopToolStripMenuItem });
             optionsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
             optionsToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
@@ -147,6 +150,17 @@
             readPrefetchedFilesToolStripMenuItem.Text = "Read Prefetched Files";
             readPrefetchedFilesToolStripMenuItem.Click += ReadPrefetchedFilesToolStripMenuItem_Click;
             // 
+            // whistlingToolStripMenuItem
+            //
+            whistlingToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            whistlingToolStripMenuItem.Checked = true;
+            whistlingToolStripMenuItem.CheckOnClick = true;
+            whistlingToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            whistlingToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            whistlingToolStripMenuItem.Name = "whistlingToolStripMenuItem";
+            whistlingToolStripMenuItem.Size = new System.Drawing.Size(186, 22);
+            whistlingToolStripMenuItem.Text = "Whistling";
+            //
             // itemPropertyGrid
             // 
             itemPropertyGrid.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
@@ -280,6 +294,26 @@
             timeLabel.Text = "0:000:000";
             timeLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
+            // baseToolStripMenuItem
+            //
+            baseToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            baseToolStripMenuItem.Checked = true;
+            baseToolStripMenuItem.CheckOnClick = true;
+            baseToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            baseToolStripMenuItem.Name = "baseToolStripMenuItem";
+            baseToolStripMenuItem.Size = new System.Drawing.Size(186, 22);
+            baseToolStripMenuItem.Text = "Base";
+            //
+            // loopToolStripMenuItem
+            //
+            loopToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
+            loopToolStripMenuItem.CheckOnClick = true;
+            loopToolStripMenuItem.Enabled = false;
+            loopToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            loopToolStripMenuItem.Name = "loopToolStripMenuItem";
+            loopToolStripMenuItem.Size = new System.Drawing.Size(186, 22);
+            loopToolStripMenuItem.Text = "Loop";
+            //
             // BARSWindow
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -327,5 +361,8 @@
         private System.Windows.Forms.TextBox searchBox;
         private System.Windows.Forms.ToolStripMenuItem readPrefetchedFilesToolStripMenuItem;
         private NAudio.Gui.VolumeSlider volumeSlider;
+        private System.Windows.Forms.ToolStripMenuItem whistlingToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem baseToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem loopToolStripMenuItem;
     }
 }

@@ -1,5 +1,4 @@
-﻿using HeavenTool.Forms.Editor;
-using HeavenTool.Forms.PBC.Tools;
+﻿using HeavenTool.Forms.PBC.Tools;
 using HeavenTool.IO.FileFormats.PBC;
 using HeavenTool.Utility;
 using System;
@@ -18,17 +17,9 @@ public partial class TileEditor : Control
         public InspectorTool InspectorTool { get; } = new InspectorTool(parent);
     }
 
-    public UndoManager _localUndoManager = new();
-    public UndoManager UndoManager
-    {
-        get
-        {
-            if (FindForm() is BaseEditor editor)
-                return editor.UndoManager;
-
-            return _localUndoManager;
-        }
-    }
+    // FindForm() resolves to a docking wrapper, so the owner supplies its history.
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public UndoManager UndoManager { get; set; } = new();
 
     public EditorTools Tools { get; }
 
@@ -70,24 +61,18 @@ public partial class TileEditor : Control
     [DefaultValue(ViewType.HeightMap)]
     public ViewType CurrentView { get; set; } = ViewType.HeightMap;
 
-    [DefaultValue(LayerView.Layer1)]
-    public LayerView LayerView { get; set; } = LayerView.Layer1;
-
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float? MinHeight { get; private set; }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float? MaxHeight { get; private set; }
 
-    /// <summary>
-    /// Updates the minimum and maximum height values based on the current tile data in the associated <see cref="PBCFile"/>.
-    /// </summary>
-    private void UpdateHeight()
+    public void UpdateHeight()
     {
+        MinHeight = null;
+        MaxHeight = null;
         if (PBCFile == null)
         {
-            MinHeight = null;
-            MaxHeight = null;
             return;
         }
 
@@ -98,25 +83,17 @@ public partial class TileEditor : Control
                 var tileHeight = PBCFile.Tiles[h, w].HeightMap;
                 if (tileHeight != null)
                 {
-                    foreach (var heightTile in tileHeight.Quadrants)
+                    foreach (var heightTile in tileHeight.Triangles)
                     {
-                        var val = LayerView switch
+                        var values = new[] { heightTile.CenterHeight, heightTile.Corner1Height, heightTile.Corner2Height };
+                        foreach (var val in values)
                         {
-                            LayerView.Layer0 => heightTile.Layer0,
-                            LayerView.Layer1 => heightTile.Layer1,
-                            LayerView.Layer2 => heightTile.Layer2,
-
-                            _ => heightTile.Layer1
-                        };
-
-                        // Ignore void height
-                        if (val == -10000000) continue;
-
-                        if (MinHeight == null || val < MinHeight)
-                            MinHeight = val;
-
-                        if (MaxHeight == null || val > MaxHeight)
-                            MaxHeight = val;
+                            if (!PBCImageUtilities.IsValidHeight(val)) continue;
+                            if (MinHeight == null || val < MinHeight)
+                                MinHeight = val;
+                            if (MaxHeight == null || val > MaxHeight)
+                                MaxHeight = val;
+                        }
                     }
                 }
             }
@@ -129,8 +106,8 @@ public partial class TileEditor : Control
     public delegate void ZoomEventHandler(int zoom);
     public event ZoomEventHandler? ZoomChanged;
 
-    public delegate void HeightMapQuadrantSelected(PBCFileReader.Quadrant quadrant);
-    public event HeightMapQuadrantSelected? QuadrantSelected;
+    public delegate void TriangleSelectedEventHandler(PBCFileReader.TriangleHeights triangle);
+    public event TriangleSelectedEventHandler? TriangleSelected;
 
     public TileEditor()
     {
@@ -143,7 +120,6 @@ public partial class TileEditor : Control
         SetStyle(ControlStyles.Selectable, true);
         TabStop = true;
 
-        // Create our tools handler and set the default active tool
         Tools = new EditorTools(this);
         ActiveTool = Tools.CollisionBrush;
     }
@@ -159,47 +135,66 @@ public partial class TileEditor : Control
         using var pen = new Pen(Color.FromArgb(50, 255, 255, 255), 1);
         using var bigGridPen = new Pen(Color.FromArgb(30, 255, 255, 255), 2);
 
-        var sf = new StringFormat { LineAlignment = StringAlignment.Center, Alignment = StringAlignment.Center };
-        var f = new Font(FontFamily.GenericMonospace, Zoom / 2, FontStyle.Regular, GraphicsUnit.Pixel);
+        using var sf = new StringFormat { LineAlignment = StringAlignment.Center, Alignment = StringAlignment.Center };
+        using var f = new Font(FontFamily.GenericMonospace, Math.Max(1, Zoom / 2f), FontStyle.Regular, GraphicsUnit.Pixel);
 
-        for (int h = 0; h < PBCFile.Height; h++)
+        for (var h = 0; h < PBCFile.Height; h++)
         {
-            for (int w = 0; w < PBCFile.Width; w++)
+            for (var w = 0; w < PBCFile.Width; w++)
             {
                 var tile = PBCFile.Tiles[h, w];
                 var tileHeight = tile.HeightMap;
-                for (int subY = 0; subY < 2; subY++)   
+                var bounds = new RectangleF(w * 2 * Zoom + offset.X, h * 2 * Zoom + offset.Y, 2 * Zoom, 2 * Zoom);
+                foreach (var triangle in Enum.GetValues<TriangleDirection>())
                 {
-                    int globalY = h * 2 + subY;
-                    for (int subX = 0; subX < 2; subX++)
+                    var points = PBCImageUtilities.GetTrianglePoints(bounds, triangle);
+                    string? label = null;
+
+                    if (CurrentView == ViewType.HeightMap)
                     {
-                        int globalX = w * 2 + subX;
-
-                        // Render HeightMap
-                        if (CurrentView == ViewType.HeightMap && MinHeight.HasValue && MaxHeight.HasValue)
+                        var heightInfo = GetHeightInfo(tileHeight, triangle);
+                        if (PBCImageUtilities.IsValidHeight(heightInfo) && MinHeight.HasValue && MaxHeight.HasValue)
                         {
-                            var heightInfo = GetHeightInfo(tileHeight, subY, subX);
-                            var c = PBCImageUtilities.GetHeightColor(heightInfo, MinHeight.Value, MaxHeight.Value);
-                            using var brush = new SolidBrush(c);
-                            e.Graphics.FillRectangle(brush, globalX * Zoom + offset.X, globalY * Zoom + offset.Y, Zoom, Zoom);
-
-                            // Render text if ShowType is true and it's not void
-                            if (heightInfo != -10000000 && ShowType)
-                                e.Graphics.DrawString(heightInfo.ToString(), f, Brushes.White, new Rectangle(globalX * Zoom + offset.X, globalY * Zoom + offset.Y, Zoom, Zoom));
+                            var heights = tileHeight.Triangles[(int)triangle];
+                            var colors = new[]
+                            {
+                                PBCImageUtilities.GetHeightColor(heights.CenterHeight, MinHeight.Value, MaxHeight.Value),
+                                PBCImageUtilities.GetHeightColor(heights.Corner1Height, MinHeight.Value, MaxHeight.Value),
+                                PBCImageUtilities.GetHeightColor(heights.Corner2Height, MinHeight.Value, MaxHeight.Value)
+                            };
+                            using var brush = new PathGradientBrush(points)
+                            {
+                                CenterPoint = new PointF((points[0].X + points[1].X + points[2].X) / 3, (points[0].Y + points[1].Y + points[2].Y) / 3),
+                                CenterColor = Color.FromArgb((colors[0].R + colors[1].R + colors[2].R) / 3, (colors[0].G + colors[1].G + colors[2].G) / 3, (colors[0].B + colors[1].B + colors[2].B) / 3),
+                                SurroundColors = colors
+                            };
+                            e.Graphics.FillPolygon(brush, points);
                         }
-                        // Render Tile Color
                         else
                         {
-                            using var brush = new SolidBrush(PBCImageUtilities.GetColor(tile.Type[subY, subX]));
-                            e.Graphics.FillRectangle(brush, globalX * Zoom + offset.X, globalY * Zoom + offset.Y, Zoom, Zoom);
-
-                            if (ShowType)
-                                e.Graphics.DrawString(((int) tile.Type[subY, subX]).ToString(), f, Brushes.White, new Rectangle(globalX * Zoom + offset.X, globalY * Zoom + offset.Y, Zoom, Zoom));
+                            var color = MinHeight.HasValue && MaxHeight.HasValue
+                                ? PBCImageUtilities.GetHeightColor(heightInfo, MinHeight.Value, MaxHeight.Value)
+                                : Color.Black;
+                            using var brush = new SolidBrush(color);
+                            e.Graphics.FillPolygon(brush, points);
                         }
-
-                        if (DisplayGrid)
-                            e.Graphics.DrawRectangle(pen, globalX * Zoom + offset.X, globalY * Zoom + offset.Y, Zoom, Zoom);
+                        if (PBCImageUtilities.IsValidHeight(heightInfo)) label = heightInfo.ToString("0.##");
                     }
+                    else
+                    {
+                        using var brush = new SolidBrush(PBCImageUtilities.GetColor(tile.Materials[(int)triangle]));
+                        e.Graphics.FillPolygon(brush, points);
+                        label = ((int)tile.Materials[(int)triangle]).ToString();
+                    }
+
+                    if (ShowType && label != null)
+                    {
+                        var center = new PointF((points[0].X + points[1].X + points[2].X) / 3, (points[0].Y + points[1].Y + points[2].Y) / 3);
+                        e.Graphics.DrawString(label, f, Brushes.White, center, sf);
+                    }
+
+                    if (DisplayGrid)
+                        e.Graphics.DrawPolygon(pen, points);
                 }
 
                 if (DisplayGrid)
@@ -209,18 +204,13 @@ public partial class TileEditor : Control
         }
     }
 
-    internal float GetHeightInfo(PBCFileReader.HeightMap tileHeight, int subY, int subX)
+    internal float GetHeightInfo(PBCFileReader.HeightMap tileHeight, TriangleDirection triangle)
     {
-        var tile = tileHeight.Quadrants[subY, subX];
+        var tile = tileHeight.Triangles[(int)triangle];
 
-        return LayerView switch
-        {
-            LayerView.Layer0 => tile.Layer0,
-            LayerView.Layer1 => tile.Layer1,
-            LayerView.Layer2 => tile.Layer2,
-
-            _ => tile.Layer1
-        };
+        return PBCImageUtilities.IsValidHeight(tile.CenterHeight) && PBCImageUtilities.IsValidHeight(tile.Corner1Height) && PBCImageUtilities.IsValidHeight(tile.Corner2Height)
+                ? (float)(((double)tile.CenterHeight + tile.Corner1Height + tile.Corner2Height) / 3)
+                : PBCImageUtilities.VoidHeight;
     }
 
     protected override void OnMouseDown(MouseEventArgs e)
@@ -231,7 +221,7 @@ public partial class TileEditor : Control
 
         ActiveTool?.OnMouseDown(e);
 
-        //lastMousePos = e.Location;
+        lastMousePos = e.Location;
     }
 
     protected override void OnMouseUp(MouseEventArgs e)
@@ -239,10 +229,8 @@ public partial class TileEditor : Control
         base.OnMouseUp(e);
 
         ActiveTool?.OnMouseUp(e);
+        lastMousePos = null;
     }
-
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public float? HighlightedHeight { get; set; }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
@@ -250,8 +238,8 @@ public partial class TileEditor : Control
 
         if (e.Button == MouseButtons.Left && ModifierKeys.HasFlag(Keys.Control) && lastMousePos.HasValue)
         {
-            int dx = e.X - lastMousePos.Value.X;
-            int dy = e.Y - lastMousePos.Value.Y;
+            var dx = e.X - lastMousePos.Value.X;
+            var dy = e.Y - lastMousePos.Value.Y;
 
             offset.X += dx;
             offset.Y += dy;
@@ -277,40 +265,28 @@ public partial class TileEditor : Control
         if (PBCFile == null)
             return false;
 
-        int clickedX = (mouse.X - offset.X) / Zoom;
-        int clickedY = (mouse.Y - offset.Y) / Zoom;
-
-        int tileX = clickedX / 2;
-        int tileY = clickedY / 2;
-        int subX = clickedX % 2;
-        int subY = clickedY % 2;
+        var localX = mouse.X - offset.X;
+        var localY = mouse.Y - offset.Y;
+        if (localX < 0 || localY < 0 || Zoom <= 0) return false;
+        var tileSize = 2 * Zoom;
+        var tileX = localX / tileSize;
+        var tileY = localY / tileSize;
+        var triangle = PBCImageUtilities.GetTriangleDirection((localX % tileSize) / (float)tileSize, (localY % tileSize) / (float)tileSize);
 
         if (tileX < 0 || tileX >= PBCFile.Width ||
-            tileY < 0 || tileY >= PBCFile.Height ||
-            subX < 0 || subY < 0)
+            tileY < 0 || tileY >= PBCFile.Height)
             return false;
 
         pos = new TilePosition
         {
             TileX = tileX,
             TileY = tileY,
-            SubX = subX,
-            SubY = subY
+            Triangle = triangle
         };
 
         return true;
     }
 
-    public void ChangeLayerView(LayerView view)
-    {
-        if (LayerView != view)
-        {
-            LayerView = view;
-            UpdateHeight();
-            Invalidate();
-        }
-    }
+    public void SelectTriangle(PBCFileReader.TriangleHeights triangle) => TriangleSelected?.Invoke(triangle);
 
-    public void SelectQuadrant(PBCFileReader.Quadrant quadrant) => QuadrantSelected?.Invoke(quadrant);
-    
 }

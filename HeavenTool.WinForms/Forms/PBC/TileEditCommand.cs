@@ -12,12 +12,12 @@ public class TileEditCommand(PBCFileReader file, List<TileChange> changes) : IUn
     public void Undo()
     {
         foreach (var c in Changes)
-            _file[c.TileY, c.TileX].Type[c.SubY, c.SubX] = c.OldValue;
+            _file[c.TileY, c.TileX].Materials[(int)c.Triangle] = c.OldValue;
     }
 
     public void Redo()
     {
         foreach (var c in Changes)
-            _file[c.TileY, c.TileX].Type[c.SubY, c.SubX] = c.NewValue;
+            _file[c.TileY, c.TileX].Materials[(int)c.Triangle] = c.NewValue;
     }
 }

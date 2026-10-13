@@ -1,187 +1,103 @@
-﻿namespace HeavenTool.IO.Audio.DspAdpcm;
+using static HeavenTool.IO.Audio.DspAdpcm.DspAdpcmCodec;
+
+namespace HeavenTool.IO.Audio.DspAdpcm;
 
 public static class DspAdpcmEncoder
 {
-    public const int BytesPerFrame = 8;
-    public const int SamplesPerFrame = 14;
-    public const int NibblesPerFrame = 16;
+    private const int MaxScalePower = 12;
 
-    public static short Clamp16(int value) => (short) Math.Clamp(value, short.MinValue, short.MaxValue);
-    public static sbyte Clamp4(int value) => (sbyte) Math.Clamp(value, -8, 7);
-    public static byte CombineNibbles(int high, int low) => (byte)((high << 4) | (low & 0xF));
-
-    public static int SampleCountToNibbleCount(int sampleCount)
+    public static byte[] Encode(ReadOnlySpan<short> samples, ReadOnlySpan<short> coefficients, short history1 = 0, short history2 = 0)
     {
-        int frames = sampleCount / SamplesPerFrame;
-        int extraSamples = sampleCount % SamplesPerFrame;
-        int extraNibbles = extraSamples == 0 ? 0 : extraSamples + 2;
+        ValidateCoefficients(coefficients);
+        var data = new byte[GetByteCount(samples.Length)];
+        Span<short> frame = stackalloc short[SamplesPerFrame + 2];
+        Span<byte> encodedFrame = stackalloc byte[BytesPerFrame];
+        Span<int> decoded = stackalloc int[SamplesPerFrame + 2];
+        Span<int> nibbles = stackalloc int[SamplesPerFrame];
+        frame[0] = history2;
+        frame[1] = history1;
 
-        return NibblesPerFrame * frames + extraNibbles;
-    }
-    public static int SampleCountToByteCount(int sampleCount) => (SampleCountToNibbleCount(sampleCount) + 1) / 2;
-    
-
-    public class GcAdpcmParameters
-    {
-        public int SampleCount { get; set; } = -1;
-        public short History1 { get; set; }
-        public short History2 { get; set; }
-    }
-
-    public static byte[] Encode(short[] pcm, short[] coefs, GcAdpcmParameters? config = null)
-    {
-        config ??= new GcAdpcmParameters();
-        int sampleCount = config.SampleCount == -1 ? pcm.Length : config.SampleCount;
-        var adpcm = new byte[SampleCountToByteCount(sampleCount)];
-
-        /* Execute encoding-predictor for each frame */
-        var pcmBuffer = new short[2 + SamplesPerFrame];
-        var adpcmBuffer = new byte[BytesPerFrame];
-
-        pcmBuffer[0] = config.History2;
-        pcmBuffer[1] = config.History1;
-
-        int frameCount = (int) Math.Ceiling((double)sampleCount / SamplesPerFrame);
-        var buffers = new DspAdpcmEncodeBuffers();
-
-        for (int frame = 0; frame < frameCount; frame++)
+        for (int position = 0, frameOffset = 0; position < samples.Length; frameOffset += BytesPerFrame)
         {
-            int samplesToCopy = Math.Min(sampleCount - frame * SamplesPerFrame, SamplesPerFrame);
-            Array.Copy(pcm, frame * SamplesPerFrame, pcmBuffer, 2, samplesToCopy);
-            Array.Clear(pcmBuffer, 2 + samplesToCopy, SamplesPerFrame - samplesToCopy);
-
-            DspEncodeFrame(pcmBuffer, SamplesPerFrame, adpcmBuffer, coefs, buffers);
-
-            Array.Copy(adpcmBuffer, 0, adpcm, frame * BytesPerFrame, SampleCountToByteCount(samplesToCopy));
-
-            pcmBuffer[0] = pcmBuffer[14];
-            pcmBuffer[1] = pcmBuffer[15];
+            int frameSamples = Math.Min(SamplesPerFrame, samples.Length - position);
+            samples.Slice(position, frameSamples).CopyTo(frame[2..]);
+            // Predictor selection includes the zero-padded end of a partial frame.
+            frame[(frameSamples + 2)..].Clear();
+            EncodeFrame(frame, encodedFrame, coefficients, decoded, nibbles);
+            encodedFrame[..GetByteCount(frameSamples)].CopyTo(data.AsSpan(frameOffset));
+            position += frameSamples;
         }
-
-        return adpcm;
+        return data;
     }
 
-    public static void DspEncodeFrame(short[] pcmInOut, int sampleCount, byte[] adpcmOut, short[] coefsIn, DspAdpcmEncodeBuffers? b = null)
+    private static void EncodeFrame(Span<short> samples, Span<byte> output, ReadOnlySpan<short> coefficients, Span<int> decoded, Span<int> nibbles)
     {
-        b ??= new DspAdpcmEncodeBuffers();
-
-        for (int i = 0; i < 8; i++)
+        double bestError = double.MaxValue;
+        short nextHistory1 = 0, nextHistory2 = 0;
+        for (int predictor = 0; predictor < PredictorCount; predictor++)
         {
-            b.Coefs[i][0] = coefsIn[i * 2];
-            b.Coefs[i][1] = coefsIn[i * 2 + 1];
+            EncodePredictor(samples, coefficients[predictor * 2], coefficients[predictor * 2 + 1],
+                decoded, nibbles, out int scalePower, out double error);
+            if (error >= bestError) continue;
+            bestError = error;
+            output[0] = PackNibbles(predictor, scalePower);
+            for (int i = 1; i < BytesPerFrame; i++)
+                output[i] = PackNibbles(nibbles[(i - 1) * 2], nibbles[(i - 1) * 2 + 1]);
+            nextHistory2 = (short)decoded[SamplesPerFrame];
+            nextHistory1 = (short)decoded[SamplesPerFrame + 1];
         }
-
-        /* Iterate through each coef set, finding the set with the smallest error */
-        for (int i = 0; i < 8; i++)
-        {
-            DspEncodeCoef(pcmInOut, sampleCount, b.Coefs[i], b.PcmOut[i], b.AdpcmOut[i], out b.Scale[i],
-                out b.TotalDistance[i]);
-        }
-
-        int bestCoef = 0;
-
-        double min = double.MaxValue;
-        for (int i = 0; i < 8; i++)
-        {
-            if (b.TotalDistance[i] < min)
-            {
-                min = b.TotalDistance[i];
-                bestCoef = i;
-            }
-        }
-
-        /* Write converted samples */
-        for (int s = 0; s < sampleCount; s++)
-            pcmInOut[s + 2] = (short)b.PcmOut[bestCoef][s + 2];
-
-        /* Write predictor and scale */
-        adpcmOut[0] = CombineNibbles(bestCoef, b.Scale[bestCoef]);
-
-        /* Zero remaining samples */
-        for (int s = sampleCount; s < 14; s++)
-            b.AdpcmOut[bestCoef][s] = 0;
-
-        /* Write output samples */
-        for (int i = 0; i < 7; i++)
-        {
-            adpcmOut[i + 1] = CombineNibbles(b.AdpcmOut[bestCoef][i * 2], b.AdpcmOut[bestCoef][i * 2 + 1]);
-        }
+        samples[0] = nextHistory2;
+        samples[1] = nextHistory1;
     }
 
-    private static void DspEncodeCoef(short[] pcmIn, int sampleCount, short[] coefs, int[] pcmOut, int[] adpcmOut, out int scalePower, out double totalDistance)
+    private static byte PackNibbles(int high, int low) => (byte)((high << 4) | (low & 0xf));
+
+    private static void EncodePredictor(ReadOnlySpan<short> samples, short coefficient1, short coefficient2, Span<int> decoded, Span<int> nibbles, out int scalePower, out double error)
     {
-        int maxOverflow;
+        decoded[0] = samples[0];
+        decoded[1] = samples[1];
         int maxDistance = 0;
-
-        // Set history values
-        pcmOut[0] = pcmIn[0];
-        pcmOut[1] = pcmIn[1];
-
-        // Encode the frame with a scale of 1
-        for (int s = 0; s < sampleCount; s++)
+        for (int i = 0; i < SamplesPerFrame; i++)
         {
-            int inputSample = pcmIn[s + 2];
-            int predictedSample = (pcmIn[s] * coefs[1] + pcmIn[s + 1] * coefs[0]) / 2048;
-            int distance = inputSample - predictedSample;
-            distance = Clamp16(distance);
-            if (Math.Abs(distance) > Math.Abs(maxDistance))
-                maxDistance = distance;
+            int prediction = (samples[i] * coefficient2 + samples[i + 1] * coefficient1) / CoefficientScale;
+            int distance = ClampSample(samples[i + 2] - prediction);
+            if (Math.Abs(distance) > Math.Abs(maxDistance)) maxDistance = distance;
         }
 
-        // Use the maximum distance of the encoded frame to find a scale that will fit the current frame
         scalePower = 0;
-        while (scalePower <= 12 && (maxDistance > 7 || maxDistance < -8))
+        while (scalePower <= MaxScalePower && (maxDistance > 7 || maxDistance < -8))
         {
             maxDistance /= 2;
             scalePower++;
         }
         scalePower = scalePower <= 1 ? -1 : scalePower - 2;
 
-        // Try increasing scales until the encoded frame is in the range of a 4-bit value
+        int maxOverflow;
         do
         {
             scalePower++;
-            int scale = (1 << scalePower) * 2048;
-            totalDistance = 0;
+            int scale = (1 << scalePower) * CoefficientScale;
+            error = 0;
             maxOverflow = 0;
-
-            for (int s = 0; s < sampleCount; s++)
+            for (int i = 0; i < SamplesPerFrame; i++)
             {
-                // Calculate the difference between the actual and predicted samples
-                int inputSample = pcmIn[s + 2] * 2048;
-                int predictedSample = pcmOut[s] * coefs[1] + pcmOut[s + 1] * coefs[0];
-                int distance = inputSample - predictedSample;
-                // Scale to 4-bits, and round to the nearest sample
-                // The official encoder does the casting this way, so match that behavior
-                int unclampedAdpcmSample = (distance > 0)
+                int prediction = decoded[i] * coefficient2 + decoded[i + 1] * coefficient1;
+                int distance = samples[i + 2] * CoefficientScale - prediction;
+                // Preserve the encoder's float division, double promotion and rounding order.
+                int quantized = distance > 0
                     ? (int)((double)((float)distance / scale) + 0.4999999f)
                     : (int)((double)((float)distance / scale) - 0.4999999f);
-
-                int adpcmSample = Clamp4(unclampedAdpcmSample);
-                if (adpcmSample != unclampedAdpcmSample)
-                {
-                    int overflow = Math.Abs(unclampedAdpcmSample - adpcmSample);
-                    if (overflow > maxOverflow) maxOverflow = overflow;
-                }
-
-                adpcmOut[s] = adpcmSample;
-
-                // Decode sample to use as history
-                int decodedDistance = adpcmSample * scale;
-                int correctedSample = predictedSample + decodedDistance;
-                int scaledSample = (correctedSample + 1024) >> 11;
-                // Clamp and store
-                pcmOut[s + 2] = Clamp16(scaledSample);
-                // Accumulate distance
-                double actualDistance = pcmIn[s + 2] - pcmOut[s + 2];
-                totalDistance += actualDistance * actualDistance;
+                int nibble = Math.Clamp(quantized, -8, 7);
+                maxOverflow = Math.Max(maxOverflow, Math.Abs(quantized - nibble));
+                nibbles[i] = nibble;
+                decoded[i + 2] = ClampSample((prediction + nibble * scale + RoundingBias) >> CoefficientShift);
+                double difference = samples[i + 2] - decoded[i + 2];
+                error += difference * difference;
             }
-
-            for (int x = maxOverflow + 8; x > 256; x >>= 1)
-                if (++scalePower >= 12)
-                    scalePower = 11;
-
-        } while (scalePower < 12 && maxOverflow > 1);
+            // A maximum-scale attempt must finish even for unstable caller-supplied coefficients.
+            if (scalePower < MaxScalePower)
+                for (int overflow = maxOverflow + 8; overflow > 256; overflow >>= 1)
+                    if (++scalePower >= MaxScalePower) scalePower = MaxScalePower - 1;
+        } while (scalePower < MaxScalePower && maxOverflow > 1);
     }
-
 }

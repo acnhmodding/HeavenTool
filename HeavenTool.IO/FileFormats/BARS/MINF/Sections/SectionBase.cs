@@ -1,12 +1,12 @@
-﻿using BinaryReader = AeonSake.BinaryTools.BinaryReader;
+using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BARS.MINF.Sections;
 
 public abstract class SectionBase<TEntry>
 {
-    public short Count => (short) Entries.Count;
-    public short LoopEntry { get; protected set; }
+    public ushort Count => checked((ushort)Entries.Count);
+    public short LoopIndex { get; protected set; }
 
     public List<TEntry> Entries { get; } = [];
 
@@ -15,7 +15,7 @@ public abstract class SectionBase<TEntry>
         using (reader.CreateScopeAt(offset))
         {
             var count = reader.ReadUInt16();
-            LoopEntry = reader.ReadInt16();
+            LoopIndex = reader.ReadInt16();
 
             for (int i = 0; i < count; i++)
                 Entries.Add(ReadEntry(reader));

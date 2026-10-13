@@ -1,11 +1,41 @@
 ﻿using HeavenTool.IO.FileFormats.PBC;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
+using System.Reflection;
 
 namespace HeavenTool.Forms.PBC;
 
 public static class PBCImageUtilities
 {
+    public const float VoidHeight = -10000000;
+
+    public static bool IsValidHeight(float height) => float.IsFinite(height) && height != VoidHeight;
+
+    public static PointF[] GetTrianglePoints(RectangleF bounds, TriangleDirection triangle)
+    {
+        var center = new PointF(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2);
+        var topLeft = new PointF(bounds.Left, bounds.Top);
+        var topRight = new PointF(bounds.Right, bounds.Top);
+        var bottomLeft = new PointF(bounds.Left, bounds.Bottom);
+        var bottomRight = new PointF(bounds.Right, bounds.Bottom);
+        return triangle switch
+        {
+            TriangleDirection.Top => [center, topRight, topLeft],
+            TriangleDirection.Left => [center, topLeft, bottomLeft],
+            TriangleDirection.Bottom => [center, bottomLeft, bottomRight],
+            TriangleDirection.Right => [center, bottomRight, topRight],
+            _ => throw new ArgumentOutOfRangeException(nameof(triangle))
+        };
+    }
+
+    // Normalized cell coordinates; ties follow the game's x/z diagonal tests.
+    public static TriangleDirection GetTriangleDirection(float x, float z) =>
+        z >= x
+            ? (x + z >= 1 ? TriangleDirection.Bottom : TriangleDirection.Left)
+            : (x + z >= 1 ? TriangleDirection.Right : TriangleDirection.Top);
+
     private readonly static Dictionary<uint, Color> Colors = new()
     {
         { 0, Color.FromArgb(255, 70, 120, 64) },
@@ -41,18 +71,13 @@ public static class PBCImageUtilities
     public static readonly Color HEIGHT_DARKER = Color.FromArgb(30, 30, 30);
     public static readonly Color HEIGHT_BRIGHTER = Color.FromArgb(150, 150, 150);
 
-    private static Color ContrastColor(Color color)
-    {
-        var luminance = (0.299 * color.R + 0.587 * color.G + 0.114 * color.B) / 255;
-        var d = luminance > 0.5 ? 0 : 255;
-        return Color.FromArgb(d, d, d);
-    }
+    public static Color GetColor(TileType tileType) => GetColor((byte)tileType);
 
-    public static Color GetColor(TileType tileType) => GetColor((byte) tileType);
+    public static string GetMaterialName(TileType material) => typeof(TileType).GetField(material.ToString())?.GetCustomAttribute<DescriptionAttribute>()?.Description ?? material.ToString();
 
     public static Color GetColor(byte i)
     {
-        if (Colors.TryGetValue(i, out Color value))
+        if (Colors.TryGetValue(i, out var value))
             return value;
 
         return Color.FromArgb(255, 128, 0, 128);
@@ -60,10 +85,10 @@ public static class PBCImageUtilities
 
     public static Color GetHeightColor(float current, float min, float max)
     {
-        if (current == -10000000) return Color.Black;
+        if (!IsValidHeight(current)) return Color.Black;
         if (min == max) return HEIGHT_DARKER;
 
-        float t = (current - min) / (max - min);
+        var t = (float)Math.Clamp(((double)current - min) / ((double)max - min), 0, 1);
         return Color.FromArgb(
             (int)(HEIGHT_DARKER.R + t * (HEIGHT_BRIGHTER.R - HEIGHT_DARKER.R)),
             (int)(HEIGHT_DARKER.G + t * (HEIGHT_BRIGHTER.G - HEIGHT_DARKER.G)),

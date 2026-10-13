@@ -9,21 +9,11 @@ public class InspectorTool(TileEditor core) : TileEditorTool(core)
         if (!Control.ModifierKeys.HasFlag(Keys.Control) && Core.PBCFile != null && TryGetTilePosition(e.Location, out var pos))
         {
             var tile = Core.PBCFile[pos.TileY, pos.TileX];
-            Core.SelectQuadrant(tile.HeightMap.Quadrants[pos.SubY, pos.SubX]);
+            Core.SelectTriangle(tile.HeightMap.Triangles[(int)pos.Triangle]);
         }
     }
 
-    public override void OnMouseMove(MouseEventArgs e)
-    {
-        if (Core.PBCFile != null && TryGetTilePosition(e.Location, out var pos))
-        {
-            var tile = Core.PBCFile[pos.TileY, pos.TileX];
-
-            if (Core.CurrentView == ViewType.HeightMap)
-                Core.HighlightedHeight = Core.GetHeightInfo(tile.HeightMap, pos.SubY, pos.SubX);
-            else Core.HighlightedHeight = null;
-        }
-    }
+    public override void OnMouseMove(MouseEventArgs e) { }
 
     public override void OnMouseUp(MouseEventArgs e)
     {

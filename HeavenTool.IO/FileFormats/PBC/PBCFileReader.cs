@@ -5,124 +5,98 @@ using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.PBC;
 
-/// <summary>
-/// A class to read PBC (Physical Block Collision) files
-/// </summary>
 public partial class PBCFileReader
 {
-    public class Quadrant
+    public class TriangleHeights
     {
-        public float Layer0 { get; set; }
-        public float Layer1 { get; set; }
-        public float Layer2 { get; set; }
+        [DisplayName("Center height")]
+        public float CenterHeight { get; set; }
+        [DisplayName("Corner 1 height")]
+        public float Corner1Height { get; set; }
+        [DisplayName("Corner 2 height")]
+        public float Corner2Height { get; set; }
 
-        public Quadrant()
+        public TriangleHeights()
         {
-            Layer0 = 0;
-            Layer1 = 0;
-            Layer2 = 0;
+            CenterHeight = 0;
+            Corner1Height = 0;
+            Corner2Height = 0;
         }
 
-        public Quadrant(BinaryReader reader)
+        public TriangleHeights(BinaryReader reader)
         {
-            Layer0 = reader.ReadSingle();
-            Layer1 = reader.ReadSingle();
-            Layer2 = reader.ReadSingle();
+            CenterHeight = reader.ReadSingle();
+            Corner1Height = reader.ReadSingle();
+            Corner2Height = reader.ReadSingle();
         }
 
         public void Write(BinaryWriter writer)
         {
-            writer.Write(Layer0);
-            writer.Write(Layer1);
-            writer.Write(Layer2);
+            writer.Write(CenterHeight);
+            writer.Write(Corner1Height);
+            writer.Write(Corner2Height);
         }
     }
 
     public class HeightMap
     {
-        public Quadrant[,] Quadrants = new Quadrant[2, 2];
+        // File order: top, left, bottom, right.
+        public TriangleHeights[] Triangles = new TriangleHeights[4];
 
         public HeightMap()
         {
-            Quadrants[0, 1] = new Quadrant();
-            Quadrants[0, 0] = new Quadrant();
-            Quadrants[1, 0] = new Quadrant();
-            Quadrants[1, 1] = new Quadrant();
+            for (var i = 0; i < Triangles.Length; i++)
+                Triangles[i] = new TriangleHeights();
         }
 
         public HeightMap(BinaryReader reader)
         {
-            Quadrants[0, 1] = new Quadrant(reader);
-            Quadrants[0, 0] = new Quadrant(reader);
-            Quadrants[1, 0] = new Quadrant(reader);
-            Quadrants[1, 1] = new Quadrant(reader);
+            for (var i = 0; i < Triangles.Length; i++)
+                Triangles[i] = new TriangleHeights(reader);
         }
 
         public void Write(BinaryWriter writer)
         {
-            Quadrants[0, 1].Write(writer);
-            Quadrants[0, 0].Write(writer);
-            Quadrants[1, 0].Write(writer);
-            Quadrants[1, 1].Write(writer);
+            foreach (var triangle in Triangles)
+                triangle.Write(writer);
         }
     }
-
 
     public class Tile
     {
         public HeightMap HeightMap;
-        public TileType[,] Type;
+        // Materials use the same triangle order as HeightMap.
+        public TileType[] Materials;
 
         public Tile()
         {
             HeightMap = new HeightMap();
-
-            Type = new TileType[2, 2];
-            Type[0, 1] = TileType.Null;
-            Type[0, 0] = TileType.Null;
-            Type[1, 0] = TileType.Null;
-            Type[1, 1] = TileType.Null;
+            Materials = new TileType[4];
+            Array.Fill(Materials, TileType.Null);
         }
 
         public Tile(BinaryReader reader)
         {
-            // Read Height Map
+            // All four height records precede the four material bytes.
             HeightMap = new HeightMap(reader);
-
-            // Read Collision Map
-            Type = new TileType[2, 2];
-
-            Type[0, 1] = (TileType)reader.ReadByte();
-            Type[0, 0] = (TileType)reader.ReadByte();
-            Type[1, 0] = (TileType)reader.ReadByte();
-            Type[1, 1] = (TileType)reader.ReadByte();
+            Materials = new TileType[4];
+            for (var i = 0; i < Materials.Length; i++)
+                Materials[i] = (TileType)reader.ReadByte();
         }
-
 
         public void Write(BinaryWriter writer)
         {
             HeightMap.Write(writer);
-
-            writer.Write((byte)Type[0, 1]);
-            writer.Write((byte)Type[0, 0]);
-            writer.Write((byte)Type[1, 0]);
-            writer.Write((byte)Type[1, 1]);
+            foreach (var material in Materials)
+                writer.Write((byte)material);
         }
     }
 
-    /// <summary>
-    /// Check for file magic, return true if <paramref name="magic"/> is <b>pbc\0</b>
-    /// </summary>
-    /// <param name="magic">The first 4 bytes of the file.</param>
-    /// <returns></returns>
     public static bool CheckMagic(byte[] magic) => "pbc\0"u8.SequenceEqual(magic);
 
     private int _width;
     private int _height;
 
-    /// <summary>
-    /// Image Width
-    /// </summary>
     public int Width
     {
         get => _width;
@@ -136,9 +110,6 @@ public partial class PBCFileReader
         }
     }
 
-    /// <summary>
-    /// Image Height
-    /// </summary>
     public int Height
     {
         get => _height;
@@ -153,7 +124,7 @@ public partial class PBCFileReader
     }
 
     public int OffsetX { get; }
-    public int OffsetY { get; }
+    public int OffsetZ { get; }
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -164,7 +135,6 @@ public partial class PBCFileReader
         get => Tiles[height, width];
         set => Tiles[height, width] = value;
     }
-
 
     public PBCFileReader(byte[] buffer) : this(new MemoryStream(buffer))
     {
@@ -182,7 +152,7 @@ public partial class PBCFileReader
         _height = reader.ReadInt32();
 
         OffsetX = reader.ReadInt32();
-        OffsetY = reader.ReadInt32();
+        OffsetZ = reader.ReadInt32();
 
         Tiles = new Tile[Height, Width];
 
@@ -202,7 +172,7 @@ public partial class PBCFileReader
         writer.Write(Height);
 
         writer.Write(OffsetX);
-        writer.Write(OffsetY);
+        writer.Write(OffsetZ);
 
         for (var h = 0; h < Height; h++)
             for (var w = 0; w < Width; w++)
@@ -221,12 +191,10 @@ public partial class PBCFileReader
 
         var newTiles = new Tile[_height, _width];
 
-        // Create empty tiles for the new array
         for (var h = 0; h < _height; h++)
             for (var w = 0; w < _width; w++)
                 newTiles[h, w] = new Tile();
 
-        // Copy existing tiles to the new array, up to the new dimensions
         if (Tiles != null)
         {
             var minHeight = Math.Min(Tiles.GetLength(0), _height);

@@ -1,45 +1,27 @@
-﻿using HeavenTool.IO.FileFormats.BARS.MINF;
+using HeavenTool.IO.FileFormats.BARS.AMTA;
+using HeavenTool.IO.FileFormats.BARS.MINF;
+using HeavenTool.IO.FileFormats.BARS.MINF.Sections;
+using HeavenTool.IO.Audio;
 using System.ComponentModel;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BARS;
 
-// The property names are probably all wrong. It is guessed by the value and not tested.
 public class AudioMetadata
 {
-    [Flags]
-    public enum MetadataFlags
-    {
-        None = 0,           
-        Unknown1 = 1 << 0,
-        Unknown2 = 1 << 1,
-        IsLooped = 1 << 2, 
-        Unknown4 = 1 << 3,
-        Unknown5 = 1 << 4  
-    }
-
     public const string AMTA_MAGIC = "AMTA";
 
-    /// <summary>
-    /// <see cref="V5"/> seems to be a complete rewrite of AMTA, with significally changes to all sections:
-    /// <list type="table">
-    /// <item>- DATA doesn't have any header/magic and a lot of fields has been removed</item>
-    /// <item>- Marker doesn't have any header/magic</item>
-    /// <item>- EXT section has been replaced with MINF section</item>
-    /// <item>- The string section seems to be replaced by some that looks like 'identifiers' and the string section comes right after it</item>
-    /// </list>
-    /// </summary>
     public enum AudioMetadataVersion : ushort
     {
         V1 = 0x0100,
-        V2 = 0X0200, 
+        V2 = 0X0200,
         V3 = 0x0300,
         V4 = 0x0400,
         V5 = 0x0500
     }
 
-    public AudioMetadata(AudioAsset parent)
+    public AudioMetadata(AudioAsset parent, PerformanceSequenceFormat? performanceFormat = null)
     {
         ArgumentNullException.ThrowIfNull(parent);
 
@@ -55,7 +37,6 @@ public class AudioMetadata
         if (magic != AMTA_MAGIC)
             throw new Exception($"Expected \"{AMTA_MAGIC}\" magic, but got \"{magic}\".");
 
-        //Endian = reader.ReadUInt16();
         IsBigEndian = reader.BigEndian = reader.ReadUInt16() == 0xFFFE;
         Version = (AudioMetadataVersion)reader.ReadUInt16();
         Size = reader.ReadInt32(); // seems to align to 4, be sure to align to 4 when making the write method
@@ -63,7 +44,7 @@ public class AudioMetadata
         switch (Version)
         {
             case AudioMetadataVersion.V5:
-                ReadAMTAV5(reader, initialPosition);
+                ReadAMTAV5(reader, initialPosition, performanceFormat);
                 break;
 
             default:
@@ -71,41 +52,35 @@ public class AudioMetadata
         }
     }
 
-    private StringPool StringPool { get; set; } = new();
+    private uint ReservedOffset { get; set; }
 
     public bool IsBigEndian { get; }
     public AudioMetadataVersion Version { get; private set; }
     public int Size { get; private set; }
 
-    // V5-specific fields
-    public uint Unknown_C { get; private set; }
-    public byte StreamCount { get; private set; }
-    public byte ChannelCount { get; private set; }
     public MetadataFlags Flags { get; private set; }
-    public byte CodecId { get; private set; }
-    public int? Unknown_D { get; private set; } // when datasize == 40, always 257
-    public int Unknown { get; private set; } // almost always 15
-    public float LoopStart { get; private set; }
-    public float LoopEnd { get; private set; }
-    public float Volume { get; private set; }
-    public float Loudness { get; private set; }
+    public ResTrack[] Tracks { get; private set; } = [];
+
+    public OptionalMetadata? OptionalData { get; private set; }
     public string AssetName { get; private set; } = "";
     public List<string> Identifiers { get; private set; } = [];
+    public record AttributeEntry(string Key, uint Value);
+    public List<AttributeEntry> Attributes { get; } = [];
 
     [Browsable(false)]
     public MarkerList? MarkerList { get; private set; }
 
     [Browsable(false)]
-    public MINFReader? MINF { get; private set; }
+    public MusicInfo? MusicInfo { get; private set; }
 
-    public void ReadAMTAV5(BinaryReader reader, long initialPosition)
+    private void ReadAMTAV5(BinaryReader reader, long initialPosition, PerformanceSequenceFormat? performanceFormat)
     {
-        reader.Skip(4); // padding - OFFSET to specific regions
+        ReservedOffset = reader.ReadUInt32();
         var dataOffset = reader.ReadUInt32(); // Offset to "DATA" block
         var markerOffset = reader.ReadUInt32();
         var minfOffset = reader.ReadUInt32();
         var footerOffset = reader.ReadUInt32();
-        reader.Skip(4); // padding
+        var attrOffset = reader.ReadUInt32();
 
         var assetNameOffset = reader.ReadUInt32();
         using (reader.CreateScope())
@@ -116,46 +91,49 @@ public class AudioMetadata
         if (AssetName.ToCRC32() != assetNameHash)
             ConsoleUtilities.WriteLine($"Asset name hash mismatch! Calculated: 0x{AssetName.ToCRC32():X8}, Expected: 0x{assetNameHash:X8}", ConsoleColor.Yellow);
 
-        Unknown_C = reader.ReadUInt32(); // Seems to be "Type" where 1 is a external stream (located inside "Stream" folder),
-                                         // 0 is inside the file itself, 3/5 probably is villager singing (MINF?)
+        Flags = (MetadataFlags) reader.ReadUInt32();
 
-        StreamCount = reader.ReadByte();
-        ChannelCount = reader.ReadByte();
-        CodecId = reader.ReadByte();
-        Flags = (MetadataFlags) reader.ReadByte();
+        var trackCount = reader.ReadByte();
+        Tracks = new ResTrack[trackCount];
 
-        if (dataOffset == 56)
-        {
-            // This is problably extra info, so probably 2 bytes with a 4-alignment
-            Unknown_D = reader.ReadInt32();
-        }
+        for (byte i = 0; i < trackCount; i++)
+            Tracks[i] = new ResTrack(reader);
 
-        // Init of 'DATA' block
-        Unknown = reader.ReadInt32(); // Always 15
+        if (dataOffset != 0)
+            using (reader.CreateScopeAt(initialPosition + dataOffset))
+                OptionalData = OptionalMetadata.Read(reader);
 
-        LoopStart = reader.ReadSingle();
-        LoopEnd = reader.ReadSingle();
-        Volume = reader.ReadSingle();
-        Loudness = reader.ReadSingle();
-
-        // Read 'MARKER' block
         if (markerOffset != 0)
             MarkerList = new MarkerList(reader, initialPosition + markerOffset);
 
         if (minfOffset != 0)
         {
-            // TODO: Get MINF as raw bytes and feed it into a different BinaryReader
-            //uint minfSize;
-            //using (reader.CreateScope())
-            //{
-            //    minfSize = reader.ReadUInt32At(initialPosition + minfOffset + 8);
-            //}
-
-            MINF = new MINFReader(reader, initialPosition + minfOffset);
+            using var scope = reader.CreateScopeAt(initialPosition + minfOffset);
+            reader.Skip(4);
+            var oldEndian = reader.BigEndian;
+            reader.BigEndian = reader.ReadUInt16() == (oldEndian ? 0xFEFF : 0xFFFE);
+            try
+            {
+                reader.Skip(2);
+                var minfSize = reader.ReadInt32();
+                if (minfSize < 0x4c || minfSize > reader.Length - (initialPosition + minfOffset))
+                    throw new InvalidDataException("MINF size is outside AMTA.");
+                var rawMusicInfo = reader.ReadByteArrayAt(initialPosition + minfOffset, minfSize);
+                using var minfStream = new MemoryStream(rawMusicInfo);
+                using var minfReader = new BinaryReader(minfStream);
+                MusicInfo = new MusicInfo(minfReader, 0, performanceFormat ?? AcnhPerformanceContext.ForAsset(AssetName));
+            }
+            finally { reader.BigEndian = oldEndian; }
         }
-        // Init of 'FOOTER' block
         if (footerOffset != 0)
             ReadFileFooter(reader, initialPosition + footerOffset);
+        if (attrOffset != 0)
+            using (reader.CreateScopeAt(initialPosition + attrOffset))
+            {
+                var count = reader.ReadUInt32();
+                for (uint i = 0; i < count; i++)
+                    Attributes.Add(new AttributeEntry(reader.ReadStringPointer(), reader.ReadUInt32()));
+            }
     }
 
     private void ReadFileFooter(BinaryReader reader, long location)
@@ -172,10 +150,11 @@ public class AudioMetadata
     public byte[] ToBytes()
     {
         using var ms = new MemoryStream();
-        var binaryWriter = new BinaryWriter(ms);
+        using var binaryWriter = new BinaryWriter(ms);
+        binaryWriter.BigEndian = IsBigEndian;
 
         binaryWriter.Write(AMTA_MAGIC);
-        binaryWriter.Write((ushort) 0xFFFE);
+        binaryWriter.Write((ushort) 0xFEFF);
         binaryWriter.Write((ushort) Version);
         var sizePosition = binaryWriter.CreatePointer();
 
@@ -196,68 +175,76 @@ public class AudioMetadata
 
     private void WriteAMTAV5(BinaryWriter writer)
     {
-        var initialPosition = writer.Position;
-        writer.Skip(4);
+        const long initialPosition = 0;
+        var stringPool = new StringPool();
+        writer.Write(ReservedOffset);
         var dataPointer = writer.CreatePointer();
         var markerPointer = writer.CreatePointer();
         var minfPointer = writer.CreatePointer();
         var footerPointer = writer.CreatePointer();
-        writer.Skip(4);
-
+        var attrPointer = writer.CreatePointer();
         var assetNamePointer = writer.CreatePointer();
 
         writer.Write(AssetName.ToCRC32());
-        writer.Write(Unknown_C); // ?
+        writer.Write((uint) Flags);
 
-        writer.Write(StreamCount);
-        writer.Write(ChannelCount);
-        writer.Write(CodecId);
-        writer.Write((byte)Flags);
-
-        if (Unknown_D.HasValue)
-            writer.Write(Unknown_D.Value);
-
-        // * "DATA" block * //
-        dataPointer.Resolve(w =>
+        writer.Write(checked((byte) Tracks.Length));
+        foreach (var track in Tracks)
         {
-            w.Write(Unknown);
-
-            w.Write(LoopStart);
-            w.Write(LoopEnd);
-            w.Write(Volume);
-            w.Write(Loudness);
-        }, initialPosition);
-
-        // * "MARKER" block * //
-        if (MarkerList != null)
-            markerPointer.Resolve(w =>
+            writer.Write(checked((byte)track.Channels.Length));
+            foreach (var channel in track.Channels)
             {
-                MarkerList.Write(w, StringPool);
+                writer.Write(channel.ChannelIndex);
+                writer.Write((byte) channel.OutputChannel);
+            }
+        }
+
+        writer.Align(4);
+        if (OptionalData != null)
+            dataPointer.Resolve(OptionalData.Write, initialPosition);
+
+        if (MarkerList != null)
+        {
+            writer.Align(4);
+            markerPointer.Resolve(w => MarkerList.Write(w, stringPool), initialPosition);
+        }
+
+        if (MusicInfo != null)
+        {
+            writer.Align(4);
+            minfPointer.Resolve(w => w.Write(MusicInfo.ToBytes()), initialPosition);
+        }
+
+        if (Identifiers.Count != 0)
+        {
+            writer.Align(4);
+            footerPointer.Resolve(w => WriteFileFooter(w, stringPool), initialPosition);
+        }
+        if (Attributes.Count != 0)
+        {
+            writer.Align(4);
+            attrPointer.Resolve(w =>
+            {
+                w.Write(Attributes.Count);
+                foreach (var attribute in Attributes)
+                {
+                    stringPool.AddString(w, attribute.Key);
+                    w.Write(attribute.Value);
+                }
             }, initialPosition);
-
-        // * "MINF" block * //
-        if (MINF != null)
-            minfPointer.Resolve(w => {
-                // MINF.Write(w, StringPool);
-            }, initialPosition);
-
-        // * "FOOTER" block * //
-        footerPointer.Resolve(WriteFileFooter, initialPosition);
-
-        StringPool.Write(writer);
-
-        uint assetNameOffset = (uint) writer.Position - (uint)assetNamePointer.Position;
-        assetNamePointer.Resolve(assetNameOffset);
-
-        writer.WriteTerminatedString(AssetName);
+        }
+        writer.Align(4);
+        stringPool.Strings.TryAdd(AssetName, []);
+        stringPool.Strings[AssetName].Add(assetNamePointer);
+        stringPool.Write(writer);
         writer.Align(4);
     }
 
-    private void WriteFileFooter(BinaryWriter writer)
+    private void WriteFileFooter(BinaryWriter writer, StringPool stringPool)
     {
         writer.Write(Identifiers.Count);
         foreach (var identifier in Identifiers)
-            StringPool.AddString(writer, identifier);   
+            stringPool.AddString(writer, identifier);
     }
 
     public override string ToString() => AssetName;

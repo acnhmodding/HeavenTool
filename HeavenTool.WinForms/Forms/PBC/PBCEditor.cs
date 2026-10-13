@@ -18,21 +18,17 @@ public partial class PBCEditor : BaseEditor
     public override void LoadFile(Stream stream)
     {
         CurrentPBC = new PBCFileReader(stream);
+        UndoManager.Clear();
+        SetDirty(false);
 
         ReloadPBCImage();
     }
 
-    public override void SaveFile()
-    {
-        if (string.IsNullOrEmpty(FilePath)) return;
-
-        // TODO: Probably this editor needs a new interface "IChildFile" that contains a field that points to the parent file (in that case an SARC file)
-    }
     #endregion
 
-    public TileEditor Preview { get; } =  new()
+    public TileEditor Preview { get; } = new()
     {
-        BackColor = Color.Black, 
+        BackColor = Color.Black,
         CurrentView = ViewType.Collision
     };
 
@@ -47,17 +43,17 @@ public partial class PBCEditor : BaseEditor
 
     private readonly Action<byte[]>? saveFunction;
 
-
     public PBCEditor()
     {
         InitializeComponent();
+        Preview.UndoManager = UndoManager;
 
         dockPanel.Theme = new VS2015DarkTheme();
         dockPanel.Dock = DockStyle.Fill;
         dockPanel.DocumentStyle = DocumentStyle.DockingWindow;
-    
+
         var editor = DockableControl.Create(Preview, "Editor");
-        var colorControl = DockableControl.Create(ColorList, "Colors");
+        var colorControl = DockableControl.Create(ColorList, "Materials");
         var inspector = DockableControl.Create(PropertyGrid, "Inspector");
 
         editor.Show(dockPanel, DockState.Document);
@@ -65,9 +61,11 @@ public partial class PBCEditor : BaseEditor
         inspector.Show(colorControl.Pane, DockAlignment.Bottom, 0.5);
 
         Preview.ZoomChanged += ZoomChanged;
-        Preview.QuadrantSelected += (q) => PropertyGrid.SelectedObject = q;
+        Preview.TriangleSelected += (q) => PropertyGrid.SelectedObject = q;
         ColorList.DrawMode = DrawMode.OwnerDrawVariable;
         ColorList.DrawItem += ColorList_DrawItem;
+
+        ColorList.ClientSizeChanged += (_, _) => ColorList.Invalidate();
         ColorList.SelectedIndexChanged += ColorList_SelectedIndexChanged;
 
         gridToolStripMenuItem.Checked = Preview.DisplayGrid;
@@ -75,7 +73,7 @@ public partial class PBCEditor : BaseEditor
 
         PropertyGrid.PropertyValueChanged += PropertyGrid_PropertyValueChanged;
 
-        foreach (TileType color in Enum.GetValues<TileType>())
+        foreach (var color in Enum.GetValues<TileType>())
             ColorList.Items.Add(color);
 
         Preview.TileBrush = TileType.Null;
@@ -109,14 +107,6 @@ public partial class PBCEditor : BaseEditor
             viewMenuItems[view].Checked = Preview.CurrentView == view;
         }
 
-        viewMenuItem.AddSeparator();
-
-        LayerView[] layers = Enum.GetValues<LayerView>();
-        for (int i = 0; i < layers.Length; i++)
-        {
-            var layer = layers[i];
-            viewMenuItem.AddItem($"Layer {i}", () => Preview.ChangeLayerView(layer));
-        }
         #endregion
     }
 
@@ -146,7 +136,6 @@ public partial class PBCEditor : BaseEditor
         UndoManager.Execute(command, true);
         Invalidate();
     }
-
 
     private void ZoomChanged(int zoom)
     {
@@ -194,23 +183,6 @@ public partial class PBCEditor : BaseEditor
         ReloadPBCImage();
     }
 
-    private void CollisionMapToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        Preview.CurrentView = ViewType.Collision;
-        Preview.ActiveTool = Preview.Tools.CollisionBrush;
-        PropertyGrid.SelectedObject = CurrentPBC;
-        ColorList.Enabled = true;
-        ReloadPBCImage();
-    }
-
-    private void HeightMapToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        Preview.CurrentView = ViewType.HeightMap;
-        Preview.ActiveTool = Preview.Tools.InspectorTool;
-        ColorList.Enabled = false;
-        ReloadPBCImage();
-    }
-
     private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
     {
         if (CurrentPBC != null)
@@ -227,15 +199,15 @@ public partial class PBCEditor : BaseEditor
     {
         if (e.Index == -1 || ColorList.Items[e.Index] is not TileType tileType) return;
 
-        byte tileNumber = (byte)tileType;
+        var tileNumber = (byte)tileType;
 
         e.DrawBackground();
         var rect = new Rectangle(e.Bounds.X + 10, e.Bounds.Y + 2, 12, e.Bounds.Height - 4);
 
         using (SolidBrush brush = new(PBCImageUtilities.GetColor(tileType)))
             e.Graphics.FillRectangle(brush, rect);
-        
-        var ft = new StringFormat()
+
+        using var ft = new StringFormat()
         {
             LineAlignment = StringAlignment.Center,
             Alignment = StringAlignment.Far
@@ -243,7 +215,12 @@ public partial class PBCEditor : BaseEditor
 
         if (e.Font != null)
         {
-            e.Graphics.DrawString(tileType.ToString(), e.Font, Brushes.White, new Rectangle(e.Bounds.X + 25, e.Bounds.Y - 1, e.Bounds.Width, e.Bounds.Height), StringFormat.GenericDefault);
+            using var materialFormat = new StringFormat
+            {
+                FormatFlags = StringFormatFlags.NoWrap,
+                Trimming = StringTrimming.EllipsisCharacter
+            };
+            e.Graphics.DrawString(PBCImageUtilities.GetMaterialName(tileType), e.Font, Brushes.White, new Rectangle(e.Bounds.X + 25, e.Bounds.Y - 1, Math.Max(0, e.Bounds.Width - 60), e.Bounds.Height), materialFormat);
             e.Graphics.DrawString(tileNumber.ToString(), e.Font, Brushes.DarkGray, new Rectangle(e.Bounds.X + 25, e.Bounds.Y, e.Bounds.Width - 27, e.Bounds.Height), ft);
         }
 
@@ -252,8 +229,10 @@ public partial class PBCEditor : BaseEditor
 
     protected override void OnInvalidated(InvalidateEventArgs e)
     {
+        Preview.UpdateHeight();
         Preview.Invalidate();
         ColorList.Invalidate();
+        PropertyGrid.Refresh();
 
         base.OnInvalidated(e);
     }

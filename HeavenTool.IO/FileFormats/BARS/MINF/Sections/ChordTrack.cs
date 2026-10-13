@@ -1,18 +1,19 @@
-﻿using BinaryReader = AeonSake.BinaryTools.BinaryReader;
+using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BARS.MINF.Sections;
 
-public class SectionB(BinaryReader reader, long offset) : SectionBase<SectionB.Chord>(reader, offset)
+public class ChordTrack(BinaryReader reader, long offset) : SectionBase<ChordTrack.Chord>(reader, offset)
 {
     public class Chord
     {
-        public uint SamplePos { get; set; }
-        public List<string> Chords { get; set; } = [];
+        public uint SamplePosition { get; set; }
+        public List<byte> Notes { get; set; } = [];
+        public string[] Chords => [.. Notes.Select(PitchUtilities.ByteToChord)];
 
         public Chord(BinaryReader reader)
         {
-            SamplePos = reader.ReadUInt32();
+            SamplePosition = reader.ReadUInt32();
             var chordOffset = reader.Position + reader.ReadUInt32();
 
             using (reader.CreateScopeAt(chordOffset))
@@ -20,12 +21,8 @@ public class SectionB(BinaryReader reader, long offset) : SectionBase<SectionB.C
                 var chordCount = reader.ReadUInt32();
 
                 for (var i = 0; i < chordCount; i++)
-                {
-                    var b = reader.ReadByte();
-                    var chord = PitchUtilities.ByteToChord(b);
-
-                    Chords.Add(chord);
-                }
+                    Notes.Add(reader.ReadByte());
+                
 
                 reader.Align(4);
             }
@@ -35,7 +32,7 @@ public class SectionB(BinaryReader reader, long offset) : SectionBase<SectionB.C
 
         public void Write(BinaryWriter writer)
         {
-            writer.Write(SamplePos);
+            writer.Write(SamplePosition);
             chordPointer = writer.CreatePointer();
         }
 
@@ -43,13 +40,10 @@ public class SectionB(BinaryReader reader, long offset) : SectionBase<SectionB.C
         {
             chordPointer?.Resolve(writer =>
             {
-                writer.Write(Chords.Count);
+                writer.Write(Notes.Count);
 
-                foreach (var chord in Chords)
-                {
-                    var b = PitchUtilities.ChordToByte(chord);
-                    writer.Write(b);
-                }
+                foreach (var note in Notes)
+                    writer.Write(note);
 
                 writer.Align(4);
             });
@@ -57,7 +51,7 @@ public class SectionB(BinaryReader reader, long offset) : SectionBase<SectionB.C
 
         public override string ToString()
         {
-            if (Chords.Count == 0)
+            if (Notes.Count == 0)
                 return "<< Empty >>";
             return string.Join(", ", Chords);
         }
@@ -70,13 +64,12 @@ public class SectionB(BinaryReader reader, long offset) : SectionBase<SectionB.C
         ArgumentNullException.ThrowIfNull(writer);
 
         writer.Write(Count);
-        writer.Write(LoopEntry);
+        writer.Write(LoopIndex);
 
-        // First, we write the chord entries, which will create pointers for the chord data
+        // Write all entry pointers before their chord data.
         foreach (var chord in Entries)
             chord.Write(writer);
 
-        // After writing all chords, we need to write the chord data
         foreach (var chord in Entries)
             chord.WriteChord();
     }

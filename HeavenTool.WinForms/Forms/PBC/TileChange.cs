@@ -6,8 +6,7 @@ public class TileChange
 {
     public int TileX;
     public int TileY;
-    public int SubX;
-    public int SubY;
+    public TriangleDirection Triangle;
     public TileType OldValue;
     public TileType NewValue;
 }

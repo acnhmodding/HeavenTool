@@ -11,9 +11,9 @@ public class CollisionBrushTool(TileEditor core) : TileEditorTool(core)
 
     public override void OnMouseDown(MouseEventArgs e)
     {
-        if (e.Button != MouseButtons.Left 
-            || Control.ModifierKeys.HasFlag(Keys.Control) 
-            || Core.PBCFile == null 
+        if (e.Button != MouseButtons.Left
+            || Control.ModifierKeys.HasFlag(Keys.Control)
+            || Core.PBCFile == null
             || Core.TileBrush is not TileType brush)
             return;
 
@@ -28,7 +28,6 @@ public class CollisionBrushTool(TileEditor core) : TileEditorTool(core)
 
     public override void OnMouseMove(MouseEventArgs e)
     {
-        // Only apply changes on left-click without Ctrl key to allow for other interactions
         if (e.Button != MouseButtons.Left || Control.ModifierKeys.HasFlag(Keys.Control))
             return;
 
@@ -44,13 +43,16 @@ public class CollisionBrushTool(TileEditor core) : TileEditorTool(core)
 
     public override void OnMouseUp(MouseEventArgs e)
     {
-        if (Core.PBCFile == null || _currentStroke == null || _currentStroke.Count == 0)
+        if (e.Button != MouseButtons.Left)
             return;
 
-        var command = new TileEditCommand(Core.PBCFile, _currentStroke);
-        Core.UndoManager.Execute(command);
-
+        var stroke = _currentStroke;
         _currentStroke = null;
+        if (Core.PBCFile == null || stroke == null || stroke.Count == 0)
+            return;
+
+        var command = new TileEditCommand(Core.PBCFile, stroke);
+        Core.UndoManager.Execute(command, skipFirstRedo: true);
     }
 
     private void Apply(PBCFileReader file, TilePosition pos, TileType type)
@@ -58,7 +60,7 @@ public class CollisionBrushTool(TileEditor core) : TileEditorTool(core)
         if (_currentStroke == null) return;
 
         var tile = file[pos.TileY, pos.TileX];
-        var oldValue = tile.Type[pos.SubY, pos.SubX];
+        var oldValue = tile.Materials[(int)pos.Triangle];
 
         if (oldValue == type)
             return;
@@ -66,20 +68,18 @@ public class CollisionBrushTool(TileEditor core) : TileEditorTool(core)
         if (_currentStroke!.Any(c =>
             c.TileX == pos.TileX &&
             c.TileY == pos.TileY &&
-            c.SubX == pos.SubX &&
-            c.SubY == pos.SubY))
+            c.Triangle == pos.Triangle))
             return;
 
         _currentStroke.Add(new TileChange
         {
             TileX = pos.TileX,
             TileY = pos.TileY,
-            SubX = pos.SubX,
-            SubY = pos.SubY,
+            Triangle = pos.Triangle,
             OldValue = oldValue,
             NewValue = type
         });
 
-        tile.Type[pos.SubY, pos.SubX] = type;
+        tile.Materials[(int)pos.Triangle] = type;
     }
 }
