@@ -1,4 +1,4 @@
-﻿using HeavenTool.Forms.BCSV.Controls.Entries;
+using HeavenTool.Forms.BCSV.Controls.Entries;
 using System;
 using System.Drawing;
 using System.Linq;
@@ -17,8 +17,6 @@ public partial class BCSVEntryEditor : Form
 
         DoubleBuffered = true;
 
-        contentPanel.Layout += ContentPanel_SizeChanged;
-
         if (isUpdateWindow)
             addEntryButton.Text = "Update";
 
@@ -35,29 +33,28 @@ public partial class BCSVEntryEditor : Form
         addEntryCallback = callback;
     }
 
-    private void ContentPanel_SizeChanged(object? sender, EventArgs e)
+    protected override void OnResizeBegin(EventArgs e)
     {
-        var targetWidth = Math.Max(0, contentPanel.DisplayRectangle.Width - contentPanel.Padding.Left - contentPanel.Padding.Right);
+        contentPanel.BeginResize();
+        base.OnResizeBegin(e);
+    }
 
-        contentPanel.SuspendLayout();
-
-        foreach (Control c in contentPanel.Controls)
-        {
-            var horizMargin = c.Margin.Left + c.Margin.Right;
-            var w = Math.Max(0, targetWidth - horizMargin);
-            if (c.Width != w) c.Width = w;
-        }
-
-        contentPanel.ResumeLayout();
+    protected override void OnResizeEnd(EventArgs e)
+    {
+        contentPanel.EndResize();
+        base.OnResizeEnd(e);
     }
 
     public void AddContent(BCSVEntry content)
     {
         ArgumentNullException.ThrowIfNull(content);
 
-        contentPanel.Controls.Add(content);
-
         content.Margin = new Padding(0, 3, 0, 3);
+        content.Dock = DockStyle.Top;
+        content.TabIndex = contentPanel.Controls.Count;
+        var row = contentPanel.RowCount++;
+        contentPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, content.Height + content.Margin.Vertical));
+        contentPanel.Controls.Add(content, 0, row);
     }
 
     public void MoveContent(Control content, int index)
@@ -66,12 +63,28 @@ public partial class BCSVEntryEditor : Form
         if (index < 0 || index >= contentPanel.Controls.Count) return;
         if (!contentPanel.Controls.Contains(content)) return;
 
-        contentPanel.Controls.SetChildIndex(content, index);
+        var entries = GetEntries().Cast<Control>().ToList();
+        entries.Remove(content);
+        entries.Insert(index, content);
+        contentPanel.SuspendLayout();
+        try
+        {
+            for (int row = 0; row < entries.Count; row++)
+            {
+                contentPanel.SetRow(entries[row], row);
+                entries[row].TabIndex = row;
+                contentPanel.RowStyles[row].Height = entries[row].Height + entries[row].Margin.Vertical;
+            }
+        }
+        finally
+        {
+            contentPanel.ResumeLayout(true);
+        }
     }
 
     public BCSVEntry[] GetEntries()
     {
-        return [.. contentPanel.Controls.Cast<BCSVEntry>()];
+        return [.. contentPanel.Controls.Cast<BCSVEntry>().OrderBy(contentPanel.GetRow)];
     }
 
     private void AddEntryButton_Click(object sender, EventArgs e)

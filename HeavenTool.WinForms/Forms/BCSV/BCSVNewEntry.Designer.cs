@@ -1,4 +1,6 @@
-﻿namespace HeavenTool.Forms.BCSV
+using HeavenTool.Forms.BCSV.Controls;
+
+namespace HeavenTool.Forms.BCSV
 {
     partial class BCSVEntryEditor
     {
@@ -31,7 +33,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(BCSVEntryEditor));
             bottomPanel = new System.Windows.Forms.Panel();
             addEntryButton = new AltUI.Controls.DarkButton();
-            contentPanel = new System.Windows.Forms.FlowLayoutPanel();
+            contentPanel = new BCSVEntryPanel();
             bottomPanel.SuspendLayout();
             SuspendLayout();
             // 
@@ -61,15 +63,16 @@
             // 
             contentPanel.AutoScroll = true;
             contentPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            contentPanel.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            contentPanel.ColumnCount = 1;
+            contentPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            contentPanel.GrowStyle = System.Windows.Forms.TableLayoutPanelGrowStyle.AddRows;
             contentPanel.Location = new System.Drawing.Point(0, 0);
             contentPanel.Margin = new System.Windows.Forms.Padding(0);
             contentPanel.Name = "contentPanel";
             contentPanel.Padding = new System.Windows.Forms.Padding(3);
             contentPanel.Size = new System.Drawing.Size(340, 347);
             contentPanel.TabIndex = 1;
-            contentPanel.WrapContents = false;
-            contentPanel.SizeChanged += ContentPanel_SizeChanged;
+            contentPanel.RowCount = 0;
             // 
             // BCSVEntryEditor
             // 
@@ -96,6 +99,6 @@
 
         private System.Windows.Forms.Panel bottomPanel;
         private AltUI.Controls.DarkButton addEntryButton;
-        public System.Windows.Forms.FlowLayoutPanel contentPanel;
+        public BCSVEntryPanel contentPanel;
     }
 }

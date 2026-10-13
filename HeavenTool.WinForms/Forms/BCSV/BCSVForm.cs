@@ -790,7 +790,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
             }
         }
 
-        var newEntryWindow = new BCSVEntryEditor();
+        using var newEntryWindow = new BCSVEntryEditor();
 
         newEntryWindow.SetCallback(() =>
         {
@@ -843,7 +843,8 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                 DataType.UInt32 => new UInt32Entry(defaultValue),
                 DataType.Float32 => new Float32Entry(defaultValue),
                 DataType.String => new StringEntry(defaultValue, field.Size),
-                DataType.CRC32 => new CRC32Entry(defaultValue, field.Hash),
+                DataType.CRC32 => new HashEntry(defaultValue, field.Hash),
+                DataType.MMH3 => new HashEntry(defaultValue, field.Hash, isMurmurHash: true),
                 DataType.BitField => new BitFieldEntry(field.Size, defaultValue, HashManager.BitField.TryGetValue(field.Hash, out var bitfields) ? bitfields : null),
                 _ => null
             };

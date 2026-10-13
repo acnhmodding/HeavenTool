@@ -1,6 +1,6 @@
 ﻿namespace HeavenTool.Forms.BCSV.Controls
 {
-    partial class CRC32Entry
+    partial class HashEntry
     {
         /// <summary> 
         /// Variável de designer necessária.
@@ -24,7 +24,7 @@
         private void InitializeComponent()
         {
             propertyNameLabel = new System.Windows.Forms.Label();
-            crcComboBox = new System.Windows.Forms.ComboBox();
+            crcComboBox = new EntryComboBox();
             SuspendLayout();
             // 
             // propertyNameLabel
@@ -62,6 +62,6 @@
 
         #endregion
         private System.Windows.Forms.Label propertyNameLabel;
-        private System.Windows.Forms.ComboBox crcComboBox;
+        private EntryComboBox crcComboBox;
     }
 }

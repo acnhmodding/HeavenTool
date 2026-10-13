@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace HeavenTool.Forms.BCSV.Controls;
 
-public class CheckedComboBox : ComboBox
+public class CheckedComboBox : EntryComboBox
 {
     private readonly ToolStripDropDown _dropDown;
     private readonly CheckedListBox _checkedListBox;
@@ -14,6 +14,8 @@ public class CheckedComboBox : ComboBox
 
     private bool _suppressClose;
     private bool _isDropped;
+
+    protected override bool IsDropDownOpen => _isDropped;
 
     public event ItemCheckEventHandler? ItemCheck;
 

@@ -79,7 +79,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Update="Forms\BCSV\BCSVForm.cs" />
-    <Compile Update="Forms\BCSV\Controls\Entries\CRC32Entry.cs">
+    <Compile Update="Forms\BCSV\Controls\Entries\HashEntry.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Update="Forms\BCSV\Controls\Entries\BitFieldEntry.cs">
