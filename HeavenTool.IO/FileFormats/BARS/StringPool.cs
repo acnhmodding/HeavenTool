@@ -19,7 +19,7 @@ public class StringPool
         {
             foreach (var scope in scopes)
             {
-                var offset = (uint) (writer.Position - scope.Position);
+                var offset = (uint)(writer.Position - scope.Position);
                 scope.Resolve(offset);
             }
             writer.WriteTerminatedString(str);
@@ -34,7 +34,7 @@ public class StringPool
         var pointer = writer.CreatePointer();
 
         // Add to the strings list so we can resolve the offset later
-        if (Strings.TryGetValue(str, out List<WriterScopePointer>? value))
+        if (Strings.TryGetValue(str, out var value))
             value.Add(pointer);
         else Strings[str] = [pointer];
 

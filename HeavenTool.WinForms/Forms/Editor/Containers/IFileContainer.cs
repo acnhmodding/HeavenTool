@@ -87,13 +87,13 @@ public class ZipFileNode(string path, ZipArchive zip, string? virtualPath = null
     {
         get
         {
-                        if (_entry != null)
+            if (_entry != null)
                 return Path.GetFileName(_entry.FullName);
 
-                        if (!string.IsNullOrEmpty(_virtualPath))
+            if (!string.IsNullOrEmpty(_virtualPath))
                 return new DirectoryInfo(_virtualPath).Name;
 
-                        return Path.GetFileName(path);
+            return Path.GetFileName(path);
         }
     }
 

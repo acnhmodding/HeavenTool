@@ -37,20 +37,20 @@ public sealed class NamedEventTracks
     public NamedEventTracks(BinaryReader reader, long offset)
     {
         using var scope = reader.CreateScopeAt(offset);
-        uint count = reader.ReadUInt32();
+        var count = reader.ReadUInt32();
         if (count > (reader.Length - reader.Position) / 8)
             throw new InvalidDataException("Named event table is truncated.");
         for (uint i = 0; i < count; i++)
         {
-            uint nameHash = reader.ReadUInt32();
+            var nameHash = reader.ReadUInt32();
             var track = new Track();
-            long field = reader.Position;
-            long target = field + reader.ReadUInt32();
+            var field = reader.Position;
+            var target = field + reader.ReadUInt32();
             if (target < offset + 4 + count * 8L || target > reader.Length - 12)
                 throw new InvalidDataException("Named event pointer is outside its payload.");
             using (reader.CreateScopeAt(target))
             {
-                long name = reader.Position + reader.ReadUInt32();
+                var name = reader.Position + reader.ReadUInt32();
                 if (name < 0x4c || name >= reader.Length)
                     throw new InvalidDataException("Named event name is outside MINF.");
                 NameOffsets.Add(name);
@@ -58,7 +58,7 @@ public sealed class NamedEventTracks
                 track.Name = reader.ReadStringPointer();
                 track.NameHash = nameHash;
                 field = reader.Position;
-                long ends = field + reader.ReadUInt32();
+                var ends = field + reader.ReadUInt32();
                 track.StartLoopIndex = ReadPoints(reader, track.Starts);
                 if (ends < target + 8 || ends > reader.Length - 4)
                     throw new InvalidDataException("Named event end pointer is outside its payload.");
@@ -71,11 +71,11 @@ public sealed class NamedEventTracks
 
     private static int ReadPoints(BinaryReader reader, List<Point> points)
     {
-        ushort count = reader.ReadUInt16();
-        ushort loop = reader.ReadUInt16();
+        var count = reader.ReadUInt16();
+        var loop = reader.ReadUInt16();
         if (count > (reader.Length - reader.Position) / 8)
             throw new InvalidDataException("Named event points are truncated.");
-        for (int i = 0; i < count; i++) points.Add(new Point(reader.ReadUInt32(), reader.ReadInt32()));
+        for (var i = 0; i < count; i++) points.Add(new Point(reader.ReadUInt32(), reader.ReadInt32()));
         return loop == ushort.MaxValue ? -1 : loop;
     }
 
@@ -88,7 +88,7 @@ public sealed class NamedEventTracks
             writer.Write(track.NameHash);
             pointers.Add(writer.CreatePointer());
         }
-        for (int i = 0; i < Tracks.Count; i++)
+        for (var i = 0; i < Tracks.Count; i++)
             pointers[i].Resolve(w =>
             {
                 var track = Tracks[i];

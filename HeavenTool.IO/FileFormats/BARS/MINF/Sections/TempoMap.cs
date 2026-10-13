@@ -31,7 +31,7 @@ public class TempoMap(BinaryReader reader, long location) : SectionBase<TempoMap
         writer.Write(Count);
         writer.Write(LoopIndex);
 
-        foreach(var entry in Entries)
+        foreach (var entry in Entries)
         {
             writer.Write(entry.SamplePosition);
             writer.Write(entry.BeatsPerMinute);

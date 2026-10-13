@@ -1,6 +1,6 @@
-﻿using HeavenTool.IO;
+﻿using AeonSake.NintendoTools.FileFormats.Msbt;
+using HeavenTool.IO;
 using Newtonsoft.Json;
-using AeonSake.NintendoTools.FileFormats.Msbt;
 
 namespace HeavenTool.ModManager.FileTypes;
 
@@ -45,8 +45,8 @@ public sealed class MSBT : ModFile
         // Check for changes or new entries
         foreach (var entry in otherFileEntries)
         {
-            if (!currentFileEntries.ContainsKey(entry.Key) || 
-                (currentFileEntries.TryGetValue(entry.Key, out MsbtMessage val) && entry.Value.Text != val.Text))
+            if (!currentFileEntries.ContainsKey(entry.Key) ||
+                (currentFileEntries.TryGetValue(entry.Key, out var val) && entry.Value.Text != val.Text))
             {
                 ChangedEntries[entry.Key] = entry.Value;
             }
@@ -63,7 +63,7 @@ public sealed class MSBT : ModFile
     /// </summary>
     public void BakeFile()
     {
-        if (ChangedEntries.Count > 0 ||  RemovedEntries.Count > 0)
+        if (ChangedEntries.Count > 0 || RemovedEntries.Count > 0)
             ConsoleUtilities.WriteLine($"[MSBT] {Name} - {ChangedEntries.Count} changes | {RemovedEntries.Count} removed", ConsoleColor.Gray);
 
         // If some other mod changes a entry that is being removed, then this entry should not be removed
@@ -77,7 +77,7 @@ public sealed class MSBT : ModFile
                 // If we found a entry that have this label, we just replace it with the changed entry.
                 MsbtFile.Messages[entryIndex] = entry.Value;
 
-            else 
+            else
                 // If we don't found a entry with this label, add a new one 
                 MsbtFile.Messages.Add(entry.Value);
         }

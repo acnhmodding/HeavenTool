@@ -11,7 +11,7 @@ public sealed class NpcVoiceState
     public Action Update(bool singingEnabled, int voiceType, int pitch, int nextNoteCountdown)
     {
         var action = Action.Continue;
-        int storedCountdown = nextNoteCountdown;
+        var storedCountdown = nextNoteCountdown;
 
         if (!singingEnabled)
         {
@@ -23,7 +23,7 @@ public sealed class NpcVoiceState
             enabled = true;
             if (voiceType is >= 2 and <= 8 or 10)
             {
-                bool changed = voiceType != previousType || pitch != previousPitch;
+                var changed = voiceType != previousType || pitch != previousPitch;
                 if (changed || nextNoteCountdown > previousCountdown)
                 {
                     action = Action.Trigger;

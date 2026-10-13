@@ -24,10 +24,11 @@ public class Field
     public string HEX => Hash.ToString("x");
 
     public bool IsMissingHash => !HashManager.CRC32_Hashes.ContainsKey(Hash);
-    
+
 
     private string? _displayName;
-    public string DisplayName { 
+    public string DisplayName
+    {
         get
         {
             if (_displayName == null)

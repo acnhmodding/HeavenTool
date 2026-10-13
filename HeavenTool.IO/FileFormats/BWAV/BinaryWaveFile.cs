@@ -16,8 +16,8 @@ public class BinaryWaveFile : IDisposable
     public BinaryWaveChannel[] Channels { get; }
 
     public BinaryWaveFile(byte[] buffer) : this(new MemoryStream(buffer))
-    { 
-    
+    {
+
     }
 
     public BinaryWaveFile(Stream stream)
@@ -32,14 +32,14 @@ public class BinaryWaveFile : IDisposable
         if (Version != 1)
             throw new NotSupportedException($"Unsupported BWAV version: {Version}");
         Hash = reader.ReadUInt32();
-        AssetType = (AssetType) reader.ReadUInt16();
+        AssetType = (AssetType)reader.ReadUInt16();
         if (AssetType is not AssetType.Normal and not AssetType.Prefetch)
             throw new InvalidDataException($"Invalid BWAV asset type: {AssetType}");
         var channelCount = reader.ReadUInt16();
 
         Channels = new BinaryWaveChannel[channelCount];
 
-        for (int i = 0; i < channelCount; i++)
+        for (var i = 0; i < channelCount; i++)
             Channels[i] = new BinaryWaveChannel(reader);
     }
 
@@ -65,10 +65,10 @@ public class BinaryWaveFile : IDisposable
         writer.Write((ushort)0xFEFF);
         writer.Write(Version);
         writer.Write(AssetType == AssetType.Prefetch ? Hash : CalculateDataHash());
-        writer.Write((ushort) AssetType);
-        writer.Write((ushort) Channels.Length);
+        writer.Write((ushort)AssetType);
+        writer.Write((ushort)Channels.Length);
 
-        for (int i = 0; i < Channels.Length; i++)
+        for (var i = 0; i < Channels.Length; i++)
             Channels[i].Write(writer, AssetType == AssetType.Prefetch);
 
         writer.Align(0x40); // Align to 64 bytes before writing audio data.
@@ -78,7 +78,7 @@ public class BinaryWaveFile : IDisposable
             if (channel.ChannelData == null)
                 continue;
 
-            var offsetPosition = (uint) writer.Position;
+            var offsetPosition = (uint)writer.Position;
             channel.writeTotalSamples?.Resolve(offsetPosition);
             channel.writeLocalSamples?.Resolve(offsetPosition);
 

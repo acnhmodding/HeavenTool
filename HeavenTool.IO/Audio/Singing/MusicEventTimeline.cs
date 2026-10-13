@@ -26,7 +26,7 @@ public sealed class MusicEventTimeline
 
     public Position Query(long playedSample)
     {
-        long sample = checked(playedSample + LookAheadSamples);
+        var sample = checked(playedSample + LookAheadSamples);
 
         if (LoopLength > 0 && sample >= LoopEnd)
             return new Position(LoopStart + (sample - LoopEnd) % LoopLength, true);
@@ -44,14 +44,14 @@ public sealed class MusicEventTimeline
     {
         if (count == 0 || position.Sample < 0) return new Selection(-1, -1, false, -1);
 
-        int current = -1;
+        var current = -1;
         if (start(0) <= position.Sample)
         {
             int first = 0, end = count;
             while (true)
             {
-                int middle = first + (end - first) / 2;
-                long sample = start(middle);
+                var middle = first + (end - first) / 2;
+                var sample = start(middle);
                 // The game stops on an exact match, including duplicate starts.
                 if (sample == position.Sample) { current = middle; break; }
                 if (sample < position.Sample)
@@ -63,26 +63,26 @@ public sealed class MusicEventTimeline
             }
         }
 
-        bool hasLoop = LoopLength > 0 && loopIndex >= 0 && loopIndex < count;
+        var hasLoop = LoopLength > 0 && loopIndex >= 0 && loopIndex < count;
 
-        if (position.Looped && hasLoop && current < loopIndex) 
+        if (position.Looped && hasLoop && current < loopIndex)
             current = count - 1;
 
         int Next(int index) => index + 1 < count ? index + 1 : hasLoop ? loopIndex : -1;
         long FutureStart(int index)
         {
-            long sample = start(index);
+            var sample = start(index);
             return sample < position.Sample && hasLoop ? sample + LoopLength : sample;
         }
 
-        int next = Next(current);
-        bool upcoming = next >= 0 && position.Sample <= FutureStart(next)
+        var next = Next(current);
+        var upcoming = next >= 0 && position.Sample <= FutureStart(next)
             && FutureStart(next) - Margin <= position.Sample;
-        bool active = upcoming;
+        var active = upcoming;
 
         if (current >= 0)
         {
-            long currentStart = start(current);
+            var currentStart = start(current);
             if (currentStart > position.Sample && hasLoop) currentStart -= LoopLength;
             active |= currentStart <= position.Sample
                 && position.Sample < currentStart + duration(current) + Margin;
@@ -94,7 +94,7 @@ public sealed class MusicEventTimeline
             next = Next(next);
         }
 
-        int countdown = next < 0 ? -1 : (int)MathF.Ceiling(
+        var countdown = next < 0 ? -1 : (int)MathF.Ceiling(
             (float)Math.Max(0, FutureStart(next) - Margin - position.Sample) / SampleRate * 30f);
 
         return new Selection(current, next, active, countdown);

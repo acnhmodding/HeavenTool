@@ -17,7 +17,7 @@ public abstract class SectionBase<TEntry>
             var count = reader.ReadUInt16();
             LoopIndex = reader.ReadInt16();
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
                 Entries.Add(ReadEntry(reader));
         }
     }

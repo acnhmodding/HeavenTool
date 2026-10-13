@@ -75,7 +75,8 @@ public class BinaryCSV
     /// <summary>
     /// Get the Unique Field for the current file
     /// </summary>
-    public Field? UniqueField { 
+    public Field? UniqueField
+    {
         get
         {
             if (_uniqueField == null && !_uniqueFieldSearched)
@@ -188,7 +189,7 @@ public class BinaryCSV
 
         if (HasExtendedHeader == 1)
         {
-            var magic = reader.ReadByteArray(4); 
+            var magic = reader.ReadByteArray(4);
 
             if (!MAGIC.SequenceEqual(magic))
                 throw new Exception("File is not a BCSV!");
@@ -225,7 +226,7 @@ public class BinaryCSV
             type = ApplySuffixRules(translatedName, currentField.Size, type);
 
             // Enforce known types by hash, this is specially important for the fields that end up as BitFields because of alignment
-            if (HashManager.KnownTypes.TryGetValue(currentField.HEX, out DataType value))
+            if (HashManager.KnownTypes.TryGetValue(currentField.HEX, out var value))
                 type = value;
 
             currentField.DataType = type;
@@ -234,7 +235,7 @@ public class BinaryCSV
         // Get Type for each field
         Entries = [];
 
-        for (int i = 0; i < entryCount; i++)
+        for (var i = 0; i < entryCount; i++)
         {
             var newEntry = new object[Fields.Length];
             var entryPosition = reader.ReadUInt32(); // should be the same as reader.Position if we did everything correctly
@@ -327,12 +328,12 @@ public class BinaryCSV
             writer.Write(field.Offset);
         }
 
-        for (int currentEntry = 0; currentEntry < Entries.Count; currentEntry++)
+        for (var currentEntry = 0; currentEntry < Entries.Count; currentEntry++)
         {
-            int pos = (int) writer.BaseStream.Position;
+            var pos = (int)writer.BaseStream.Position;
             writer.Write(pos);
 
-            for (int fieldId = 0; fieldId < Fields.Length; fieldId++)
+            for (var fieldId = 0; fieldId < Fields.Length; fieldId++)
             {
                 var field = Fields[fieldId];
                 writer.Position = pos + field.Offset;
@@ -379,7 +380,7 @@ public class BinaryCSV
                         {
                             try
                             {
-                                string stringValue = entryValue?.ToString()?.Trim() ?? "";
+                                var stringValue = entryValue?.ToString()?.Trim() ?? "";
                                 var bytes = Encoding.UTF8.GetBytes(stringValue);
                                 Array.Resize(ref bytes, field.Size);
                                 bytes[^1] = 0;

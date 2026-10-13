@@ -1,6 +1,6 @@
+using HeavenTool.IO.Audio.Singing;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
-using HeavenTool.IO.Audio.Singing;
 
 namespace HeavenTool.IO.FileFormats.BARS.MINF.Sections.PerformanceTracks;
 
@@ -15,12 +15,12 @@ public sealed class PitchValueTrack
     {
         using (reader.CreateScopeAt(offset))
         {
-            uint count = reader.ReadUInt32();
+            var count = reader.ReadUInt32();
             LoopIndex = reader.ReadInt32();
             if (count > (reader.Length - reader.Position) / 8)
                 throw new InvalidDataException("Modulation events exceed their track.");
             Points = new Point[checked((int)count)];
-            for (int i = 0; i < Points.Length; i++)
+            for (var i = 0; i < Points.Length; i++)
             {
                 Points[i] = new Point(reader.ReadUInt32(), reader.ReadInt32());
                 if (i > 0 && Points[i].SamplePosition < Points[i - 1].SamplePosition)

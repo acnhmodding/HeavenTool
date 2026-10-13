@@ -37,7 +37,7 @@ public sealed class WriterScopePointer(BinaryWriter writer, long position)
         var pos = (uint)writer.Position;
         if (relativePosition.HasValue)
             pos -= (uint)relativePosition.Value;
-        else pos -= (uint) Position;
+        else pos -= (uint)Position;
 
         action(writer);
 

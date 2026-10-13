@@ -33,7 +33,7 @@ public sealed class SingingWaveStream : WaveStream
         {
             lock (sync)
             {
-                bool enabled = value && HasLoop;
+                var enabled = value && HasLoop;
                 if (loopChanges.Count == 0 || enabled != loopEnabled)
                 {
                     if (loopChanges.Count > 0 && loopChanges[^1].Frame == elapsedFrames)
@@ -57,7 +57,7 @@ public sealed class SingingWaveStream : WaveStream
 
             while (first < end)
             {
-                int middle = first + (end - first) / 2;
+                var middle = first + (end - first) / 2;
                 if (positionAnchors[middle].Elapsed <= playedFrame) first = middle + 1;
                 else end = middle;
             }
@@ -91,7 +91,7 @@ public sealed class SingingWaveStream : WaveStream
         singing = new SingingPlayback(sequence, sampleRate, singers ?? [], whistles);
         this.loopStart = loopStart;
         this.loopEnd = loopEnd;
-        int musicRate = noteSampleRate > 0 ? noteSampleRate : sampleRate;
+        var musicRate = noteSampleRate > 0 ? noteSampleRate : sampleRate;
         // Music positions follow the actual playback loop, including rate conversion.
         timeline = new MusicEventTimeline(musicRate,
             HasLoop ? checked((uint)((long)loopStart * musicRate / sampleRate)) : finiteMusicEnd,
@@ -109,15 +109,15 @@ public sealed class SingingWaveStream : WaveStream
         if (offset > buffer.Length - count) throw new ArgumentException("Buffer range is invalid.");
         lock (sync)
         {
-            int requestedFrames = count / WaveFormat.BlockAlign;
+            var requestedFrames = count / WaveFormat.BlockAlign;
             var output = MemoryMarshal.Cast<byte, short>(
                 buffer.AsSpan(offset, requestedFrames * WaveFormat.BlockAlign));
-            int frames = 0;
+            var frames = 0;
             while (frames < requestedFrames && PrepareFrame())
             {
                 UpdateSinging();
-                float voice = singing.ReadFrame();
-                for (int channel = 0; channel < WaveFormat.Channels; channel++)
+                var voice = singing.ReadFrame();
+                for (var channel = 0; channel < WaveFormat.Channels; channel++)
                     output[frames * WaveFormat.Channels + channel] = (short)Math.Clamp(
                         Math.Round(song[songFrame * WaveFormat.Channels + channel] + (double)voice),
                         short.MinValue, short.MaxValue);
@@ -163,7 +163,7 @@ public sealed class SingingWaveStream : WaveStream
         loopChanges.Clear();
         loopEnabled = changes[0].Enabled && HasLoop;
         loopChanges.Add((0, loopEnabled));
-        int nextChange = 1;
+        var nextChange = 1;
         songFrame = 0;
         elapsedFrames = 0;
         looped = false;
@@ -177,12 +177,12 @@ public sealed class SingingWaveStream : WaveStream
             if (!PrepareFrame()) break;
             UpdateSinging();
             // Between updates, only source positions and release ages change.
-            long nextTick = ((elapsedFrames * 30 / WaveFormat.SampleRate + 1)
+            var nextTick = ((elapsedFrames * 30 / WaveFormat.SampleRate + 1)
                 * WaveFormat.SampleRate + 29) / 30;
-            long boundary = Math.Min(frame, nextTick);
+            var boundary = Math.Min(frame, nextTick);
             if (nextChange < changes.Length) boundary = Math.Min(boundary, changes[nextChange].Frame);
-            int songEnd = loopEnabled ? loopEnd : FrameCount;
-            int skipped = (int)Math.Min(boundary - elapsedFrames, songEnd - songFrame);
+            var songEnd = loopEnabled ? loopEnd : FrameCount;
+            var skipped = (int)Math.Min(boundary - elapsedFrames, songEnd - songFrame);
             singing.SkipFrames(skipped);
             songFrame += skipped;
             elapsedFrames += skipped;

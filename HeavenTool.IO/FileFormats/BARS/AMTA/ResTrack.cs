@@ -14,7 +14,7 @@ public struct ResTrack
             Channels[i] = new ResStreamChannel
             {
                 ChannelIndex = br.ReadByte(),
-                OutputChannel = (AttenuationChannel) br.ReadByte()
+                OutputChannel = (AttenuationChannel)br.ReadByte()
             };
         }
     }

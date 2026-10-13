@@ -273,7 +273,7 @@ namespace AltUI.ColorPicker
         /// <returns>A new object that is a copy of this instance.</returns>
         public virtual ColorCollection Clone()
         {
-            return [..this];
+            return [.. this];
         }
 
         /// <summary>
@@ -298,7 +298,7 @@ namespace AltUI.ColorPicker
                 BuildIndexedLookup();
             }
 
-            if (_indexedLookup == null || !_indexedLookup.TryGetValue(item, out int result))
+            if (_indexedLookup == null || !_indexedLookup.TryGetValue(item, out var result))
             {
                 result = -1;
             }

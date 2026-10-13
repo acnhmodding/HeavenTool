@@ -44,7 +44,7 @@ namespace HeavenTool.ModManager
 
     public enum Compression
     {
-        None, 
+        None,
         Zstd
     }
 }

@@ -68,7 +68,7 @@ namespace AltUI.ColorPicker
         {
             IntPtr result;
 
-            if (nCode >= 0 && wParam == (IntPtr)NativeMethods.WM_KEYDOWN)
+            if (nCode >= 0 && wParam == NativeMethods.WM_KEYDOWN)
             {
                 if ((Keys)Marshal.ReadInt32(lParam) == Keys.Escape)
                 {

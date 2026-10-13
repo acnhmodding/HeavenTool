@@ -6,7 +6,7 @@ internal class IndexRow : DataGridViewRow
 {
     public int OriginalIndex;
 
-    public IndexRow(): base()
+    public IndexRow() : base()
     {
         OriginalIndex = Index;
     }

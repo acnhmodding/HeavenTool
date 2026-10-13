@@ -33,25 +33,25 @@ public class MusicInfo
     public MusicInfo(BinaryReader reader, long location, PerformanceSequenceFormat performanceFormat = PerformanceSequenceFormat.Unknown)
     {
         ArgumentNullException.ThrowIfNull(reader);
-        bool previousEndian = reader.BigEndian;
+        var previousEndian = reader.BigEndian;
         using var scope = reader.CreateScopeAt(location);
         try
         {
-            string magic = reader.ReadString(4);
-            if (magic != MAGIC) 
+            var magic = reader.ReadString(4);
+            if (magic != MAGIC)
                 throw new InvalidDataException($"Expected MINF magic, but got {magic}.");
 
-            ushort endian = reader.ReadUInt16();
+            var endian = reader.ReadUInt16();
             if (endian is not 0xFEFF and not 0xFFFE)
                 throw new InvalidDataException("Invalid MINF byte order.");
 
             reader.BigEndian = BigEndian = endian == (previousEndian ? 0xFEFF : 0xFFFE);
 
-            ushort version = reader.ReadUInt16();
+            var version = reader.ReadUInt16();
             VersionMajor = (byte)(version >> 8);
             VersionMinor = (byte)version;
 
-            uint size = reader.ReadUInt32();
+            var size = reader.ReadUInt32();
             if (size < 0x4c || size > reader.Length - location)
                 throw new InvalidDataException("MINF size is outside the resource.");
 
@@ -61,16 +61,16 @@ public class MusicInfo
             long NameOffset()
             {
                 using var nameScope = input.CreateScope();
-                long field = input.Position;
-                uint relative = input.ReadUInt32();
-                long target = field + relative;
+                var field = input.Position;
+                var relative = input.ReadUInt32();
+                var target = field + relative;
                 if (relative == 0 || target < 0x4c || target >= size)
                     throw new InvalidDataException("MINF name pointer is outside its payload.");
                 return target;
             }
-            long englishNameOffset = NameOffset();
+            var englishNameOffset = NameOffset();
             EnglishName = input.ReadStringPointer();
-            long japaneseNameOffset = NameOffset();
+            var japaneseNameOffset = NameOffset();
             JapaneseName = input.ReadStringPointer();
             SampleRate = input.ReadUInt32();
             LoopStart = input.ReadUInt32();
@@ -81,10 +81,10 @@ public class MusicInfo
             TimeSignatureDenominator = input.ReadUInt16();
 
             var sections = new long[8];
-            for (int i = 0; i < sections.Length; i++)
+            for (var i = 0; i < sections.Length; i++)
             {
-                long field = input.Position;
-                uint relative = input.ReadUInt32();
+                var field = input.Position;
+                var relative = input.ReadUInt32();
                 if (relative == 0) continue;
                 sections[i] = field + relative;
                 if (sections[i] < 0x4c || sections[i] >= size)
@@ -113,7 +113,7 @@ public class MusicInfo
 
     public byte[] ToBytes()
     {
-        byte[] modeled = Build(false);
+        var modeled = Build(false);
         if (section2Offset == 0) return modeled;
         if (modeled.AsSpan().SequenceEqual(originalModeledData)) return [.. originalData];
         return Build(true);

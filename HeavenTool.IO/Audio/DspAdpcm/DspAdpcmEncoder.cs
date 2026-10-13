@@ -19,7 +19,7 @@ public static class DspAdpcmEncoder
 
         for (int position = 0, frameOffset = 0; position < samples.Length; frameOffset += BytesPerFrame)
         {
-            int frameSamples = Math.Min(SamplesPerFrame, samples.Length - position);
+            var frameSamples = Math.Min(SamplesPerFrame, samples.Length - position);
             samples.Slice(position, frameSamples).CopyTo(frame[2..]);
             // Predictor selection includes the zero-padded end of a partial frame.
             frame[(frameSamples + 2)..].Clear();
@@ -32,16 +32,16 @@ public static class DspAdpcmEncoder
 
     private static void EncodeFrame(Span<short> samples, Span<byte> output, ReadOnlySpan<short> coefficients, Span<int> decoded, Span<int> nibbles)
     {
-        double bestError = double.MaxValue;
+        var bestError = double.MaxValue;
         short nextHistory1 = 0, nextHistory2 = 0;
-        for (int predictor = 0; predictor < PredictorCount; predictor++)
+        for (var predictor = 0; predictor < PredictorCount; predictor++)
         {
             EncodePredictor(samples, coefficients[predictor * 2], coefficients[predictor * 2 + 1],
-                decoded, nibbles, out int scalePower, out double error);
+                decoded, nibbles, out var scalePower, out var error);
             if (error >= bestError) continue;
             bestError = error;
             output[0] = PackNibbles(predictor, scalePower);
-            for (int i = 1; i < BytesPerFrame; i++)
+            for (var i = 1; i < BytesPerFrame; i++)
                 output[i] = PackNibbles(nibbles[(i - 1) * 2], nibbles[(i - 1) * 2 + 1]);
             nextHistory2 = (short)decoded[SamplesPerFrame];
             nextHistory1 = (short)decoded[SamplesPerFrame + 1];
@@ -56,10 +56,10 @@ public static class DspAdpcmEncoder
     {
         decoded[0] = samples[0];
         decoded[1] = samples[1];
-        int maxDistance = 0;
-        for (int i = 0; i < SamplesPerFrame; i++)
+        var maxDistance = 0;
+        for (var i = 0; i < SamplesPerFrame; i++)
         {
-            int prediction = (samples[i] * coefficient2 + samples[i + 1] * coefficient1) / CoefficientScale;
+            var prediction = (samples[i] * coefficient2 + samples[i + 1] * coefficient1) / CoefficientScale;
             int distance = ClampSample(samples[i + 2] - prediction);
             if (Math.Abs(distance) > Math.Abs(maxDistance)) maxDistance = distance;
         }
@@ -76,18 +76,18 @@ public static class DspAdpcmEncoder
         do
         {
             scalePower++;
-            int scale = (1 << scalePower) * CoefficientScale;
+            var scale = (1 << scalePower) * CoefficientScale;
             error = 0;
             maxOverflow = 0;
-            for (int i = 0; i < SamplesPerFrame; i++)
+            for (var i = 0; i < SamplesPerFrame; i++)
             {
-                int prediction = decoded[i] * coefficient2 + decoded[i + 1] * coefficient1;
-                int distance = samples[i + 2] * CoefficientScale - prediction;
+                var prediction = decoded[i] * coefficient2 + decoded[i + 1] * coefficient1;
+                var distance = samples[i + 2] * CoefficientScale - prediction;
                 // Preserve the encoder's float division, double promotion and rounding order.
-                int quantized = distance > 0
+                var quantized = distance > 0
                     ? (int)((double)((float)distance / scale) + 0.4999999f)
                     : (int)((double)((float)distance / scale) - 0.4999999f);
-                int nibble = Math.Clamp(quantized, -8, 7);
+                var nibble = Math.Clamp(quantized, -8, 7);
                 maxOverflow = Math.Max(maxOverflow, Math.Abs(quantized - nibble));
                 nibbles[i] = nibble;
                 decoded[i + 2] = ClampSample((prediction + nibble * scale + RoundingBias) >> CoefficientShift);
@@ -96,7 +96,7 @@ public static class DspAdpcmEncoder
             }
             // A maximum-scale attempt must finish even for unstable caller-supplied coefficients.
             if (scalePower < MaxScalePower)
-                for (int overflow = maxOverflow + 8; overflow > 256; overflow >>= 1)
+                for (var overflow = maxOverflow + 8; overflow > 256; overflow >>= 1)
                     if (++scalePower >= MaxScalePower) scalePower = MaxScalePower - 1;
         } while (scalePower < MaxScalePower && maxOverflow > 1);
     }

@@ -14,9 +14,9 @@ public sealed class VoiceSampleBank
         {
             var name = asset.AudioMetadata?.AssetName;
             if (name == null || !name.StartsWith(prefix + "_", StringComparison.Ordinal)) continue;
-            int separator = name.LastIndexOf('_');
-            if (!byte.TryParse(name.AsSpan(separator + 1), out byte pitch)) continue;
-            string vowel = prefix == "Npc_Whistle" ? "Whistle" : name[(prefix.Length + 1)..separator];
+            var separator = name.LastIndexOf('_');
+            if (!byte.TryParse(name.AsSpan(separator + 1), out var pitch)) continue;
+            var vowel = prefix == "Npc_Whistle" ? "Whistle" : name[(prefix.Length + 1)..separator];
             var wave = asset.BinaryWave;
             if (wave == null || wave.Channels.Length != 1)
                 throw new InvalidDataException($"Voice sample {name} must have one channel.");
@@ -28,7 +28,7 @@ public sealed class VoiceSampleBank
 
     public VoiceSample? Find(string vowel, byte pitch)
     {
-        int? recordedPitch = RecordedPitchFor(vowel, pitch);
+        var recordedPitch = RecordedPitchFor(vowel, pitch);
         return recordedPitch is int selected && samples.TryGetValue((vowel, (byte)selected), out var sample)
             ? sample : null;
     }
@@ -38,10 +38,15 @@ public sealed class VoiceSampleBank
         int minimum, maximum;
         switch (vowel)
         {
-            case "A": case "I": case "U": case "E": case "O":
+            case "A":
+            case "I":
+            case "U":
+            case "E":
+            case "O":
                 minimum = 56; maximum = 72;
                 break;
-            case "ILow": case "OLow":
+            case "ILow":
+            case "OLow":
                 minimum = 52; maximum = 64;
                 break;
             case "Whistle":

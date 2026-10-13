@@ -1,6 +1,6 @@
-﻿using HeavenTool.IO.FileFormats.BWAV;
+﻿using HeavenTool.IO.FileFormats.BARS.MINF.Sections;
+using HeavenTool.IO.FileFormats.BWAV;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
-using HeavenTool.IO.FileFormats.BARS.MINF.Sections;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
 namespace HeavenTool.IO.FileFormats.BARS;
@@ -55,7 +55,7 @@ public class BARSFileReader : IDisposable
         var assetCount = reader.ReadInt32();
         AudioAssets = new AudioAsset[assetCount];
 
-        for (int i = 0; i < assetCount; i++)
+        for (var i = 0; i < assetCount; i++)
         {
             AudioAssets[i] = new AudioAsset()
             {
@@ -63,7 +63,7 @@ public class BARSFileReader : IDisposable
             };
         }
 
-        for (int i = 0; i < assetCount; i++)
+        for (var i = 0; i < assetCount; i++)
         {
             var audioAsset = AudioAssets[i];
 
@@ -83,7 +83,7 @@ public class BARSFileReader : IDisposable
             }
 
             var checkHash = audioAsset.AudioMetadata.AssetName.ToCRC32();
-            if (checkHash != audioAsset.Hash) 
+            if (checkHash != audioAsset.Hash)
                 throw new Exception($"Invalid CRC32 Hash for {i}: {audioAsset}!\n" +
                     $"Expected: {audioAsset.Hash:x} | Got {checkHash:x}");
 
@@ -94,7 +94,7 @@ public class BARSFileReader : IDisposable
         {
             Hashes = new uint[reader.ReadUInt32()];
 
-            for (int i = 0; i < Hashes.Length; i++)
+            for (var i = 0; i < Hashes.Length; i++)
                 Hashes[i] = reader.ReadUInt32();
         }
 
@@ -103,7 +103,7 @@ public class BARSFileReader : IDisposable
 
         var groups = AudioAssets.GroupBy(x => x.AssetOffset).ToArray();
 
-        for (int i = 0; i < groups.Length; i++)
+        for (var i = 0; i < groups.Length; i++)
         {
             var group = groups[i];
             var assetOffset = group.Key;
@@ -115,7 +115,7 @@ public class BARSFileReader : IDisposable
             if (assetMagic != "BWAV")
                 throw new Exception($"Only BWAV files are supported at this moment. (Got {assetMagic})");
 
-            var nextAssetOffset = (i + 1 < groups.Length) ? groups[i + 1].Key : (int) reader.Length;
+            var nextAssetOffset = (i + 1 < groups.Length) ? groups[i + 1].Key : (int)reader.Length;
             var assetData = reader.ReadByteArrayAt(assetOffset, nextAssetOffset - assetOffset);
             var binaryWave = new BinaryWaveFile(assetData);
 
@@ -142,14 +142,14 @@ public class BARSFileReader : IDisposable
         writer.Write((ushort)((VersionMajor << 8) | VersionMinor));
         writer.Write(assets.Length);
 
-        foreach(var audioAsset in assets)
+        foreach (var audioAsset in assets)
         {
             writer.Write(audioAsset.AudioMetadata?.AssetName.ToCRC32() ?? audioAsset.Hash);
         }
 
         var pointers = new (WriterScopePointer metadataPointer, WriterScopePointer assetPointer)[AudioAssets.Length];
 
-        for (int i = 0; i < AudioAssets.Length; i++)
+        for (var i = 0; i < AudioAssets.Length; i++)
             pointers[i] = (writer.CreatePointer(), writer.CreatePointer());
 
         if (VersionMinor is 2)
@@ -163,7 +163,7 @@ public class BARSFileReader : IDisposable
             }
         }
 
-        for (int i = 0; i < assets.Length; i++)
+        for (var i = 0; i < assets.Length; i++)
         {
             writer.Align(4);
             pointers[i].metadataPointer.Resolve((uint)writer.Position);
@@ -173,7 +173,7 @@ public class BARSFileReader : IDisposable
 
         // Entries sharing a BWAV instance continue to share one payload.
         var offsets = new Dictionary<BinaryWaveFile, uint>(ReferenceEqualityComparer.Instance);
-        for (int i = 0; i < assets.Length; i++)
+        for (var i = 0; i < assets.Length; i++)
         {
             var wave = assets[i].BinaryWave ?? throw new InvalidDataException("BWAV data is missing.");
             if (!offsets.TryGetValue(wave, out var offset))
@@ -186,7 +186,7 @@ public class BARSFileReader : IDisposable
             pointers[i].assetPointer.Resolve(offset);
         }
 
-        size.Resolve((uint) writer.Length);
+        size.Resolve((uint)writer.Length);
         return stream.ToArray();
     }
 

@@ -6,8 +6,8 @@
         {
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(predicate);
-            
-            foreach (T element in source)
+
+            foreach (var element in source)
                 if (predicate(element))
                     return element;
 
@@ -20,7 +20,7 @@
             ArgumentNullException.ThrowIfNull(predicate);
 
 
-            foreach (T element in source)
+            foreach (var element in source)
                 if (predicate(element))
                     return element;
 

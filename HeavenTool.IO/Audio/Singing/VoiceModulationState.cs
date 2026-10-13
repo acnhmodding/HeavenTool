@@ -11,7 +11,7 @@ public sealed class VoiceModulationState
 
     public float Update(long outputFrame, int outputSampleRate, PitchValueTrack? bend, PitchValueTrack? vibrato, MusicEventTimeline timeline, MusicEventTimeline.Position position)
     {
-        long tick = (long)Math.Floor(outputFrame * 30.0 / outputSampleRate);
+        var tick = (long)Math.Floor(outputFrame * 30.0 / outputSampleRate);
 
         if (tick == lastTick) return heldSemitones;
 
@@ -21,15 +21,15 @@ public sealed class VoiceModulationState
 
     public float Update(long outputFrame, int sampleRate, int pitchBend, int vibratoAmount)
     {
-        long tick = (long)Math.Floor(outputFrame * 30.0 / sampleRate);
+        var tick = (long)Math.Floor(outputFrame * 30.0 / sampleRate);
         if (tick != lastTick)
         {
             lastTick = tick;
             Phase = vibratoAmount == 0 ? 0 : unchecked(Phase + 0x28f5c2c0u);
-            int index = (int)(Phase >> 24);
-            float sine = SineTable[index * 2];
-            float delta = SineTable[index * 2 + 1];
-            float interpolated = sine + delta * (Phase & 0xffffff) * 5.9604645e-08f;
+            var index = (int)(Phase >> 24);
+            var sine = SineTable[index * 2];
+            var delta = SineTable[index * 2 + 1];
+            var interpolated = sine + delta * (Phase & 0xffffff) * 5.9604645e-08f;
             heldSemitones = pitchBend / 682.6667f + interpolated * vibratoAmount / 127f;
         }
 

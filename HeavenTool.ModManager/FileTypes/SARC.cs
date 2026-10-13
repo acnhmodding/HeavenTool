@@ -1,5 +1,4 @@
-﻿using HeavenTool.IO;
-using AeonSake.NintendoTools.FileFormats.Msbt;
+﻿using AeonSake.NintendoTools.FileFormats.Msbt;
 using AeonSake.NintendoTools.FileFormats.Sarc;
 
 namespace HeavenTool.ModManager.FileTypes;
@@ -15,7 +14,7 @@ public sealed class SARC : ModFile
         if (Content != null && SarcFileReader.CanReadStatic(Content))
         {
             var loadedFile = new SarcFileReader().Read(Content);
-          
+
             // we are not using Content ever again in this file, lets free some memory
             Content.Dispose();
 
@@ -27,9 +26,9 @@ public sealed class SARC : ModFile
                 HasFileNames = loadedFile.HasFileNames,
             };
 
-            for (int i = 0; i < loadedFile.Files.Count; i++)
+            for (var i = 0; i < loadedFile.Files.Count; i++)
             {
-                SarcContent file = loadedFile.Files[i];
+                var file = loadedFile.Files[i];
                 var fileData = new MemoryStream(file.Data);
 
                 var fileName = loadedFile.HasFileNames ? file.Name : i.ToString();
@@ -61,7 +60,7 @@ public sealed class SARC : ModFile
             }
             else if (file is MSBT msbtFile)
             {
-                if (Files.TryGetValue(fileName, out object v))
+                if (Files.TryGetValue(fileName, out var v))
                 {
                     if (v is MSBT currentMSBT) currentMSBT.DoDiff(msbtFile);
                 }
@@ -130,7 +129,7 @@ public sealed class SARC : ModFile
             (".ptcl", 0x4000)
         ];
 
-        foreach(var (extension, alignment) in extensionAlignments)
+        foreach (var (extension, alignment) in extensionAlignments)
             alignmentTable.Add(extension, alignment);
 
         var sarcFileCompiler = new SarcFileWriter()
@@ -146,8 +145,8 @@ public sealed class SARC : ModFile
 
     public override void ExportToJson(string outputPath)
     {
-        foreach (var (_, file) in Files) 
-        { 
+        foreach (var (_, file) in Files)
+        {
             if (file is MSBT msbtFile)
             {
                 var path = Path.Combine(outputPath, Path.GetFileName(Name));

@@ -56,7 +56,7 @@ public class VocalTrack
 
             for (var i = 0; i < notesCount; i++)
                 Events.Add(new Event(reader));
-            
+
         }
     }
 

@@ -8,7 +8,7 @@ public static class ZstdCompressionAlgorithm
 
     public static MemoryStream Decompress(string path)
     {
-        using FileStream fileStream = File.OpenRead(path);
+        using var fileStream = File.OpenRead(path);
         MemoryStream memoryStream = new();
 
         ZstdDecompressor.Decompress(fileStream, memoryStream);

@@ -1,6 +1,6 @@
 ﻿using Force.Crc32;
-using System.Text;
 using MurmurHash;
+using System.Text;
 
 namespace HeavenTool.IO;
 
@@ -8,7 +8,7 @@ public static class HashUtility
 {
     public static uint ToCRC32(this string value)
     {
-        byte[] bytes = Encoding.UTF8.GetBytes(value);
+        var bytes = Encoding.UTF8.GetBytes(value);
         return Crc32Algorithm.Compute(bytes);
     }
 

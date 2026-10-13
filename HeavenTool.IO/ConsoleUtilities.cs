@@ -2,7 +2,8 @@
 
 public static class ConsoleUtilities
 {
-    public static void WriteLine(string message, ConsoleColor color) {
+    public static void WriteLine(string message, ConsoleColor color)
+    {
         Console.ForegroundColor = color;
         Console.WriteLine(message);
         Console.ResetColor();

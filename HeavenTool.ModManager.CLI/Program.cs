@@ -21,7 +21,7 @@ namespace HeavenTool.ModManager.CLI
         public const string DEFAULT_MODS_FOLDER = "mods";
 
         static void Main(string[] args)
-        {   
+        {
             Parser.Default.ParseArguments<Options>(args)
                .WithParsed(RunOptions)
                .WithNotParsed(HandleParseError);
@@ -104,7 +104,7 @@ namespace HeavenTool.ModManager.CLI
                 ConsoleUtilities.WriteLine("Generating ResourceSizeTable...", ConsoleColor.Cyan);
 
                 modMerger.CreateResourceSizeTable();
-            } 
+            }
             else
             {
                 modMerger.ExportChangesToJson();

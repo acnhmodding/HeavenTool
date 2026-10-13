@@ -33,32 +33,32 @@ public sealed class NamedMarkerTracks
     public NamedMarkerTracks(BinaryReader reader, long offset)
     {
         using var scope = reader.CreateScopeAt(offset);
-        uint count = reader.ReadUInt32();
+        var count = reader.ReadUInt32();
         if (count > (reader.Length - reader.Position) / 8)
             throw new InvalidDataException("Named marker table is truncated.");
         for (uint i = 0; i < count; i++)
         {
-            uint nameHash = reader.ReadUInt32();
+            var nameHash = reader.ReadUInt32();
             var track = new Track();
-            long field = reader.Position;
-            long target = field + reader.ReadUInt32();
+            var field = reader.Position;
+            var target = field + reader.ReadUInt32();
             if (target < offset + 4 + count * 8L || target > reader.Length - 8)
                 throw new InvalidDataException("Named marker pointer is outside its payload.");
             using (reader.CreateScopeAt(target))
             {
-                long name = reader.Position + reader.ReadUInt32();
+                var name = reader.Position + reader.ReadUInt32();
                 if (name < 0x4c || name >= reader.Length)
                     throw new InvalidDataException("Named marker name is outside MINF.");
                 NameOffsets.Add(name);
                 reader.Position = target;
                 track.Name = reader.ReadStringPointer();
                 track.NameHash = nameHash;
-                ushort events = reader.ReadUInt16();
-                ushort loop = reader.ReadUInt16();
+                var events = reader.ReadUInt16();
+                var loop = reader.ReadUInt16();
                 track.LoopIndex = loop == ushort.MaxValue ? -1 : loop;
                 if (events > (reader.Length - reader.Position) / 4)
                     throw new InvalidDataException("Named marker events are truncated.");
-                for (int j = 0; j < events; j++) track.SamplePositions.Add(reader.ReadUInt32());
+                for (var j = 0; j < events; j++) track.SamplePositions.Add(reader.ReadUInt32());
             }
             Tracks.Add(track);
         }
@@ -73,14 +73,14 @@ public sealed class NamedMarkerTracks
             writer.Write(track.NameHash);
             pointers.Add(writer.CreatePointer());
         }
-        for (int i = 0; i < Tracks.Count; i++)
+        for (var i = 0; i < Tracks.Count; i++)
             pointers[i].Resolve(w =>
             {
                 var track = Tracks[i];
                 strings.AddString(w, track.Name);
                 w.Write(checked((ushort)track.SamplePositions.Count));
                 w.Write(checked((ushort)(track.LoopIndex == -1 ? ushort.MaxValue : track.LoopIndex)));
-                foreach (uint position in track.SamplePositions) w.Write(position);
+                foreach (var position in track.SamplePositions) w.Write(position);
             });
     }
 }

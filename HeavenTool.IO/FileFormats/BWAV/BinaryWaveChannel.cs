@@ -96,14 +96,14 @@ public class BinaryWaveChannel : IDisposable
         if (codecType > 1)
             throw new Exception($"Invalid Codec Type not supported ({codecType})!");
 
-        Codec = (CodecType) codecType;
+        Codec = (CodecType)codecType;
 
         var channelPan = reader.ReadUInt16();
 
         if (channelPan > 6)
             throw new Exception($"Invalid channel pan ({channelPan})!");
 
-        ChannelPan = (PanType) channelPan;
+        ChannelPan = (PanType)channelPan;
         SampleRate = reader.ReadInt32();
         TotalSampleCount = reader.ReadUInt32();
         LocalSampleCount = reader.ReadInt32();
@@ -123,7 +123,7 @@ public class BinaryWaveChannel : IDisposable
         for (uint i = 0; i < LoopCount; i++)
             LoopInfo[i] = BinaryWaveLoopInfo.Read(reader);
 
-        int encodedSize = LocalSampleCount * 2;
+        var encodedSize = LocalSampleCount * 2;
 
         if (Codec == CodecType.Adpcm)
             encodedSize = DspAdpcmCodec.GetByteCount(LocalSampleCount);
@@ -172,7 +172,7 @@ public class BinaryWaveChannel : IDisposable
         }
         else if (Codec == CodecType.PcmInt16)
         {
-            for (int i = 0; i < LocalSampleCount; i++)
+            for (var i = 0; i < LocalSampleCount; i++)
             {
                 newData[i] = IsBigEndian
                     ? BinaryPrimitives.ReadInt16BigEndian(ChannelData.AsSpan(i * 2, 2))

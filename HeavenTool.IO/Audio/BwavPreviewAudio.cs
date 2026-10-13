@@ -10,8 +10,8 @@ public sealed record BwavPreviewAudio(short[] Samples, int SampleRate, int Chann
         ArgumentException.ThrowIfNullOrEmpty(assetName);
         if (wave.Channels.Length == 0) throw new InvalidDataException("No channels found.");
 
-        bool needsStream = wave.AssetType == AssetType.Prefetch || wave.Channels[0].LocalSampleCount == 0;
-        string? sourcePath = needsStream && readPrefetchedFiles ? FindStream(directory, assetName) : null;
+        var needsStream = wave.AssetType == AssetType.Prefetch || wave.Channels[0].LocalSampleCount == 0;
+        var sourcePath = needsStream && readPrefetchedFiles ? FindStream(directory, assetName) : null;
         using var external = sourcePath == null ? null : Open(sourcePath);
         var source = external ?? wave;
         var channel = source.Channels[0];
@@ -25,9 +25,9 @@ public sealed record BwavPreviewAudio(short[] Samples, int SampleRate, int Chann
             || !(assetName.EndsWith("_L", StringComparison.Ordinal) || assetName.EndsWith("_R", StringComparison.Ordinal)))
             return audio;
 
-        bool isLeft = assetName.EndsWith("_L", StringComparison.Ordinal);
-        string partnerName = assetName[..^1] + (isLeft ? "R" : "L");
-        string? partnerPath = sourcePath == null ? FindStream(directory, partnerName)
+        var isLeft = assetName.EndsWith("_L", StringComparison.Ordinal);
+        var partnerName = assetName[..^1] + (isLeft ? "R" : "L");
+        var partnerPath = sourcePath == null ? FindStream(directory, partnerName)
             : Path.Combine(Path.GetDirectoryName(sourcePath)!, partnerName + ".bwav");
         if (partnerPath == null || !File.Exists(partnerPath)) return audio;
 
@@ -40,12 +40,12 @@ public sealed record BwavPreviewAudio(short[] Samples, int SampleRate, int Chann
             || !channel.LoopInfo.Select(l => l.LoopStart).SequenceEqual(other.LoopInfo.Select(l => l.LoopStart)))
             return audio;
 
-        short[] otherSamples = other.Decode();
+        var otherSamples = other.Decode();
         if (otherSamples.Length != audio.Samples.Length) return audio;
-        short[] left = isLeft ? audio.Samples : otherSamples;
-        short[] right = isLeft ? otherSamples : audio.Samples;
+        var left = isLeft ? audio.Samples : otherSamples;
+        var right = isLeft ? otherSamples : audio.Samples;
         var stereo = new short[checked(left.Length * 2)];
-        for (int i = 0; i < left.Length; i++)
+        for (var i = 0; i < left.Length; i++)
         {
             stereo[i * 2] = left[i];
             stereo[i * 2 + 1] = right[i];
@@ -55,7 +55,7 @@ public sealed record BwavPreviewAudio(short[] Samples, int SampleRate, int Chann
 
     private static string? FindStream(string directory, string assetName)
     {
-        string path = Path.Combine(directory, "Stream", assetName + ".bwav");
+        var path = Path.Combine(directory, "Stream", assetName + ".bwav");
         if (File.Exists(path)) return path;
         path = Path.Combine(directory, assetName + ".bwav");
         return File.Exists(path) ? path : null;
@@ -69,18 +69,18 @@ public sealed record BwavPreviewAudio(short[] Samples, int SampleRate, int Chann
 
     private static BwavPreviewAudio Decode(BinaryWaveFile wave)
     {
-        int channels = wave.Channels.Length;
+        var channels = wave.Channels.Length;
         if (channels == 0) throw new InvalidDataException("No channels found.");
         var channel = wave.Channels[0];
-        int frames = channel.LocalSampleCount;
+        var frames = channel.LocalSampleCount;
         var decoded = wave.Channels.Select(c => c.Decode()).ToArray();
 
         if (channels == 2 && wave.Channels[0].ChannelPan == PanType.Right && wave.Channels[1].ChannelPan == PanType.Left)
             (decoded[0], decoded[1]) = (decoded[1], decoded[0]);
 
         var pcm = new short[checked(frames * channels)];
-        for (int i = 0; i < frames; i++)
-            for (int c = 0; c < channels; c++)
+        for (var i = 0; i < frames; i++)
+            for (var c = 0; c < channels; c++)
                 pcm[i * channels + c] = decoded[c][i];
 
         return new BwavPreviewAudio(pcm, channel.SampleRate, channels, channel.LoopStart, channel.LoopEnd);

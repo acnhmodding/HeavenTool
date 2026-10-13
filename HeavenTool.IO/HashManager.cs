@@ -26,8 +26,8 @@ public static class HashManager
         Console.WriteLine("[BCSV] Initializing Hashes...");
         isInitialized = true;
 
-        string crcHashes = Path.Combine(AppContext.BaseDirectory, "extra", "hashes");
-        string murmurHashes = Path.Combine(AppContext.BaseDirectory, "extra", "murmur3-hashes");
+        var crcHashes = Path.Combine(AppContext.BaseDirectory, "extra", "hashes");
+        var murmurHashes = Path.Combine(AppContext.BaseDirectory, "extra", "murmur3-hashes");
 
         // Create directory if they don't exist
         Directory.CreateDirectory(crcHashes);
@@ -37,7 +37,7 @@ public static class HashManager
         {
             if (Path.GetExtension(file) != ".txt") continue;
 
-            foreach (string hashStr in File.ReadAllLines(file))
+            foreach (var hashStr in File.ReadAllLines(file))
                 CRC32_Hashes.TryAdd(hashStr.ToCRC32(), hashStr);
 
         }
@@ -49,7 +49,7 @@ public static class HashManager
             if (Path.GetExtension(file) != ".txt")
                 continue;
 
-            foreach (string hashStr in File.ReadAllLines(file))
+            foreach (var hashStr in File.ReadAllLines(file))
                 MMH3_Hashes.TryAdd(hashStr.ToMurmur(), hashStr);
 
         }
@@ -63,7 +63,7 @@ public static class HashManager
 
     private static void LoadBitFields()
     {
-        string enumFolder = Path.Combine(AppContext.BaseDirectory, "extra", "bitfields");
+        var enumFolder = Path.Combine(AppContext.BaseDirectory, "extra", "bitfields");
         Directory.CreateDirectory(enumFolder);
 
         foreach (var file in Directory.GetFiles(enumFolder, "*.txt", SearchOption.AllDirectories))
@@ -74,7 +74,7 @@ public static class HashManager
             if (fileName.StartsWith("0x"))
                 fileName = fileName[2..];
 
-            if (uint.TryParse(fileName, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out uint enumHash))
+            if (uint.TryParse(fileName, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out var enumHash))
             {
                 if (!BitField.ContainsKey(enumHash))
                     BitField.Add(enumHash, File.ReadAllLines(file));
@@ -104,7 +104,7 @@ public static class HashManager
     {
         // TODO: Make a single file with all enums, maybe a json?
         // We gonna need these hashes separated as enums to properly display an EnumSelector in the BCSV Editor
-        string enumFolder = Path.Combine(AppContext.BaseDirectory, "extra", "hashes", "enum");
+        var enumFolder = Path.Combine(AppContext.BaseDirectory, "extra", "hashes", "enum");
         Directory.CreateDirectory(enumFolder);
 
         foreach (var file in Directory.GetFiles(enumFolder, "*.txt", SearchOption.AllDirectories))
@@ -116,16 +116,16 @@ public static class HashManager
             if (fileName.StartsWith("0x"))
                 fileName = fileName[2..];
 
-            bool parsedSuccessfully = uint.TryParse(fileName, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out uint enumHash);
+            var parsedSuccessfully = uint.TryParse(fileName, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out var enumHash);
             if (parsedSuccessfully)
             {
                 if (!EnumListCRC32.ContainsKey(enumHash))
                     EnumListCRC32.Add(enumHash, []);
 
                 var collection = EnumListCRC32[enumHash];
-                foreach (string hashStr in File.ReadAllLines(file))
+                foreach (var hashStr in File.ReadAllLines(file))
                 {
-                    uint hash = hashStr.ToCRC32();
+                    var hash = hashStr.ToCRC32();
 
                     if (!collection.Contains(hash))
                         collection.Add(hash);
@@ -141,19 +141,20 @@ public static class HashManager
         if (!KnownTypes.TryAdd(key, value))
             KnownTypes[key] = value;
 
-        File.WriteAllLines(KNOWN_TYPES_PATH, KnownTypes.Select(x => {
+        File.WriteAllLines(KNOWN_TYPES_PATH, KnownTypes.Select(x =>
+        {
             return $"{x.Key}={x.Value}";
         }));
     }
 
     public static string? GetMurmurHashTranslationOrNull(this uint hash)
     {
-        return MMH3_Hashes.TryGetValue(hash, out string? value) ? value : null;
+        return MMH3_Hashes.TryGetValue(hash, out var value) ? value : null;
     }
 
     public static string? GetHashTranslationOrNull(this uint hash)
     {
-        return CRC32_Hashes.TryGetValue(hash, out string? value) ? value : null;
+        return CRC32_Hashes.TryGetValue(hash, out var value) ? value : null;
     }
 
     public static string GetHashTranslation(this uint hash)

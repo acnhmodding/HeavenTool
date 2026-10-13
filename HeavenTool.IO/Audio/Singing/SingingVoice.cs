@@ -27,13 +27,13 @@ internal sealed class SingingVoice(VoiceSample sample, float volume, int sampleR
 
     public float ReadFrame()
     {
-        int index = (int)position;
-        int next = index + 1;
+        var index = (int)position;
+        var next = index + 1;
         if (looping && next >= sample.LoopEnd) next = sample.LoopStart;
         else if (next >= sample.Samples.Length) next = index;
-        float value = (float)(sample.Samples[index]
+        var value = (float)(sample.Samples[index]
             + (sample.Samples[next] - sample.Samples[index]) * (position - index));
-        double gain = releaseFrame < 0 ? 1 : 1 - (double)releaseFrame / releaseFrames;
+        var gain = releaseFrame < 0 ? 1 : 1 - (double)releaseFrame / releaseFrames;
         AdvanceSource(step);
         if (releaseFrame >= 0) releaseFrame++;
         return value * volume * (float)(gain * gain);
@@ -56,7 +56,7 @@ internal sealed class SingingVoice(VoiceSample sample, float volume, int sampleR
     {
         if (deferredAdvance == null) return;
         foreach (var (sourceStep, frames) in deferredAdvance)
-            for (int frame = 0; frame < frames && position < sample.Samples.Length; frame++)
+            for (var frame = 0; frame < frames && position < sample.Samples.Length; frame++)
                 AdvanceSource(sourceStep);
         deferredAdvance = null;
     }

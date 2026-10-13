@@ -13,7 +13,7 @@ public class BeatMap(BinaryReader reader, long offset) : SectionBase<BeatMap.Bea
         writer.Write(Count);
         writer.Write(LoopIndex);
 
-        foreach(var entry in Entries)
+        foreach (var entry in Entries)
         {
             writer.Write(entry.SamplePosition);
             writer.Write(entry.BeatNumber);
@@ -28,7 +28,7 @@ public class BeatMap(BinaryReader reader, long offset) : SectionBase<BeatMap.Bea
 
     public class Beat
     {
-        public uint SamplePosition {  get; set; }  
+        public uint SamplePosition { get; set; }
         public int BeatNumber { get; set; }
     }
 }

@@ -14,7 +14,7 @@ public static class Yaz0CompressionAlgorithm
 
         var decompressedStream = new MemoryStream();
         Decompressor.Decompress(stream, decompressedStream);
-        
+
         return decompressedStream;
     }
 

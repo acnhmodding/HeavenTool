@@ -1,7 +1,7 @@
+using HeavenTool.IO.Audio;
 using HeavenTool.IO.FileFormats.BARS.AMTA;
 using HeavenTool.IO.FileFormats.BARS.MINF;
 using HeavenTool.IO.FileFormats.BARS.MINF.Sections;
-using HeavenTool.IO.Audio;
 using System.ComponentModel;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
@@ -91,7 +91,7 @@ public class AudioMetadata
         if (AssetName.ToCRC32() != assetNameHash)
             ConsoleUtilities.WriteLine($"Asset name hash mismatch! Calculated: 0x{AssetName.ToCRC32():X8}, Expected: 0x{assetNameHash:X8}", ConsoleColor.Yellow);
 
-        Flags = (MetadataFlags) reader.ReadUInt32();
+        Flags = (MetadataFlags)reader.ReadUInt32();
 
         var trackCount = reader.ReadByte();
         Tracks = new ResTrack[trackCount];
@@ -154,8 +154,8 @@ public class AudioMetadata
         binaryWriter.BigEndian = IsBigEndian;
 
         binaryWriter.Write(AMTA_MAGIC);
-        binaryWriter.Write((ushort) 0xFEFF);
-        binaryWriter.Write((ushort) Version);
+        binaryWriter.Write((ushort)0xFEFF);
+        binaryWriter.Write((ushort)Version);
         var sizePosition = binaryWriter.CreatePointer();
 
         switch (Version)
@@ -169,7 +169,7 @@ public class AudioMetadata
 
         binaryWriter.Align(4);
 
-        sizePosition.Resolve((uint) binaryWriter.Length);
+        sizePosition.Resolve((uint)binaryWriter.Length);
         return ms.ToArray();
     }
 
@@ -186,16 +186,16 @@ public class AudioMetadata
         var assetNamePointer = writer.CreatePointer();
 
         writer.Write(AssetName.ToCRC32());
-        writer.Write((uint) Flags);
+        writer.Write((uint)Flags);
 
-        writer.Write(checked((byte) Tracks.Length));
+        writer.Write(checked((byte)Tracks.Length));
         foreach (var track in Tracks)
         {
             writer.Write(checked((byte)track.Channels.Length));
             foreach (var channel in track.Channels)
             {
                 writer.Write(channel.ChannelIndex);
-                writer.Write((byte) channel.OutputChannel);
+                writer.Write((byte)channel.OutputChannel);
             }
         }
 

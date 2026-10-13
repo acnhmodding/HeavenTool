@@ -37,7 +37,7 @@ public class MarkerList : IEnumerable<MarkerList.MarkerEntry>
         {
             var entryCount = reader.ReadUInt32();
 
-            for (int i = 0; i < entryCount; i++)
+            for (var i = 0; i < entryCount; i++)
             {
                 var entry = new MarkerEntry
                 {

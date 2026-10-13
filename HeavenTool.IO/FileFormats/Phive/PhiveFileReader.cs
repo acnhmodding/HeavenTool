@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using BinaryReader = AeonSake.BinaryTools.BinaryReader;
+﻿using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 
 namespace HeavenTool.IO.FileFormats.Phive;
 
@@ -51,5 +48,5 @@ public class PhiveFileReader
     { }
 
 
-    
+
 }

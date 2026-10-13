@@ -202,7 +202,7 @@ public class ResourceSizeTable : IDisposable
 
         if (Yaz0Decompressor.CanDecompressStatic(compressedStream))
             Decompressor.Decompress(compressedStream, uncompressedStream);
-        else 
+        else
             compressedStream.CopyTo(uncompressedStream);
 
 
@@ -221,12 +221,12 @@ public class ResourceSizeTable : IDisposable
 
         var uniqueEntriesCount = reader.ReadUInt32();
         var repeatedEntriesCount = reader.ReadUInt32();
-        
+
         ConsoleUtilities.WriteLine($"Loaded ResourceSize Table ({HEADER}) with {uniqueEntriesCount + repeatedEntriesCount} entries.", ConsoleColor.Red);
 
         Dictionary = [];
 
-        for (int i = 0; i < uniqueEntriesCount; i++)
+        for (var i = 0; i < uniqueEntriesCount; i++)
         {
             var hash = reader.ReadUInt32();
             var fileSize = reader.ReadUInt32();
@@ -243,7 +243,7 @@ public class ResourceSizeTable : IDisposable
             else throw new Exception($"Hash {entry.CRCHash:x} not found!");
         }
 
-        for (int i = 0; i < repeatedEntriesCount; i++)
+        for (var i = 0; i < repeatedEntriesCount; i++)
         {
             var fileName = reader.ReadString(128, Encoding.ASCII);
             var fileSize = reader.ReadUInt32();
@@ -377,7 +377,7 @@ public class ResourceSizeTable : IDisposable
                                 using var reader = new BinaryReader(memoryStream);
                                 var binaryFileHeader = new BinaryFileHeader(reader, "FRES");
 
-                                count += binaryFileHeader.FileSize;    
+                                count += binaryFileHeader.FileSize;
                             }
                             else if (item.Data.StartsWith("SARC"u8))
                                 count += GetSARCSize(new MemoryStream(item.Data));

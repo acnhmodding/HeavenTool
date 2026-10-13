@@ -23,7 +23,7 @@ internal sealed class SingingPlayback
         this.singers = singers;
         this.whistles = whistles;
         if (sequence?.Vocals?.Events is { } notes)
-            for (int i = 1; i < notes.Count; i++)
+            for (var i = 1; i < notes.Count; i++)
                 if (notes[i].SamplePosition < notes[i - 1].SamplePosition)
                     throw new InvalidDataException("Vocal events must be sorted by sample position.");
     }
@@ -39,7 +39,7 @@ internal sealed class SingingPlayback
 
     public void Update(long elapsedFrame, int songFrame, MusicEventTimeline timeline, bool looped)
     {
-        long tick = elapsedFrame * 30 / sampleRate;
+        var tick = elapsedFrame * 30 / sampleRate;
         if (tick == lastTick || sequence?.Vocals is not { } notes) return;
         lastTick = tick;
         var position = timeline.Query((long)songFrame * timeline.SampleRate / sampleRate);
@@ -63,7 +63,7 @@ internal sealed class SingingPlayback
             }
         }
         if (playingNote == null) return;
-        float offset = modulation.Update(elapsedFrame, sampleRate,
+        var offset = modulation.Update(elapsedFrame, sampleRate,
             sequence.PitchBendFor(playingNote.VoiceType), sequence.VibratoFor(playingNote.VoiceType), timeline, position);
         foreach (var voice in voices) voice.SetPitch(playingNote.Pitch, offset);
     }
@@ -71,7 +71,7 @@ internal sealed class SingingPlayback
     public float ReadFrame()
     {
         float mixed = 0;
-        for (int i = voices.Count - 1; i >= 0; i--)
+        for (var i = voices.Count - 1; i >= 0; i--)
         {
             if (voices[i].Finished) voices.RemoveAt(i);
             else mixed += voices[i].ReadFrame();
@@ -81,7 +81,7 @@ internal sealed class SingingPlayback
 
     public void SkipFrames(int frames)
     {
-        for (int i = voices.Count - 1; i >= 0; i--)
+        for (var i = voices.Count - 1; i >= 0; i--)
             if (!voices[i].SkipFrames(frames)) voices.RemoveAt(i);
     }
 

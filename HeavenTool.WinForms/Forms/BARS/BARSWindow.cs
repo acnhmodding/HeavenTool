@@ -1,9 +1,9 @@
 using AeonSake.NintendoTools.Compression.Zstd;
 using HeavenTool.IO;
-using HeavenTool.IO.FileFormats.BARS.MINF.Sections.PerformanceTracks;
 using HeavenTool.IO.Audio;
 using HeavenTool.IO.Audio.Singing;
 using HeavenTool.IO.FileFormats.BARS;
+using HeavenTool.IO.FileFormats.BARS.MINF.Sections.PerformanceTracks;
 using HeavenTool.IO.FileFormats.BWAV;
 using HeavenTool.Properties;
 using HeavenTool.Utility;
@@ -580,7 +580,7 @@ public partial class BARSWindow : Form
         var position = GetPlaybackPosition(ws);
         waveViewer.PlaybackPosition = position;
         var current = TimeSpan.FromSeconds((double)position / ws.WaveFormat.AverageBytesPerSecond);
-        TimeSpan total = ws.TotalTime;
+        var total = ws.TotalTime;
 
         timeLabel.Text = $"{FormatTime(current)} / {FormatTime(total)}";
         waveViewer.Invalidate();

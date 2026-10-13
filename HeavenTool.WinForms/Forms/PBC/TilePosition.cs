@@ -1,5 +1,5 @@
 using HeavenTool.IO.FileFormats.PBC;
-﻿namespace HeavenTool.Forms.PBC;
+namespace HeavenTool.Forms.PBC;
 
 public struct TilePosition
 {

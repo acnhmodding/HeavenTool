@@ -11,7 +11,7 @@ public static class StreamExtensions
     /// <returns></returns>
     public static byte[] ToArray(this Stream stream)
     {
-        byte[] copy = new byte[stream.Length];
+        var copy = new byte[stream.Length];
         stream.Seek(0, SeekOrigin.Begin);
         stream.ReadExactly(copy);
         return copy;
@@ -26,7 +26,7 @@ public static class StreamExtensions
     /// <returns></returns>
     public static string ReadString(this Stream stream, int size, Encoding encoding)
     {
-        byte[] bytes = new byte[size];
+        var bytes = new byte[size];
         stream.ReadExactly(bytes);
 
         return encoding.GetString(bytes);

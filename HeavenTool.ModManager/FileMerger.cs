@@ -1,12 +1,11 @@
-﻿using HeavenTool.IO;
-using HeavenTool.IO.FileFormats.ResourceSizeTable;
-using HeavenTool.ModManager.FileTypes;
-using AeonSake.NintendoTools.Compression.Zstd;
+﻿using AeonSake.NintendoTools.Compression.Zstd;
 using AeonSake.NintendoTools.FileFormats.Bcsv;
 using AeonSake.NintendoTools.FileFormats.Msbt;
 using AeonSake.NintendoTools.FileFormats.Sarc;
+using HeavenTool.IO;
+using HeavenTool.IO.FileFormats.ResourceSizeTable;
+using HeavenTool.ModManager.FileTypes;
 using System.Data;
-using System.IO;
 using System.IO.Compression;
 
 namespace HeavenTool.ModManager
@@ -109,12 +108,13 @@ namespace HeavenTool.ModManager
             return null;
         }
 
-        public ModFile LoadVanillaContent(string fileName) {
+        public ModFile LoadVanillaContent(string fileName)
+        {
             ArgumentException.ThrowIfNullOrEmpty(fileName);
 
             var fileBytes = GetVanillaFile(fileName);
 
-            if (fileBytes == null) 
+            if (fileBytes == null)
                 return null;
 
             return LoadModFile(fileBytes, fileName);
@@ -127,7 +127,7 @@ namespace HeavenTool.ModManager
             foreach (var item in modsFolder.GetFiles("*.zip", SearchOption.TopDirectoryOnly))
             {
                 if (item.Extension != ".zip") continue;
- 
+
                 using var zipFile = ZipFile.OpenRead(item.FullName);
 
                 var romFsItems = zipFile.Entries.Where(x => PathUtilities.ContainsDirectory(x.FullName, "romfs") && !Path.EndsInDirectorySeparator(x.FullName));
@@ -142,10 +142,10 @@ namespace HeavenTool.ModManager
                     var path = PathUtilities.GetRelativePathFromTarget(romFile.FullName, "romfs");
 
                     if (path == null || path.EndsWith(".srsizetable")) continue;
-                    
+
                     if (!ModsUsedPaths.Contains(path))
                         ModsUsedPaths.Add(path);
-                       
+
                 }
             }
         }
@@ -158,7 +158,7 @@ namespace HeavenTool.ModManager
 
             foreach (var filePath in ModsUsedPaths)
             {
-                ModFile baseFile = LoadVanillaContent(filePath);
+                var baseFile = LoadVanillaContent(filePath);
 
                 foreach (var modZip in Directory.GetFiles(ModsFolder, "*.zip", SearchOption.TopDirectoryOnly))
                 {
@@ -253,13 +253,13 @@ namespace HeavenTool.ModManager
 
                     if (fileSize < 0 || fileSize > uint.MaxValue)
                         resourceSizeTable.Dictionary.Remove(path);
-                    
+
                     else if (resourceSizeTable.Dictionary.TryGetValue(path, out var entry) && fileSize != entry.FileSize)
-                        entry.FileSize = (uint) fileSize;
-                    
+                        entry.FileSize = (uint)fileSize;
+
                     else if (!resourceSizeTable.Dictionary.ContainsKey(path))
-                        resourceSizeTable.AddEntry(new ResourceSizeTable.ResourceTableEntry(path, (uint) fileSize, 0, false));
-                    
+                        resourceSizeTable.AddEntry(new ResourceSizeTable.ResourceTableEntry(path, (uint)fileSize, 0, false));
+
                 }
 
                 outputPath = Path.Combine(outputPath, "ResourceSizeTable.srsizetable");

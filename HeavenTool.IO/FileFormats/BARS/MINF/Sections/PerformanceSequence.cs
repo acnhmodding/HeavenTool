@@ -25,7 +25,7 @@ public class PerformanceSequence
     {
         ArgumentNullException.ThrowIfNull(reader);
         if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
-        long end = endOffset ?? reader.Length;
+        var end = endOffset ?? reader.Length;
         if (offset < 0 || end > reader.Length || end - offset < 4)
             throw new InvalidDataException("Performance container is outside the resource.");
 
@@ -47,7 +47,7 @@ public class PerformanceSequence
         }
         else
         {
-            int groups = format == PerformanceSequenceFormat.AcnhKappn ? 6 : 11;
+            var groups = format == PerformanceSequenceFormat.AcnhKappn ? 6 : 11;
             PitchBends = ReadModulationTracks(2, input, groups);
             Vibrato = ReadModulationTracks(3, input, groups);
         }
@@ -57,18 +57,18 @@ public class PerformanceSequence
 
     private static uint[] ReadSubsectionOffsets(BinaryReader reader, long start, long end)
     {
-        uint count = reader.ReadUInt32();
+        var count = reader.ReadUInt32();
         if (count > (end - reader.Position) / 4)
             throw new InvalidDataException("Performance subsection table is truncated.");
 
         var offsets = new uint[checked((int)count)];
-        long headerEnd = reader.Position + offsets.Length * 4L;
-        for (int i = 0; i < offsets.Length; i++)
+        var headerEnd = reader.Position + offsets.Length * 4L;
+        for (var i = 0; i < offsets.Length; i++)
         {
-            long field = reader.Position;
-            uint relative = reader.ReadUInt32();
+            var field = reader.Position;
+            var relative = reader.ReadUInt32();
             if (relative == 0) continue;
-            long target = field + relative;
+            var target = field + relative;
             if (target < headerEnd || target >= end)
                 throw new InvalidDataException("Performance subsection pointer is outside its payload.");
             offsets[i] = checked((uint)(target - start));
@@ -99,7 +99,7 @@ public class PerformanceSequence
         writer.Write(RawData.ToArray());
         foreach (var (slot, write) in GetTrackWriters())
         {
-            byte[]? data = SerializeTrack(write);
+            var data = SerializeTrack(write);
             originalTrackData.TryGetValue(slot, out var original);
             if (data.AsSpan().SequenceEqual(original)) continue;
             WriteChangedTrack(writer, slot, data);
@@ -126,7 +126,7 @@ public class PerformanceSequence
     {
         if (slot >= subsectionOffsets.Length)
             throw new InvalidOperationException("Track slot is absent from the performance pointer table.");
-        long field = 4 + slot * 4L;
+        var field = 4 + slot * 4L;
         uint relative = 0;
         if (data != null)
         {
@@ -168,28 +168,28 @@ public class PerformanceSequence
     private static void WriteModulationTable(BinaryWriter writer, PitchValueTrack?[] tracks)
     {
         var pointers = tracks.Select(_ => writer.CreatePointer()).ToArray();
-        for (int i = 0; i < tracks.Length; i++)
+        for (var i = 0; i < tracks.Length; i++)
             if (tracks[i] is { } track) pointers[i].Resolve(track.Write);
     }
 
     private static PitchValueTrack?[] ReadModulationTable(BinaryReader reader, long table, int groups)
     {
         var tracks = new PitchValueTrack?[groups];
-        int tableSize = groups * 4;
+        var tableSize = groups * 4;
         if (reader.Length - table < tableSize)
             throw new InvalidDataException("Modulation pointer table is truncated.");
         using var scope = reader.CreateScopeAt(table);
         var offsets = new long[groups];
-        for (int i = 0; i < groups; i++)
+        for (var i = 0; i < groups; i++)
         {
-            uint relative = reader.ReadUInt32();
+            var relative = reader.ReadUInt32();
             if (relative == 0) continue;
-            long target = table + i * 4L + relative;
+            var target = table + i * 4L + relative;
             if (target < table + tableSize || target > reader.Length - 8)
                 throw new InvalidDataException("Modulation pointer is outside its track payload.");
             offsets[i] = target;
         }
-        for (int i = 0; i < groups; i++)
+        for (var i = 0; i < groups; i++)
             if (offsets[i] != 0)
                 tracks[i] = new PitchValueTrack(reader, checked((uint)offsets[i]));
         return tracks;
@@ -200,7 +200,7 @@ public class PerformanceSequence
 
     private static PitchValueTrack? TrackFor(PitchValueTrack?[] tracks, VocalTrack.VoiceType voiceType)
     {
-        int index = (byte)voiceType - 2;
+        var index = (byte)voiceType - 2;
         return index >= 0 && index < tracks.Length ? tracks[index] : null;
     }
 }

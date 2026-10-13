@@ -29,7 +29,7 @@ public static class LinqUtilities
         if (sequence == null || predicate == null)
             return null;
 
-        foreach (T item in sequence.Where(predicate))
+        foreach (var item in sequence.Where(predicate))
             return item;
         return null;
     }

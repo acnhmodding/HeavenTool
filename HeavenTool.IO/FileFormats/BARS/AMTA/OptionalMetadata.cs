@@ -47,7 +47,7 @@ public sealed class OptionalMetadata
         if (flags.HasFlag(OptionalDataFlags.Unknown06)) data.Unknown06 = reader.ReadSingle();
         if (flags.HasFlag(OptionalDataFlags.Unknown07)) data.Unknown07 = reader.ReadUInt32();
         if (data.Points != null)
-            for (int i = 0; i < data.Points.Length; i++)
+            for (var i = 0; i < data.Points.Length; i++)
                 data.Points[i] = new Point(reader.ReadUInt32(), reader.ReadSingle());
         return data;
     }

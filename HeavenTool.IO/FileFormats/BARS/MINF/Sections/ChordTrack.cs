@@ -22,7 +22,7 @@ public class ChordTrack(BinaryReader reader, long offset) : SectionBase<ChordTra
 
                 for (var i = 0; i < chordCount; i++)
                     Notes.Add(reader.ReadByte());
-                
+
 
                 reader.Align(4);
             }
