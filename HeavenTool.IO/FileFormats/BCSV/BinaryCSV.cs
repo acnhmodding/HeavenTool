@@ -1,5 +1,6 @@
-﻿using System.Text;
-
+﻿using System.Buffers.Binary;
+using System.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
@@ -232,73 +233,62 @@ public class BinaryCSV
             currentField.DataType = type;
         }
 
-        // Get Type for each field
-        Entries = [];
+        Entries = new List<object[]>(checked((int)entryCount));
+
+        int rowReadSize = EntrySize;
+        foreach (var field in Fields)
+        {
+            int size = field.DataType switch
+            {
+                DataType.S8 or DataType.U8 => 1,
+                DataType.Int16 or DataType.UInt16 => 2,
+                DataType.Float32 or DataType.Int32 or DataType.UInt32 or DataType.CRC32 or DataType.MMH3 => 4,
+                DataType.String or DataType.BitField => field.Size,
+                _ => 0,
+            };
+            rowReadSize = Math.Max(rowReadSize, checked(field.Offset + size));
+        }
+        var rowBuffer = new byte[rowReadSize];
 
         for (var i = 0; i < entryCount; i++)
         {
             var newEntry = new object[Fields.Length];
-            var entryPosition = reader.ReadUInt32(); // should be the same as reader.Position if we did everything correctly
+
+            // Read entire row into rowBuffer
+            reader.ReadByteSpan(rowBuffer);
 
             for (ushort fieldId = 0; fieldId < Fields.Length; fieldId++)
             {
                 var currentField = Fields[fieldId];
 
-                reader.Position = entryPosition + currentField.Offset;
+                ReadOnlySpan<byte> data = rowBuffer.AsSpan(currentField.Offset);
 
-                object value = 0;
-                switch (currentField.DataType)
+                newEntry[fieldId] = currentField.DataType switch
                 {
-                    case DataType.BitField:
-                        value = reader.ReadByteArray(currentField.Size);
-                        break;
-
-                    case DataType.S8:
-                        value = reader.ReadSByte();
-                        break;
-
-                    case DataType.U8:
-                        value = reader.ReadByte();
-                        break;
-
-                    case DataType.Float32:
-                        value = reader.ReadSingle();
-                        break;
-
-                    case DataType.Int16:
-                        value = reader.ReadInt16();
-                        break;
-
-                    case DataType.UInt16:
-                        value = reader.ReadUInt16();
-                        break;
-
-                    case DataType.Int32:
-                        value = reader.ReadInt32();
-                        break;
-
-
-                    case DataType.UInt32:
-                    case DataType.CRC32:
-                    case DataType.MMH3:
-                        value = reader.ReadUInt32();
-                        break;
-
-                    case DataType.String:
-                        value = reader.ReadString(currentField.Size, Encoding.UTF8);
-                        break;
-                }
-
-                newEntry[fieldId] = value;
+                    DataType.BitField => data[..currentField.Size].ToArray(),
+                    DataType.S8 => unchecked((sbyte)data[0]),
+                    DataType.U8 => data[0],
+                    DataType.Float32 => BinaryPrimitives.ReadSingleLittleEndian(data),
+                    DataType.Int16 => BinaryPrimitives.ReadInt16LittleEndian(data),
+                    DataType.UInt16 => BinaryPrimitives.ReadUInt16LittleEndian(data),
+                    DataType.Int32 => BinaryPrimitives.ReadInt32LittleEndian(data),
+                    DataType.UInt32 or DataType.CRC32 or DataType.MMH3 => BinaryPrimitives.ReadUInt32LittleEndian(data),
+                    DataType.String => ReadFixedString(data[..currentField.Size]),
+                    _ => 0,
+                };
             }
 
             Entries.Add(newEntry);
-            // Go to the next entry, important if we don't know the header
-            reader.Position = entryPosition + EntrySize;
         }
         return;
     }
 
+    private static string ReadFixedString(ReadOnlySpan<byte> data)
+    {
+        while (!data.IsEmpty && data[^1] == 0)
+            data = data[..^1];
+        return Encoding.UTF8.GetString(data);
+    }
 
     public byte[] Save()
     {
