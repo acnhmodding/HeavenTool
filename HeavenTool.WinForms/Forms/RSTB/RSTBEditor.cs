@@ -1,5 +1,4 @@
-﻿using AeonSake.NintendoTools.Compression.Zstd;
-using HeavenTool.Forms.Search;
+﻿using HeavenTool.Forms.Search;
 using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.ResourceSizeTable;
 using HeavenTool.Properties;
@@ -32,7 +31,6 @@ public partial class RSTBEditor : Form, ISearchable
         Text = $"RSTB Editor {Program.VERSION}";
         OriginalText = Text;
 
-       
         if (TryGetColumn("FileName", out var fileNameColumn))
             fileNameColumn.ValueType = typeof(string);
 
@@ -51,7 +49,6 @@ public partial class RSTBEditor : Form, ISearchable
 
         RefreshData();
 
-        //DoubleBuffered = true;
         associateRstbToolStripMenuItem.Checked = ProgramAssociation.GetAssociatedProgram(".srsizetable") == Application.ExecutablePath;
     }
 
@@ -66,7 +63,6 @@ public partial class RSTBEditor : Form, ISearchable
         }
         else return false;
     }
-
 
     private void DataGrid_CellValueNeeded(object? sender, DataGridViewCellValueEventArgs e)
     {
@@ -92,7 +88,7 @@ public partial class RSTBEditor : Form, ISearchable
                 break;
 
             case "Diff":
-                e.Value = DiffDictionary.TryGetValue(e.RowIndex, out long value) ? value : 0;
+                e.Value = DiffDictionary.TryGetValue(e.RowIndex, out var value) ? value : 0;
                 break;
         }
     }
@@ -189,7 +185,6 @@ public partial class RSTBEditor : Form, ISearchable
             statusBar.Visible = false;
             statusProgressBar.Visible = false;
 
-            RefreshData();
         }
     }
 
@@ -197,10 +192,10 @@ public partial class RSTBEditor : Form, ISearchable
     {
         var allFiles = Directory.GetFiles(moddedRomFsPath, "*", SearchOption.AllDirectories);
 
-        int changedFiles = 0;
-        int addedFiles = 0;
-        int skippedFiles = 0;
-        int removedFiles = 0;
+        var changedFiles = 0;
+        var addedFiles = 0;
+        var skippedFiles = 0;
+        var removedFiles = 0;
 
         TopMenu.Enabled = false;
 
@@ -218,7 +213,7 @@ public partial class RSTBEditor : Form, ISearchable
 
         await Task.Run(() =>
         {
-            int currentPosition = 1;
+            var currentPosition = 1;
 
             foreach (var originalFile in allFiles)
             {
@@ -226,7 +221,8 @@ public partial class RSTBEditor : Form, ISearchable
 
                 // TODO: Update this based on HeavenTool.ModManager
                 var path = Path.GetRelativePath(moddedRomFsPath, originalFile).Replace('\\', '/');
-                if (path == "System/Resource/ResourceSizeTable.srsizetable" || path == "System/Resource/ResourceSizeTable.rsizetable")
+
+                if (path.StartsWith("skyline") || path is "System/Resource/ResourceSizeTable.srsizetable" or "System/Resource/ResourceSizeTable.rsizetable")
                 {
                     skippedFiles++;
                     continue;
@@ -235,7 +231,6 @@ public partial class RSTBEditor : Form, ISearchable
                 if (path.EndsWith(".byml") && path != "EventFlow/Info/EventFlowInfoProduct.byml")
                     continue;
 
-                // Report progress to our progress bar
                 (progress as IProgress<(int, string)>).Report((currentPosition, path));
 
                 if (path.EndsWith(".zs"))
@@ -243,8 +238,9 @@ public partial class RSTBEditor : Form, ISearchable
 
                 var fileSize = ResourceSizeTable.GetFileSize(originalFile, path);
 
-                if (fileSize < 0 || fileSize > uint.MaxValue)
+                if (fileSize is < 0 or > uint.MaxValue)
                 {
+                    ConsoleUtilities.WriteLine($"File {path} has an invalid file size, skipping it...", ConsoleColor.Red);
                     rstb.Dictionary.Remove(path);
                     removedFiles++;
                 }
@@ -261,12 +257,10 @@ public partial class RSTBEditor : Form, ISearchable
 
                 currentPosition++;
             }
-
-            if (IsDisposed || Disposing) return;
-
         });
 
-        
+        RefreshData();
+
         if (showResults && (changedFiles > 0 || addedFiles > 0 || removedFiles > 0))
         {
             MessageBox.Show($"Successfully updated table values!" +
@@ -277,7 +271,7 @@ public partial class RSTBEditor : Form, ISearchable
                             "\n\nYou need to manually save your file in File > Save as...",
                 "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
-        
+
     }
 
     private void UpdateHashListToolStripMenuItem_Click(object sender, EventArgs e)
@@ -310,7 +304,6 @@ public partial class RSTBEditor : Form, ISearchable
                 return text;
             })];
 
-            // Save
             RomFsNameManager.Update(files);
         }
     }
@@ -332,7 +325,6 @@ public partial class RSTBEditor : Form, ISearchable
     {
         var exePath = Application.ExecutablePath;
         var arguments = $"--{(associateRstbToolStripMenuItem.Checked ? "disassociate" : "associate")} srsizetable";
-
 
         var process = Process.Start(new ProcessStartInfo
         {
@@ -434,14 +426,11 @@ public partial class RSTBEditor : Form, ISearchable
 
         }
 
-
-        // If its out of bounds, return to start (in case o backwards return to the last one)
         if (currentSearchIndex >= searchCache.Length || currentSearchIndex < 0)
         {
             currentSearchIndex = searchBackwards ? searchCache.Length - 1 : 0;
         }
 
-        // Safe check, don't should occur but checking again doesn't hurt
         if (searchCache.Length > 0 && currentSearchIndex < searchCache.Length && currentSearchIndex >= 0)
         {
             if (lastSearchCell != null)
@@ -486,7 +475,6 @@ public partial class RSTBEditor : Form, ISearchable
 
     private void SearchToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        // Create SearchBox Window if needed
         searchBox ??= new SearchBox(this)
         {
             StartPosition = FormStartPosition.CenterParent
@@ -557,8 +545,8 @@ public partial class RSTBEditor : Form, ISearchable
 
         var rowCount = LoadedFile.Length;
         var rowsData = new (int Index, string? FileName, uint FileSize)[rowCount];
-        
-        for (int i = 0; i < rowCount; i++)
+
+        for (var i = 0; i < rowCount; i++)
         {
             var row = LoadedFile[i];
 
@@ -567,7 +555,7 @@ public partial class RSTBEditor : Form, ISearchable
 
         var rowsToColor = new ConcurrentBag<int>();
 
-        int processed = 0;
+        var processed = 0;
 
         await Task.Run(() =>
         {
@@ -586,7 +574,6 @@ public partial class RSTBEditor : Form, ISearchable
 
                 long actualValue = -1;
 
-   
                 var generatedFileSize = ResourceSizeTable.GetFileSize(actualPath, row.FileName);
                 actualValue = generatedFileSize;
 
@@ -598,7 +585,7 @@ public partial class RSTBEditor : Form, ISearchable
 
                 DiffDictionary[row.Index] = actualValue;
 
-                int current = Interlocked.Increment(ref processed);
+                var current = Interlocked.Increment(ref processed);
 
                 if (current % 50 == 0)
                 {
@@ -625,7 +612,6 @@ public partial class RSTBEditor : Form, ISearchable
         statusProgressBar.Visible = false;
     }
 
-
     private void MainDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
     {
 
@@ -635,14 +621,12 @@ public partial class RSTBEditor : Form, ISearchable
     {
         StringBuilder sb = new();
 
-
         var rows = dataGrid.SelectedRows.Cast<DataGridViewRow>().OrderBy(x => x.Index);
         foreach (var row in rows)
         {
             var text = string.Join(";", row.Cells.Cast<DataGridViewCell>().Where(y => y.OwningColumn != null && y.OwningColumn.Name != "DLC").Select(x => x.FormattedValue?.ToString()));
             sb.AppendLine(text);
         }
-        
 
         Clipboard.SetText(sb.ToString());
     }

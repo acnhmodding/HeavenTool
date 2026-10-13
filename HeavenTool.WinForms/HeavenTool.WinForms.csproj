@@ -21,7 +21,6 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>HeavenTool</RootNamespace>
-    <Deterministic>false</Deterministic>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>C:\Users\Rafa\Desktop\HeavenTool\</PublishUrl>
     <Install>true</Install>
@@ -55,7 +54,6 @@
   <PropertyGroup>
     <StartupObject>HeavenTool.Program</StartupObject>
   </PropertyGroup>
-  <PropertyGroup />
   <PropertyGroup>
     <SignManifests>false</SignManifests>
   </PropertyGroup>

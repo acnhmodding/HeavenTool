@@ -7,9 +7,9 @@ namespace HeavenTool;
 
 static partial class WinConsole
 {
-    static public void Initialize(bool alwaysCreateNewConsole = true)
+    static public void Initialize(string consoleTitle, bool alwaysCreateNewConsole = true)
     {
-        bool consoleAttached = true;
+        var consoleAttached = true;
         if (alwaysCreateNewConsole || (AttachConsole(ATTACH_PARRENT) == 0 && Marshal.GetLastWin32Error() != ERROR_ACCESS_DENIED))
             consoleAttached = AllocConsole() != 0;
 
@@ -17,6 +17,7 @@ static partial class WinConsole
         {
             InitializeOutStream();
             InitializeInStream();
+            SetConsoleTitle(consoleTitle);
         }
     }
 
@@ -71,6 +72,10 @@ static partial class WinConsole
             uint dwFlagsAndAttributes,
             IntPtr hTemplateFile
         );
+
+    [LibraryImport("kernel32.dll", EntryPoint = "SetConsoleTitleW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetConsoleTitle(string lpConsoleTitle);
 
     private const uint GENERIC_WRITE = 0x40000000;
     private const uint GENERIC_READ = 0x80000000;

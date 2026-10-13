@@ -1,5 +1,4 @@
-﻿using AeonSake.NintendoTools.FileFormats.Sarc;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -10,6 +9,8 @@ public interface IFileContainer
 {
     string Name { get; }
     bool IsDirectory { get; }
+    bool IsDirty { get; }
+    void SetDirty(bool value);
 
     IEnumerable<IFileContainer> GetChildren();
 
@@ -19,20 +20,28 @@ public interface IFileContainer
     string FullPath { get; }
 }
 
-
-public class PhysicalFileNode(string path) : IFileContainer
+public class PhysicalFileNode(string path, IFileContainer? parent) : IFileContainer
 {
     public string FullPath { get; } = path;
 
     public string Name => Path.GetFileName(FullPath);
     public bool IsDirectory => Directory.Exists(FullPath);
+    public bool IsDirty { get; set; }
+    public IFileContainer? Parent { get; set; } = parent;
+
+    public void SetDirty(bool value)
+    {
+        IsDirty = value;
+
+        Parent?.SetDirty(value);
+    }
 
     public IEnumerable<IFileContainer> GetChildren()
     {
         if (!IsDirectory) yield break;
 
         foreach (var dir in Directory.GetDirectories(FullPath))
-            yield return new PhysicalFileNode(dir);
+            yield return new PhysicalFileNode(dir, this);
 
         foreach (var file in Directory.GetFiles(FullPath))
             yield return CreateFileNode(file);
@@ -53,42 +62,38 @@ public class PhysicalFileNode(string path) : IFileContainer
         if (ext == ".zip")
         {
             var zip = ZipFile.Open(path, ZipArchiveMode.Read);
-            return new ZipFileNode(path, zip);
+            return new ZipFileNode(path, zip, entry: null, parent: null);
         }
 
-        //if (ext == ".sarc")
-        //{
-        //    using var fileReader = File.OpenRead(path);
-        //    var sarc = new SarcFileReader().Read(fileReader);
-            
-        //    //return new SarcFileNode(sarc);
-        //}
-
-        return new PhysicalFileNode(path);
+        return new PhysicalFileNode(path, null);
     }
 }
 
-
-public class ZipFileNode(string path, ZipArchive zip, string? virtualPath = null, ZipArchiveEntry? entry = null) : IFileContainer
+public class ZipFileNode(string path, ZipArchive zip, string? virtualPath = null, ZipArchiveEntry? entry = null, IFileContainer? parent = null) : IFileContainer
 {
     private readonly ZipArchive _zip = zip;
     private readonly ZipArchiveEntry? _entry = entry;
     private readonly string _virtualPath = virtualPath ?? "";
+    public IFileContainer? Parent { get; set; } = parent;
+    public bool IsDirty { get; set; }
+    public void SetDirty(bool value)
+    {
+        IsDirty = value;
+
+        Parent?.SetDirty(value);
+    }
 
     public string Name
     {
         get
         {
-            // Zip Entry Name
-            if (_entry != null)
+                        if (_entry != null)
                 return Path.GetFileName(_entry.FullName);
 
-            // Zip Directory Name
-            if (!string.IsNullOrEmpty(_virtualPath))
+                        if (!string.IsNullOrEmpty(_virtualPath))
                 return new DirectoryInfo(_virtualPath).Name;
 
-            // Root (.zip name)
-            return Path.GetFileName(path);
+                        return Path.GetFileName(path);
         }
     }
 
@@ -109,10 +114,10 @@ public class ZipFileNode(string path, ZipArchive zip, string? virtualPath = null
                 continue;
 
             if (isFile)
-                yield return new ZipFileNode(path, _zip, _virtualPath, e);
+                yield return new ZipFileNode(path, _zip, _virtualPath, e, parent: this);
             else if (seen.Add(segment))
-                yield return new ZipFileNode(path, _zip, _virtualPath + segment);
-            
+                yield return new ZipFileNode(path, _zip, _virtualPath + segment, parent: this);
+
         }
     }
 
@@ -146,3 +151,5 @@ public class ZipFileNode(string path, ZipArchive zip, string? virtualPath = null
 
     public string FullPath => Path.Combine(path, _entry?.FullName ?? _virtualPath);
 }
+
+// TODO: Add compression nodes like zstd and yaz0

@@ -17,7 +17,7 @@ public class DarkMenuRenderer(DarkColorTable darkColorTable) : ToolStripProfessi
     {
         base.InitializeItem(item);
 
-        item.BackColor =  DarkColorTable.ToolStripDropDownBackground;
+        item.BackColor = DarkColorTable.ToolStripDropDownBackground;
         item.ForeColor = Color.White;
 
         if (item.GetType() == typeof(ToolStripSeparator))
@@ -44,8 +44,9 @@ public class DarkMenuStrip : MenuStrip
     }
 }
 
-public class DarkStatusStrip : StatusStrip { 
-    
+public class DarkStatusStrip : StatusStrip
+{
+
     public DarkStatusStrip() : base()
     {
         BackColor = Color.Transparent;
@@ -57,7 +58,7 @@ public class DarkStatusStrip : StatusStrip {
 
 public class DarkContextMenuStrip : ContextMenuStrip
 {
-    public DarkContextMenuStrip() 
+    public DarkContextMenuStrip()
     {
         BackColor = Color.Transparent;
         ForeColor = Color.White;

@@ -1,7 +1,7 @@
 ﻿using HeavenTool.IO.FileFormats.BCSV;
 using System;
-using System.Windows.Forms;
 using System.ComponentModel;
+using System.Windows.Forms;
 
 namespace HeavenTool.Forms.BCSV.Controls.Entries;
 

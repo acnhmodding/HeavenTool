@@ -31,13 +31,13 @@ public partial class Float32Entry : BCSVEntry
 
     private void Input_TextChanged(object sender, EventArgs e)
     {
-        if (float.TryParse(input.Text, out float value))
+        if (float.TryParse(input.Text, out var value))
             Callback?.Invoke(value);
     }
 
     public override object GetValue()
     {
-        if (float.TryParse(input.Text, out float value))
+        if (float.TryParse(input.Text, out var value))
             return value;
         else return float.MinValue;
     }

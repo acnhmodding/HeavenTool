@@ -30,7 +30,7 @@ namespace HeavenTool
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(HeavenMain));
+            var resources = new System.ComponentModel.ComponentResourceManager(typeof(HeavenMain));
             bcsvEditorButton = new DarkButton();
             topMenu = new System.Windows.Forms.MenuStrip();
             toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -43,12 +43,12 @@ namespace HeavenTool
             exportLabelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportEnumsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportUsedHashesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            editorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             pictureBox1 = new System.Windows.Forms.PictureBox();
             rstbEditorButton = new DarkButton();
             sarcEditorButton = new DarkButton();
             itemParamHelperButton = new DarkButton();
             barsEditorButton = new DarkButton();
-            editorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             topMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
@@ -133,7 +133,7 @@ namespace HeavenTool
             exportLabelsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             exportLabelsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportLabelsToolStripMenuItem.Name = "exportLabelsToolStripMenuItem";
-            exportLabelsToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
+            exportLabelsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             exportLabelsToolStripMenuItem.Text = "Export Labels";
             exportLabelsToolStripMenuItem.Click += ExportLabelsToolStripMenuItem_Click;
             // 
@@ -142,7 +142,7 @@ namespace HeavenTool
             exportEnumsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             exportEnumsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportEnumsToolStripMenuItem.Name = "exportEnumsToolStripMenuItem";
-            exportEnumsToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
+            exportEnumsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             exportEnumsToolStripMenuItem.Text = "Export Enums";
             exportEnumsToolStripMenuItem.Click += ExportEnumsToolStripMenuItem_Click;
             // 
@@ -151,10 +151,17 @@ namespace HeavenTool
             exportUsedHashesToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             exportUsedHashesToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             exportUsedHashesToolStripMenuItem.Name = "exportUsedHashesToolStripMenuItem";
-            exportUsedHashesToolStripMenuItem.Size = new System.Drawing.Size(177, 22);
+            exportUsedHashesToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             exportUsedHashesToolStripMenuItem.Text = "Export Used Hashes";
             exportUsedHashesToolStripMenuItem.Click += ExportUsedHashesToolStripMenuItem_Click;
             // 
+            // editorToolStripMenuItem
+            //
+            editorToolStripMenuItem.Name = "editorToolStripMenuItem";
+            editorToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            editorToolStripMenuItem.Text = "Editor";
+            editorToolStripMenuItem.Click += EditorToolStripMenuItem_Click;
+            //
             // pictureBox1
             // 
             pictureBox1.Image = Properties.Resources.logo;
@@ -220,13 +227,6 @@ namespace HeavenTool
             barsEditorButton.TabIndex = 11;
             barsEditorButton.Text = "Open BARS Editor";
             barsEditorButton.Click += BarsEditorButton_Click;
-            // 
-            // editorToolStripMenuItem
-            // 
-            editorToolStripMenuItem.Name = "editorToolStripMenuItem";
-            editorToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            editorToolStripMenuItem.Text = "Editor";
-            editorToolStripMenuItem.Click += editorToolStripMenuItem_Click;
             // 
             // HeavenMain
             // 

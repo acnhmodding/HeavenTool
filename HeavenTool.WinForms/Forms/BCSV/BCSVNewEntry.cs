@@ -37,11 +37,10 @@ public partial class BCSVEntryEditor : Form
 
     private void ContentPanel_SizeChanged(object? sender, EventArgs e)
     {
-        // Use DisplayRectangle.Width which represents the client area available for contained controls
         var targetWidth = Math.Max(0, contentPanel.DisplayRectangle.Width - contentPanel.Padding.Left - contentPanel.Padding.Right);
 
         contentPanel.SuspendLayout();
-    
+
         foreach (Control c in contentPanel.Controls)
         {
             var horizMargin = c.Margin.Left + c.Margin.Right;

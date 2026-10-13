@@ -27,7 +27,7 @@ public class ValidatingTextBox : DarkTextBox
         const int WM_ENTERIDLE = 0x121;
         const int VK_DELETE = 0x2e;
 
-        bool delete = m.Msg == WM_KEYDOWN && (int)m.WParam == VK_DELETE;
+        var delete = m.Msg == WM_KEYDOWN && (int)m.WParam == VK_DELETE;
         if ((m.Msg == WM_KEYDOWN && !delete) || m.Msg == WM_ENTERIDLE)
         {
             DontProcessMessage(() =>

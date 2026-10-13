@@ -56,14 +56,6 @@ public partial class HeavenMain : Form
         itemIDHelper.BringToFront();
     }
 
-    private void BcsvReworkButton_Click(object sender, EventArgs e)
-    {
-        var bcsvRework = new BCSVForm();
-
-        bcsvRework.Show();
-        bcsvRework.BringToFront();
-    }
-
     private void Yaz0DecompressToolStripMenuItem_Click(object sender, EventArgs e)
     {
         var openFileDialog = new OpenFileDialog()
@@ -124,7 +116,7 @@ public partial class HeavenMain : Form
                     {
                         var fieldId = bcsvFile.Fields.First(x => x.GetTranslatedNameOrHash().StartsWith("Label string"));
 
-                        for (int i = 0; i < bcsvFile.Entries.Count; i++)
+                        for (var i = 0; i < bcsvFile.Entries.Count; i++)
                             list.Add(bcsvFile[i, fieldId].ToString() ?? "<null>");
 
                         File.WriteAllLines(outputFile, list);
@@ -160,14 +152,11 @@ public partial class HeavenMain : Form
                     var hashedFields = bcsvFile.Fields.Where(x => x.DataType == DataType.CRC32).ToList();
                     if (bcsvFile.Entries.Count > 0 && hashedFields.Count > 0)
                     {
-                        //var directoryPath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(file));
-                        //Directory.CreateDirectory(directoryPath);
                         Directory.CreateDirectory(outputDirectory);
 
                         foreach (var field in hashedFields)
                         {
                             var outputFile = Path.Combine(outputDirectory, $"{field.HEX}.txt");
-                            //var outputFile = Path.Combine(directoryPath, $"{field.HEX}.txt");
                             var parsedList = new List<uint>();
                             var registers = new List<string>();
 
@@ -203,7 +192,7 @@ public partial class HeavenMain : Form
 
         if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
         {
-            string dir = "Exported Hashes";
+            var dir = "Exported Hashes";
             Directory.CreateDirectory(dir);
 
             var usedHashesHeaders = new List<string>();
@@ -222,7 +211,6 @@ public partial class HeavenMain : Form
                     if (HashManager.GetHashTranslationOrNull(item.Hash) is string hashName && !usedHashesHeaders.Contains(hashName))
                         usedHashesHeaders.Add(hashName);
 
-
                 foreach (var entry in bcsvFile.Entries)
                     foreach (var entryField in entry)
                         if (entryField is uint hashValue && (hashValue > 100000))
@@ -230,7 +218,6 @@ public partial class HeavenMain : Form
                             if (HashManager.GetHashTranslationOrNull(hashValue) is string hashName && !usedHashesValues.Contains(hashName))
                                 usedHashesValues.Add(hashName);
                         }
-
 
             }
 
@@ -264,7 +251,7 @@ public partial class HeavenMain : Form
         {
             using var fileStream = File.OpenRead(openFileDialog.FileName);
 
-            byte[] compressedBytes = Yaz0CompressionAlgorithm.Compress(fileStream).ToArray();
+            var compressedBytes = Yaz0CompressionAlgorithm.Compress(fileStream).ToArray();
 
             if (compressedBytes == null || compressedBytes.Length == 0) return;
 
@@ -281,7 +268,7 @@ public partial class HeavenMain : Form
         }
     }
 
-    private void editorToolStripMenuItem_Click(object sender, EventArgs e)
+    private void EditorToolStripMenuItem_Click(object sender, EventArgs e)
     {
         new EditorForm().Show();
     }

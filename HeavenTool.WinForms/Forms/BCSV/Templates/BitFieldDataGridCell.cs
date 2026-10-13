@@ -22,9 +22,9 @@ public class BitFieldDataGridCell() : DataGridViewTextBoxCell
         {
             var split = s.Split(' ');
 
-            for (int i = 0; i < bitField.Length; i++)
+            for (var i = 0; i < bitField.Length; i++)
             {
-                if (i >= split.Length || !byte.TryParse(split[i], out byte b))
+                if (i >= split.Length || !byte.TryParse(split[i], out var b))
                     break;
 
                 bitField[i] = b;

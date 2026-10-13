@@ -16,7 +16,7 @@ internal class DeleteRowsCommand(BinaryCSV bcsv) : IUndoCommand
         {
             bcsv.Entries.RemoveAt(item.Key);
         }
-        
+
     }
 
     public void Undo()

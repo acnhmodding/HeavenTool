@@ -1,4 +1,5 @@
-﻿using HeavenTool.Utility;
+﻿using HeavenTool.Forms.Editor.Containers;
+using HeavenTool.Utility;
 using System.ComponentModel;
 using System.IO;
 using System.Windows.Forms;
@@ -11,19 +12,30 @@ public class BaseEditor : DockContent
     public UndoManager UndoManager { get; } = new();
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    [DefaultValue("")]
     public string FilePath { get; set; } = "";
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    [DefaultValue(null)]
+    public IFileContainer? FileContainer { get; set; }
 
     public bool _isDirty;
-    public bool IsDirty { 
+    public bool IsDirty
+    {
         get => _isDirty;
-        private set {
+        private set
+        {
             _isDirty = value;
             DockHandler.TabText = Text + (_isDirty ? "*" : "");
-        } 
+        }
     }
 
-    public void SetDirty(bool value) => IsDirty = value;
+    public void SetDirty(bool value)
+    {
+        IsDirty = value;
+
+        FileContainer?.SetDirty(value);
+    }
 
     public virtual void LoadFile(Stream stream)
     {
@@ -34,7 +46,6 @@ public class BaseEditor : DockContent
     {
 
     }
-
 
     #region Optional Methods
     public virtual void BuildContextMenu(ContextMenuStrip contextMenu)
@@ -50,7 +61,7 @@ public class BaseEditor : DockContent
 
         if (UndoManager.GetUndoCount() == 0)
             SetDirty(false);
-        
+
         Invalidate();
     }
 
@@ -60,7 +71,7 @@ public class BaseEditor : DockContent
 
         if (UndoManager.GetRedoCount() == 0)
             SetDirty(false);
-        
+
         Invalidate();
     }
     #endregion

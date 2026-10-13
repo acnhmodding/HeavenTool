@@ -32,11 +32,11 @@ public class MMH3DataGridCell : DataGridViewTextBoxCell
 
         if (DataGridView != null && OwningColumn != null && DataGridView.EditingControl is TextBox txt)
         {
-            string hashedName = OwningColumn.Name;
+            var hashedName = OwningColumn.Name;
             if (uint.TryParse(hashedName,
                               NumberStyles.HexNumber,
                               CultureInfo.CurrentCulture,
-                              out uint enumHash)
+                              out var enumHash)
                 && HashManager.EnumListCRC32.TryGetValue(enumHash, out var list))
             {
                 var source = new AutoCompleteStringCollection();

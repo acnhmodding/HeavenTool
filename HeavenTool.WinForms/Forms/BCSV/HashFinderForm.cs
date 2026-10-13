@@ -7,7 +7,6 @@ namespace HeavenTool.Forms.BCSV
 {
     public partial class HashFinderForm : Form
     {
-        private static readonly System.Buffers.SearchValues<char> hexChars = System.Buffers.SearchValues.Create("ABCDEFabcdef");
 
         public HashFinderForm()
         {
@@ -18,40 +17,18 @@ namespace HeavenTool.Forms.BCSV
 
         private void SearchButton_Click(object sender, EventArgs e)
         {
-            if (TryConvertInt32(hashInput.Text, out int hash))
+            if (TryConvertInt32(hashInput.Text, out var hash))
             {
-                if (HashManager.GetHashTranslationOrNull((uint) hash) is string lastResult)
+                if (HashManager.GetHashTranslationOrNull((uint)hash) is string translatedHash)
                 {
-                    hashResultLbl.Text = $"Result: {lastResult}";
+                    lastResult = translatedHash;
+                    hashResultLbl.Text = $"Result: {translatedHash}";
                     return;
                 }
                 else hashResultLbl.Text = "Hash not found";
             }
             else hashResultLbl.Text = "Invalid Input";
             lastResult = null;
-        }
-
-        public static bool TryParseUint(string input, out uint result)
-        {
-            result = 0;
-
-            if (string.IsNullOrWhiteSpace(input))
-                return false;
-
-            input = input.Trim();
-
-            // Remove 0x or 0X prefix if present
-            if (input.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                input = input[2..];
-
-            // Determine if it's hex (contains hex letters or previously had 0x)
-            bool isHex = input.AsSpan().IndexOfAny(hexChars) >= 0;
-
-            if (isHex)
-                return uint.TryParse(input, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out result);
-            else
-                return uint.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
-
         }
 
         private void HashResultLbl_Click(object sender, EventArgs e)
@@ -70,7 +47,7 @@ namespace HeavenTool.Forms.BCSV
 
             input = input.Trim();
 
-            bool isNegative = false;
+            var isNegative = false;
 
             // Check for negative sign
             if (input.StartsWith('-'))

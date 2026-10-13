@@ -6,6 +6,7 @@ using HeavenTool.Utility;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -16,6 +17,7 @@ namespace HeavenTool.Forms;
 public partial class EditorForm : Form
 {
     private DockableControl<TreeView> Explorer { get; set; }
+
     private TreeView TreeView { get; } = new TreeView()
     {
         ShowLines = false,
@@ -23,7 +25,20 @@ public partial class EditorForm : Form
         ShowPlusMinus = true,
         FullRowSelect = true,
         BorderStyle = BorderStyle.None,
-        Indent = 6
+        Indent = 6,
+        ImageList = new ImageList()
+        {
+            ImageSize = new Size(24, 24),
+            Images =
+            {
+                { "file", Resources.file },
+                { "folder", Resources.folder },
+                { "zip", Resources.zip },
+                { "audio_file", Resources.audio_file },
+                { "image_file", Resources.image_file },
+                { "spreadsheet_file", Resources.spreadsheet_file }
+            }
+        }
     };
 
     public EditorForm()
@@ -35,24 +50,41 @@ public partial class EditorForm : Form
         Explorer = DockableControl.Create(TreeView, "Explorer");
         Explorer.Show(dockPanel, DockState.DockLeft);
 
+        TreeView.DrawMode = TreeViewDrawMode.OwnerDrawAll;
         TreeView.NodeMouseDoubleClick += TreeView_NodeMouseDoubleClick;
         TreeView.BeforeExpand += TreeView_BeforeExpand;
         TreeView.NodeMouseClick += TreeView_NodeMouseClick;
-        
-        var icons = new ImageList()
-        {
-            Images =
-            {
-                { "file", Resources.file },
-                { "folder", Resources.folder },
-                { "zip", Resources.zip },
-                { "audio_file", Resources.audio_file },
-                { "image_file", Resources.image_file },
-                { "spreadsheet_file", Resources.spreadsheet_file }
-            }
-        };
+        TreeView.DrawNode += TreeView_DrawNode;
 
-        TreeView.ImageList = icons;
+        documentationToolStripMenuItem.Click += (_, _) => WinFormsUtility.OpenUrl("https://acnhmodding.github.io/");
+        gitHubToolStripMenuItem.Click += (_, _) => WinFormsUtility.OpenUrl("https://github.com/acnhmodding/HeavenTool");
+        discordToolStripMenuItem.Click += (_, _) => WinFormsUtility.OpenUrl("https://discord.gg/4cBd8dD6XS");
+    }
+
+    private void TreeView_DrawNode(object? sender, DrawTreeNodeEventArgs e)
+    {
+        if (e.Node?.Tag is not IFileContainer node || sender is not TreeView treeView) return;
+
+        e.DrawDefault = true;
+
+        if (!node.IsDirty) return;
+
+        treeView.BeginInvoke(() =>
+        {
+            using var g = treeView.CreateGraphics();
+
+            var bounds = e.Bounds;
+
+            var diameter = 6;
+            var padding = 6;
+
+            var x = bounds.Right - diameter - padding;
+            var y = bounds.Top + (bounds.Height - diameter) / 2;
+
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using var brush = new SolidBrush(Color.Orange);
+            g.FillEllipse(brush, x, y, diameter, diameter);
+        });
     }
 
     private void TreeView_NodeMouseClick(object? sender, TreeNodeMouseClickEventArgs e)
@@ -112,17 +144,16 @@ public partial class EditorForm : Form
         {
             e.Node.Nodes.Clear();
 
-            var children = node.GetChildren();
+            var children = node.GetChildren().ToArray();
 
-            if (children.Count() > 5_000 && 
-                MessageBox.Show($"This folder contains {children.Count()} items, loading it can cause the editor to freeze and crash.\n\n" +
-                $"Do you really want to continue?", 
-                "Too many items!", 
-                MessageBoxButtons.YesNo, 
-                MessageBoxIcon.Warning, 
+            if (children.Length > 5_000 &&
+                MessageBox.Show($"This folder contains {children.Length} items, loading it can cause the editor to freeze and crash.\n\n" +
+                $"Do you really want to continue?",
+                "Too many items!",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
                 MessageBoxDefaultButton.Button2) != DialogResult.Yes)
                 return;
-            
 
             foreach (var child in children)
                 e.Node.Nodes.Add(CreateNode(child));
@@ -140,6 +171,8 @@ public partial class EditorForm : Form
 
         if (!container.IsDirectory && fileIcons.TryGetValue(extension, out var icon))
             return icon;
+        else if (!container.IsDirectory)
+            return "file"; // Default icon for 'unknown' files
 
         return container switch
         {
@@ -198,7 +231,7 @@ public partial class EditorForm : Form
 
     private static TreeNode CreateDirectoryNode(DirectoryInfo directory)
     {
-        var node = new PhysicalFileNode(directory.FullName);
+        var node = new PhysicalFileNode(directory.FullName, parent: null);
 
         var directoryNode = new TreeNode(node.Name)
         {
@@ -244,11 +277,11 @@ public partial class EditorForm : Form
             return;
         }
 
-
         using var stream = node.OpenRead();
         editor.LoadFile(stream);
         editor.FilePath = node.FullPath;
         editor.Text = node.Name;
+        editor.FileContainer = node;
         editor.Show(dockPanel, DockState.Document);
     }
 }

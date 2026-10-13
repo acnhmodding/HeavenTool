@@ -5,11 +5,11 @@ namespace HeavenTool.Forms.BCSV.Controls;
 
 public partial class SbyteEntry : BCSVEntry
 {
-    public Action<object>? Callback;  
+    public Action<object>? Callback;
     public SbyteEntry(object defaultValue)
     {
         InitializeComponent();
-      
+
         input.Text = defaultValue.ToString();
         Input_TextChanged(this, EventArgs.Empty);
     }
@@ -31,14 +31,14 @@ public partial class SbyteEntry : BCSVEntry
 
     private void Input_TextChanged(object sender, EventArgs e)
     {
-        if (ushort.TryParse(input.Text, out ushort value))
+        if (sbyte.TryParse(input.Text, out var value))
             Callback?.Invoke(value);
     }
 
     public override object GetValue()
     {
-        if (ushort.TryParse(input.Text, out ushort value))
+        if (sbyte.TryParse(input.Text, out var value))
             return value;
-        else return ushort.MinValue;
+        else return sbyte.MinValue;
     }
 }

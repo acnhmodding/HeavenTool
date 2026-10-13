@@ -1,5 +1,4 @@
 ﻿using HeavenTool.Forms.BCSV.Controls.Entries;
-using HeavenTool.IO;
 using System;
 using System.Linq;
 using System.Windows.Forms;
@@ -33,19 +32,17 @@ public partial class BitFieldEntry : BCSVEntry
         if (defaultValue is byte[] value)
         {
             tagBits = new byte[lenght];
-            for (int i = 0; i < value.Length; i++)
+            for (var i = 0; i < value.Length; i++)
             {
                 tagBits[i] = value[i];
             }
         }
         else throw new Exception("Default value for BitFieldEntry must be a byte array.");
 
-        //input.Text = defaultValue.ToString();
-        //Input_TextChanged(this, EventArgs.Empty);
         bitfieldEntries.MaxDropDownItems = 10;
         bitfieldEntries.ValueSeparator = ", ";
         bitfieldEntries.DisplayMember = "Name";
-        bool canUpdateText = false;
+        var canUpdateText = false;
 
         bitfieldEntries.ItemCheck += (s, e) =>
         {
@@ -61,14 +58,14 @@ public partial class BitFieldEntry : BCSVEntry
             // If "None" is being checked
             if (item.Value < 0 && e.NewValue == CheckState.Checked)
             {
-                for (int i = 1; i < bitfieldEntries.Items.Count; i++)
+                for (var i = 1; i < bitfieldEntries.Items.Count; i++)
                     bitfieldEntries.SetItemChecked(i, false);
             }
 
             // If a non-"None" item is being unchecked
             if (item.Value >= 0 && e.NewValue == CheckState.Unchecked)
             {
-                bool anyOtherChecked = bitfieldEntries.CheckedItems
+                var anyOtherChecked = bitfieldEntries.CheckedItems
                     .Cast<BitFieldItem>()
                     .Any(x => x.Value >= 0 && bitfieldEntries.Items.IndexOf(x) != e.Index);
 
@@ -82,7 +79,6 @@ public partial class BitFieldEntry : BCSVEntry
                 }
             }
 
-            // 
             if (canUpdateText)
                 BeginInvoke(() =>
                 {
@@ -95,7 +91,7 @@ public partial class BitFieldEntry : BCSVEntry
         if (names != null && names.Length > lenght * 8) names = null;
         var count = names != null ? names.Length : lenght * 8;
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
             bitfieldEntries.Items?.Add(new BitFieldItem(names != null ? names[i] : $"BitMask_{i}", i), IsFlagSet(i));
 
         canUpdateText = true;
@@ -123,7 +119,6 @@ public partial class BitFieldEntry : BCSVEntry
 
     public override object GetValue()
     {
-        // Clear all bits
         Array.Clear(tagBits, 0, tagBits.Length);
 
         foreach (var obj in bitfieldEntries.CheckedItems)
@@ -135,8 +130,8 @@ public partial class BitFieldEntry : BCSVEntry
             if (item.Value < 0)
                 return tagBits;
 
-            int byteIndex = item.Value / 8;
-            int bitOffset = item.Value % 8;
+            var byteIndex = item.Value / 8;
+            var bitOffset = item.Value % 8;
 
             tagBits[byteIndex] |= (byte)(1 << bitOffset);
         }

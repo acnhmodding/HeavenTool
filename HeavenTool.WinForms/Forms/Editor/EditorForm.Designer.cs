@@ -33,6 +33,10 @@
             menuStrip1 = new System.Windows.Forms.MenuStrip();
             fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             loadFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            documentationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            gitHubToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            discordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             menuStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -46,7 +50,7 @@
             // 
             // menuStrip1
             // 
-            menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { fileToolStripMenuItem });
+            menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { fileToolStripMenuItem, helpToolStripMenuItem });
             menuStrip1.Location = new System.Drawing.Point(0, 0);
             menuStrip1.Name = "menuStrip1";
             menuStrip1.Size = new System.Drawing.Size(800, 24);
@@ -63,10 +67,35 @@
             // loadFolderToolStripMenuItem
             // 
             loadFolderToolStripMenuItem.Name = "loadFolderToolStripMenuItem";
-            loadFolderToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            loadFolderToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
             loadFolderToolStripMenuItem.Text = "Load Folder";
             loadFolderToolStripMenuItem.Click += LoadFolderToolStripMenuItem_Click;
             // 
+            // helpToolStripMenuItem
+            //
+            helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { documentationToolStripMenuItem, gitHubToolStripMenuItem, discordToolStripMenuItem });
+            helpToolStripMenuItem.Name = "helpToolStripMenuItem";
+            helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
+            helpToolStripMenuItem.Text = "Help";
+            //
+            // documentationToolStripMenuItem
+            //
+            documentationToolStripMenuItem.Name = "documentationToolStripMenuItem";
+            documentationToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            documentationToolStripMenuItem.Text = "Documentation";
+            //
+            // gitHubToolStripMenuItem
+            //
+            gitHubToolStripMenuItem.Name = "gitHubToolStripMenuItem";
+            gitHubToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            gitHubToolStripMenuItem.Text = "GitHub";
+            //
+            // discordToolStripMenuItem
+            //
+            discordToolStripMenuItem.Name = "discordToolStripMenuItem";
+            discordToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            discordToolStripMenuItem.Text = "Discord";
+            //
             // EditorForm
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -89,5 +118,9 @@
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem loadFolderToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem documentationToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem gitHubToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem discordToolStripMenuItem;
     }
 }

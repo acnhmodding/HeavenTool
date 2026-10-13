@@ -13,7 +13,8 @@ public class NewRowCommand(BinaryCSV bcsv, object[] newRowValues) : IUndoCommand
         {
             index = bcsv.Entries.Count;
             bcsv.Entries.Add(newRowValues);
-        } else
+        }
+        else
         {
             bcsv.Entries.Insert(index.Value, newRowValues);
         }

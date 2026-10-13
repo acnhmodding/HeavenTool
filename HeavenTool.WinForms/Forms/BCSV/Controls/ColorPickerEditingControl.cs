@@ -1,7 +1,8 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Windows.Forms;
-using System.ComponentModel;
 
 namespace HeavenTool.Forms.BCSV.Controls;
 
@@ -14,7 +15,6 @@ public class ColorPickerEditingControl : Button, IDataGridViewEditingControl
 
     public ColorPickerEditingControl()
     {
-        // Default appearance
         UpdateButtonAppearance();
     }
 
@@ -22,7 +22,7 @@ public class ColorPickerEditingControl : Button, IDataGridViewEditingControl
     {
         base.OnClick(e);
         ShowColorDialog();
-       
+
     }
 
     public void ShowColorDialog()
@@ -32,15 +32,11 @@ public class ColorPickerEditingControl : Button, IDataGridViewEditingControl
         if (dlg.ShowDialog() == DialogResult.OK)
         {
             CurrentColor = dlg.Color;
-            // Notify the grid that the user changed the value
             _valueChanged = true;
             _dataGridView?.NotifyCurrentCellDirty(true);
         }
     }
 
-    /// <summary>
-    /// Update Text and BackColor to reflect _currentColor
-    /// </summary>
     private void UpdateButtonAppearance()
     {
         BackColor = _currentColor;
@@ -48,10 +44,6 @@ public class ColorPickerEditingControl : Button, IDataGridViewEditingControl
         Text = $"#{_currentColor.R:X2}{_currentColor.G:X2}{_currentColor.B:X2}";
     }
 
-
-    /// <summary>
-    /// The color currently being edited
-    /// </summary>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Color CurrentColor
     {
@@ -65,6 +57,7 @@ public class ColorPickerEditingControl : Button, IDataGridViewEditingControl
 
     #region IDataGridViewEditingControl Members
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    [AllowNull]
     public object EditingControlFormattedValue
     {
         get => Text; // returns the hex string
@@ -82,7 +75,6 @@ public class ColorPickerEditingControl : Button, IDataGridViewEditingControl
 
     public void ApplyCellStyleToEditingControl(DataGridViewCellStyle dataGridViewCellStyle)
     {
-        // You can mirror the cell style if you want
         Font = dataGridViewCellStyle.Font;
     }
 
@@ -121,7 +113,6 @@ public class ColorPickerEditingControl : Button, IDataGridViewEditingControl
 
     public void PrepareEditingControlForEdit(bool selectAll)
     {
-        // No initialization needed before edit starts
     }
 
     #endregion

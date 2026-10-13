@@ -29,15 +29,15 @@ namespace HeavenTool.Forms.Pack
         {
             if (!shouldUpdate) return;
 
-            if (!ushort.TryParse(itemIdBox.Text, out ushort itemId)) return;
-            if (!ushort.TryParse(itemRotationBox.Text, out ushort rotation)) return;
+            if (!ushort.TryParse(itemIdBox.Text, out var itemId)) return;
+            if (!ushort.TryParse(itemRotationBox.Text, out var rotation)) return;
 
-            if (!byte.TryParse(reFabricInput.Text, out byte reFabricIndex)) return;
-            if (!byte.TryParse(reFabricPatternInput.Text, out byte reFabricPattern)) return;
-            if (!byte.TryParse(reBodyInput.Text, out byte reBodyIndex)) return;
-            if (!byte.TryParse(reBodyPatternInput.Text, out byte reBodyPattern)) return;
+            if (!byte.TryParse(reFabricInput.Text, out var reFabricIndex)) return;
+            if (!byte.TryParse(reFabricPatternInput.Text, out var reFabricPattern)) return;
+            if (!byte.TryParse(reBodyInput.Text, out var reBodyIndex)) return;
+            if (!byte.TryParse(reBodyPatternInput.Text, out var reBodyPattern)) return;
 
-            if (!ushort.TryParse(itemStateInput.Text, out ushort itemState)) return;
+            if (!ushort.TryParse(itemStateInput.Text, out var itemState)) return;
 
             var encodedId = Encode(itemId, rotation, reFabricIndex, reFabricPattern, reBodyIndex, reBodyPattern, itemState);
 
@@ -59,13 +59,13 @@ namespace HeavenTool.Forms.Pack
         private void encodedIdInput_TextChanged(object sender, EventArgs e)
         {
             if (!shouldEncode) return;
-            if (!ulong.TryParse(encodedIdInput.Text, out ulong encoded)) return;
+            if (!ulong.TryParse(encodedIdInput.Text, out var encoded)) return;
 
-            ushort id = (ushort)encoded;
+            var id = (ushort)encoded;
             ushort rotation = (byte)((encoded >> 16) & 0xFFFF);
-            byte refabric = (byte)((encoded >> 32) & 0xFF);
-            byte rebody = (byte)((encoded >> 40) & 0xFF);
-            ushort itemState = (ushort)(encoded >> 48);
+            var refabric = (byte)((encoded >> 32) & 0xFF);
+            var rebody = (byte)((encoded >> 40) & 0xFF);
+            var itemState = (ushort)(encoded >> 48);
 
             var fabricVariantIndex = refabric & 0x7;
             var fabricPatternIndex = refabric >> 3;

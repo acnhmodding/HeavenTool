@@ -2,102 +2,93 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Windows.Forms;
 
 namespace HeavenTool.Utility;
 
 public partial class ProgramAssociation
 {
-    private const int ASSOCF_NONE = 0;
-    private const int ASSOCSTR_EXECUTABLE = 2;
+    private const string UserClassesRoot = @"Software\Classes";
+
+    private enum AssocStr
+    {
+        Executable = 2
+    }
 
     [DllImport("Shlwapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern uint AssocQueryString(int flags, int str, string pszAssoc, string? pszExtra, [Out] StringBuilder? pszOut, ref uint pcchOut);
+    private static extern uint AssocQueryString(int flags, AssocStr str, string pszAssoc, string? pszExtra, StringBuilder? pszOut, ref uint pcchOut);
+
+    [LibraryImport("shell32.dll", SetLastError = true)]
+    private static partial void SHChangeNotify(uint wEventId, uint uFlags, nint dwItem1, nint dwItem2);
+
+    private const uint SHCNE_ASSOCCHANGED = 0x08000000;
+    private const uint SHCNF_FLUSH = 0x00001000;
 
     public static string GetAssociatedProgram(string extension)
     {
-        uint length = 0;
-        // Primeira chamada para obter o tamanho necessário
-        _ = AssocQueryString(ASSOCF_NONE, ASSOCSTR_EXECUTABLE, extension, null, null, ref length);
+        ValidateExtension(extension);
 
-        StringBuilder sb = new((int)length);
-        // Segunda chamada para obter o programa associado
-        _ = AssocQueryString(ASSOCF_NONE, ASSOCSTR_EXECUTABLE, extension, null, sb, ref length);
+        uint length = 0;
+        _ = AssocQueryString(0, AssocStr.Executable, extension, null, null, ref length);
+
+        var sb = new StringBuilder((int)length);
+        _ = AssocQueryString(0, AssocStr.Executable, extension, null, sb, ref length);
 
         return sb.ToString();
     }
 
-    [LibraryImport("shell32.dll", SetLastError = true)]
-    public static partial void SHChangeNotify(uint wEventId, uint uFlags, nint dwItem1, nint dwItem2);
-
-    private const int SHCNE_ASSOCCHANGED = 0x8000000;
-    private const int SHCNF_FLUSH = 0x1000;
-    public static void AssociateProgram(string extension, string key_name, string description)
+    public static void AssociateProgram(string extension, string progId, string description, string applicationPath)
     {
-        try
-        {
-            var openWith = Application.ExecutablePath;
+        ValidateExtension(extension);
 
-            using (var BaseKey = Registry.ClassesRoot.CreateSubKey(extension))
-            {
-                BaseKey.SetValue("", key_name);
+        if (string.IsNullOrWhiteSpace(progId))
+            throw new ArgumentException("ProgId cannot be null or empty.");
 
-                using var OpenMethod = Registry.ClassesRoot.CreateSubKey(key_name);
-                OpenMethod.SetValue("", description);
-                OpenMethod.CreateSubKey("DefaultIcon").SetValue("", $"\"{openWith}\",0");
+        if (string.IsNullOrWhiteSpace(applicationPath))
+            throw new ArgumentException("Application path cannot be null or empty.");
 
-                using var Shell = OpenMethod.CreateSubKey("Shell");
-                Shell.CreateSubKey("edit").CreateSubKey("command").SetValue("", $"\"{openWith}\" \"%1\"");
-                Shell.CreateSubKey("open").CreateSubKey("command").SetValue("", $"\"{openWith}\" \"%1\"");
-            }
+        using var baseKey = Registry.CurrentUser.CreateSubKey($@"{UserClassesRoot}\{extension}")
+            ?? throw new InvalidOperationException("Failed to create extension key.");
 
-            using (var CurrentUser = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\" + extension, true))
-                CurrentUser?.DeleteSubKey("UserChoice", false);
+        baseKey.SetValue("", progId);
 
+        using var progKey = Registry.CurrentUser.CreateSubKey($@"{UserClassesRoot}\{progId}")
+            ?? throw new InvalidOperationException("Failed to create ProgId key.");
 
-            SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_FLUSH, nint.Zero, nint.Zero);
-        }
-        catch (UnauthorizedAccessException)
-        {
-            MessageBox.Show("You need to open the program as administrator.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
+        progKey.SetValue("", description);
 
-        catch (Exception error)
-        {
-            MessageBox.Show(error.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
+        using var iconKey = progKey.CreateSubKey("DefaultIcon");
+        iconKey?.SetValue("", $"\"{applicationPath}\",0");
+
+        using var shell = progKey.CreateSubKey("Shell")
+            ?? throw new InvalidOperationException("Failed to create Shell key.");
+
+        using var commandKey = shell.CreateSubKey(@"open\command");
+        commandKey?.SetValue("", $"\"{applicationPath}\" \"%1\"");
+
+        NotifyShell();
     }
 
-    public static void DisassociateProgram(string extension, string key_name)
+    public static void DisassociateProgram(string extension, string progId)
     {
-        try
-        {
-            using (var BaseKey = Registry.ClassesRoot.OpenSubKey(extension, true))
-            {
-                if (BaseKey != null)
-                    Registry.ClassesRoot.DeleteSubKeyTree(extension, false);
-            }
+        ValidateExtension(extension);
 
-            using (var OpenMethodKey = Registry.ClassesRoot.OpenSubKey(key_name, true))
-            {
-                if (OpenMethodKey != null)
-                    Registry.ClassesRoot.DeleteSubKeyTree(key_name, false);
+        Registry.CurrentUser.DeleteSubKeyTree($@"{UserClassesRoot}\{extension}", false);
+        Registry.CurrentUser.DeleteSubKeyTree($@"{UserClassesRoot}\{progId}", false);
 
-            }
+        NotifyShell();
+    }
 
-            using (var CurrentUser = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\" + extension, true))
-                CurrentUser?.DeleteSubKey("UserChoice", false);
+    private static void ValidateExtension(string extension)
+    {
+        if (string.IsNullOrWhiteSpace(extension))
+            throw new ArgumentException("Extension cannot be null or empty.");
 
+        if (!extension.StartsWith('.'))
+            throw new ArgumentException("Extension must start with .");
+    }
 
-            SHChangeNotify(0x08000000, 0x0000, nint.Zero, nint.Zero);
-        }
-        catch (UnauthorizedAccessException)
-        {
-            MessageBox.Show("Você precisa abrir o programa como administrador.", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        catch (Exception error)
-        {
-            MessageBox.Show(error.ToString(), "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
+    private static void NotifyShell()
+    {
+        SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_FLUSH, nint.Zero, nint.Zero);
     }
 }

@@ -50,7 +50,7 @@ public class CRC32DataGridComboCell : DataGridViewTextBoxCell
 
             return hash;
         }
-        
+
         return base.ParseFormattedValue(formattedValue, cellStyle, formattedValueTypeConverter, valueTypeConverter);
     }
 
@@ -65,7 +65,7 @@ public class CRC32DataGridComboCell : DataGridViewTextBoxCell
             control.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
             control.MaxDropDownItems = 10;
 
-            string hashedName = OwningColumn.Name;
+            var hashedName = OwningColumn.Name;
 
             if (!_columnAutoCompleteCache.TryGetValue(OwningColumn.Name, out var source))
             {
@@ -86,13 +86,12 @@ public class CRC32DataGridComboCell : DataGridViewTextBoxCell
             }
 
             if (initialFormattedValue is string text) control.Text = text;
-            
+
         }
     }
 
     private void Control_TextChanged(object? sender, EventArgs e)
     {
-        // Since we are using 
         DataGridView?.NotifyCurrentCellDirty(true);
     }
 }

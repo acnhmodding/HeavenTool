@@ -146,7 +146,6 @@ namespace HeavenTool.Forms.RSTB
             // 
             // TopMenu
             // 
-            TopMenu.ForeColor = System.Drawing.Color.White;
             TopMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { fileToolStripMenuItem, optionsToolStripMenuItem, devToolStripMenuItem });
             TopMenu.Location = new System.Drawing.Point(0, 0);
             TopMenu.Name = "TopMenu";
@@ -273,7 +272,6 @@ namespace HeavenTool.Forms.RSTB
             statusBar.AllowDrop = true;
             statusBar.AllowMerge = false;
             statusBar.AutoSize = false;
-            statusBar.ForeColor = System.Drawing.Color.White;
             statusBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { statusProgressBar, statusLabel });
             statusBar.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
             statusBar.Location = new System.Drawing.Point(0, 321);

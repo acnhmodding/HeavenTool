@@ -14,14 +14,13 @@ public class ColorDataGridCell : DataGridViewButtonCell
 
     public static (int r, int g, int b) FloatToRgbInt(float rFloat, float gFloat, float bFloat)
     {
-        // Clamp the float values to ensure they are within the 0.0 to 1.0 range
         rFloat = Math.Clamp(rFloat, 0f, 1f);
         gFloat = Math.Clamp(gFloat, 0f, 1f);
         bFloat = Math.Clamp(bFloat, 0f, 1f);
 
-        int rInt = (int)Math.Round(rFloat * 255f);
-        int gInt = (int)Math.Round(gFloat * 255f);
-        int bInt = (int)Math.Round(bFloat * 255f);
+        var rInt = (int)Math.Round(rFloat * 255f);
+        var gInt = (int)Math.Round(gFloat * 255f);
+        var bInt = (int)Math.Round(bFloat * 255f);
 
         return (rInt, gInt, bInt);
     }
@@ -32,7 +31,6 @@ public class ColorDataGridCell : DataGridViewButtonCell
         {
             ShowAlphaChannel = false,
         };
-
 
         if (Value is Color color)
         {

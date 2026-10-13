@@ -1,4 +1,5 @@
 ﻿using HeavenTool.Forms.RSTB;
+using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.ResourceSizeTable;
 using HeavenTool.Utility;
 using System;
@@ -25,7 +26,8 @@ internal static partial class Program
             Application.SetColorMode(SystemColorMode.Dark);
 
 #if DEBUG
-            WinConsole.Initialize();
+            WinConsole.Initialize("Heaven Tool: Console");
+            ConsoleUtilities.WriteLine("Heaven Tool initialized!", ConsoleColor.Gray);
 #endif
 
             if (args.Length > 0)
@@ -39,11 +41,16 @@ internal static partial class Program
                                 switch (fileTypeToAssociate)
                                 {
                                     case "bcsv":
-                                        ProgramAssociation.AssociateProgram(".bcsv", "BCSV", "BCSV File");
+                                        ProgramAssociation.AssociateProgram(".bcsv", "BCSV", "BCSV File", Application.ExecutablePath);
                                         break;
 
                                     case "srsizetable":
-                                        ProgramAssociation.AssociateProgram(".srsizetable", "srsizetable", "ResourceSizeTable File");
+                                        ProgramAssociation.AssociateProgram(".srsizetable", "srsizetable", "ResourceSizeTable File", Application.ExecutablePath);
+                                        break;
+
+                                    case "rsizetable":
+                                        ProgramAssociation.AssociateProgram(".rsizetable", "rsizetable", "ResourceSizeTable File", Application.ExecutablePath);
+                                        ProgramAssociation.AssociateProgram(".rsizetable.zs", "rsizetable", "ResourceSizeTable File", Application.ExecutablePath);
                                         break;
                                 }
                             }
@@ -64,6 +71,11 @@ internal static partial class Program
                                     case "srsizetable":
                                         ProgramAssociation.DisassociateProgram(".srsizetable", "srsizetable");
                                         break;
+
+                                    case "rsizetable":
+                                        ProgramAssociation.DisassociateProgram(".rsizetable", "rsizetable");
+                                        ProgramAssociation.DisassociateProgram(".rsizetable.zs", "rsizetable");
+                                        break;
                                 }
                             }
                             return;
@@ -76,28 +88,18 @@ internal static partial class Program
                         break;
                 }
 
-
             // TargetForm is defined by the input provided by the system (user opened a file)
             // If no input is provided (user opened the .exe alone), will open the Main Window
             TargetForm ??= new HeavenMain();
 
             Application.Run(TargetForm);
-        } else
+        }
+        else
         {
             Console.WriteLine("This is a Windows Application, please run it on Windows OS.");
         }
     }
 
-    /// <summary>
-    /// Creates and returns a form instance for editing or processing the specified file based on its extension.
-    /// </summary>
-    /// <remarks>Supports files with ".bcsv" and ".srsizetable" extensions. For ".srsizetable" files,
-    /// additional arguments may be required to perform certain operations. If the operation completes and no form is
-    /// needed, the method returns null and may terminate the application.</remarks>
-    /// <param name="originalArguments">An array of command-line arguments. The first element must be the file path to process. Additional elements may
-    /// be required depending on the file type.</param>
-    /// <returns>A form instance for editing or processing the specified file, or null if the file type is not supported or if
-    /// the operation completes without displaying a form.</returns>
     public static Form? HandleInput(string[] originalArguments)
     {
         var path = originalArguments[0];
@@ -121,7 +123,7 @@ internal static partial class Program
                     if (rstbEditor.LoadedFile is ResourceSizeTable rstb)
                     {
                         rstbEditor.CreateUpdatedRSTBFromModdedRomFs(rstb, originalArguments[1], false);
-                        string outPath = path;
+                        var outPath = path;
                         if (originalArguments.Length >= 3)
                             outPath = originalArguments[2];
 
@@ -138,7 +140,7 @@ internal static partial class Program
                     rstbEditor.LoadFile(path);
                     return rstbEditor;
                 }
-            default: 
+            default:
                 return null;
         }
     }

@@ -2,13 +2,14 @@
 using System;
 
 namespace HeavenTool.Forms.BCSV.Controls;
+
 public partial class StringEntry : BCSVEntry
 {
-    public Action<object>? Callback;  
+    public Action<object>? Callback;
     public StringEntry(object defaultValue, int limit)
     {
         InitializeComponent();
-      
+
         input.ByteSizeLimit = limit;
         input.Text = defaultValue.ToString();
 
@@ -27,7 +28,7 @@ public partial class StringEntry : BCSVEntry
 
     public override void SetUniqueIdentifier()
     {
-       propertyNameLabel.Font = new System.Drawing.Font(DefaultFont, System.Drawing.FontStyle.Bold);
+        propertyNameLabel.Font = new System.Drawing.Font(DefaultFont, System.Drawing.FontStyle.Bold);
     }
 
     private void Input_TextChanged(object sender, EventArgs e)

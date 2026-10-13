@@ -1,7 +1,6 @@
-﻿using System.Windows.Forms;
+﻿using System.ComponentModel;
+using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
-using System.ComponentModel;
-using System;
 
 namespace HeavenTool.Forms.Components;
 

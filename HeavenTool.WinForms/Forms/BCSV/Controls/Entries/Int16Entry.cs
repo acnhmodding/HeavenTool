@@ -5,11 +5,11 @@ namespace HeavenTool.Forms.BCSV.Controls;
 
 public partial class Int16Entry : BCSVEntry
 {
-    public Action<object>? Callback;  
+    public Action<object>? Callback;
     public Int16Entry(object defaultValue)
     {
         InitializeComponent();
-      
+
         input.Text = defaultValue.ToString();
         Input_TextChanged(this, EventArgs.Empty);
     }
@@ -31,13 +31,13 @@ public partial class Int16Entry : BCSVEntry
 
     private void Input_TextChanged(object sender, EventArgs e)
     {
-        if (short.TryParse(input.Text, out short value))
+        if (short.TryParse(input.Text, out var value))
             Callback?.Invoke(value);
     }
 
     public override object GetValue()
     {
-        if (short.TryParse(input.Text, out short value))
+        if (short.TryParse(input.Text, out var value))
             return value;
         else return short.MinValue;
     }

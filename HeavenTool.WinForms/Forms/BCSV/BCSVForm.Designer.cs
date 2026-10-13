@@ -32,12 +32,12 @@ namespace HeavenTool
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            DataGridViewCellStyle dataGridViewCellStyle1 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle2 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle3 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle4 = new DataGridViewCellStyle();
-            DataGridViewCellStyle dataGridViewCellStyle5 = new DataGridViewCellStyle();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(BCSVForm));
+            var dataGridViewCellStyle1 = new DataGridViewCellStyle();
+            var dataGridViewCellStyle2 = new DataGridViewCellStyle();
+            var dataGridViewCellStyle3 = new DataGridViewCellStyle();
+            var dataGridViewCellStyle4 = new DataGridViewCellStyle();
+            var dataGridViewCellStyle5 = new DataGridViewCellStyle();
+            var resources = new System.ComponentModel.ComponentResourceManager(typeof(BCSVForm));
             topMenuStrip = new MenuStrip();
             fileToolStripMenuItem = new ToolStripMenuItem();
             openToolStripMenuItem = new ToolStripMenuItem();
@@ -79,7 +79,7 @@ namespace HeavenTool
             headerNameToolStripMenuItem = new ToolStripMenuItem();
             headerHashToolStripMenuItem = new ToolStripMenuItem();
             exportValuesAstxtFileToolStripMenuItem = new ToolStripMenuItem();
-            dragInfo = new Label();
+            dragInfo = new Label();   
             topMenuStrip.SuspendLayout();
             statusStripMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)mainDataGridView).BeginInit();
@@ -102,7 +102,6 @@ namespace HeavenTool
             // 
             fileToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             fileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { openToolStripMenuItem, saveAsToolStripMenuItem, toolStripSeparator2, importFromFileToolStripMenuItem, exportSelectionToolStripMenuItem, toolStripSeparator1, exportToCSVFileToolStripMenuItem, unloadFileToolStripMenuItem });
-            fileToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
             fileToolStripMenuItem.Text = "File";
@@ -182,7 +181,6 @@ namespace HeavenTool
             // 
             editToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             editToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchToolStripMenuItem, findReplaceToolStripMenuItem, newEntryToolStripMenuItem, duplicateRowToolStripMenuItem, deleteRowsToolStripMenuItem, compareRowsToolStripMenuItem, copyToolStripMenuItem1, undoButton, redoButton });
-            editToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             editToolStripMenuItem.Name = "editToolStripMenuItem";
             editToolStripMenuItem.Size = new System.Drawing.Size(39, 20);
             editToolStripMenuItem.Text = "Edit";
@@ -194,7 +192,7 @@ namespace HeavenTool
             searchToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             searchToolStripMenuItem.Name = "searchToolStripMenuItem";
             searchToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.F;
-            searchToolStripMenuItem.Size = new System.Drawing.Size(213, 30);
+            searchToolStripMenuItem.Size = new System.Drawing.Size(215, 30);
             searchToolStripMenuItem.Text = "Search";
             searchToolStripMenuItem.ToolTipText = "Search for a line on this file";
             searchToolStripMenuItem.Click += SearchToolStripMenuItem_Click;
@@ -205,7 +203,7 @@ namespace HeavenTool
             findReplaceToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             findReplaceToolStripMenuItem.Name = "findReplaceToolStripMenuItem";
             findReplaceToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.H;
-            findReplaceToolStripMenuItem.Size = new System.Drawing.Size(213, 30);
+            findReplaceToolStripMenuItem.Size = new System.Drawing.Size(215, 30);
             findReplaceToolStripMenuItem.Text = "Find and Replace";
             findReplaceToolStripMenuItem.ToolTipText = "Replace cells whose displayed text exactly matches";
             findReplaceToolStripMenuItem.Click += FindReplaceToolStripMenuItem_Click;
@@ -216,7 +214,7 @@ namespace HeavenTool
             newEntryToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             newEntryToolStripMenuItem.Name = "newEntryToolStripMenuItem";
             newEntryToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.N;
-            newEntryToolStripMenuItem.Size = new System.Drawing.Size(213, 30);
+            newEntryToolStripMenuItem.Size = new System.Drawing.Size(215, 30);
             newEntryToolStripMenuItem.Text = "New Entry";
             newEntryToolStripMenuItem.ToolTipText = "Add a new entry into this file";
             newEntryToolStripMenuItem.Click += NewEntryToolStripMenuItem_Click;
@@ -227,7 +225,7 @@ namespace HeavenTool
             duplicateRowToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             duplicateRowToolStripMenuItem.Name = "duplicateRowToolStripMenuItem";
             duplicateRowToolStripMenuItem.ShortcutKeys = Keys.Control | Keys.D;
-            duplicateRowToolStripMenuItem.Size = new System.Drawing.Size(213, 30);
+            duplicateRowToolStripMenuItem.Size = new System.Drawing.Size(215, 30);
             duplicateRowToolStripMenuItem.Text = "Duplicate Row(s)";
             duplicateRowToolStripMenuItem.ToolTipText = "Duplicate the selected row(s)";
             duplicateRowToolStripMenuItem.Click += DuplicateRowToolStripMenuItem_Click;
@@ -238,7 +236,7 @@ namespace HeavenTool
             deleteRowsToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             deleteRowsToolStripMenuItem.Name = "deleteRowsToolStripMenuItem";
             deleteRowsToolStripMenuItem.ShortcutKeys = Keys.Delete;
-            deleteRowsToolStripMenuItem.Size = new System.Drawing.Size(213, 30);
+            deleteRowsToolStripMenuItem.Size = new System.Drawing.Size(215, 30);
             deleteRowsToolStripMenuItem.Text = "Delete Row(s)";
             deleteRowsToolStripMenuItem.ToolTipText = "Delete the selected row(s)";
             deleteRowsToolStripMenuItem.Click += DeleteRowsToolStripMenuItem_Click;
@@ -249,7 +247,7 @@ namespace HeavenTool
             compareRowsToolStripMenuItem.Image = Properties.Resources.compare;
             compareRowsToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             compareRowsToolStripMenuItem.Name = "compareRowsToolStripMenuItem";
-            compareRowsToolStripMenuItem.Size = new System.Drawing.Size(213, 30);
+            compareRowsToolStripMenuItem.Size = new System.Drawing.Size(215, 30);
             compareRowsToolStripMenuItem.Text = "Compare Rows";
             compareRowsToolStripMenuItem.ToolTipText = "Compare selected rows in a new window (read-only)";
             compareRowsToolStripMenuItem.Click += CompareRowsToolStripMenuItem_Click;
@@ -260,7 +258,7 @@ namespace HeavenTool
             copyToolStripMenuItem1.ImageScaling = ToolStripItemImageScaling.None;
             copyToolStripMenuItem1.Name = "copyToolStripMenuItem1";
             copyToolStripMenuItem1.ShortcutKeys = Keys.Control | Keys.C;
-            copyToolStripMenuItem1.Size = new System.Drawing.Size(213, 30);
+            copyToolStripMenuItem1.Size = new System.Drawing.Size(215, 30);
             copyToolStripMenuItem1.Text = "Copy";
             copyToolStripMenuItem1.Click += CopyToolStripMenuItem_Click;
             // 
@@ -270,7 +268,7 @@ namespace HeavenTool
             undoButton.ImageScaling = ToolStripItemImageScaling.None;
             undoButton.Name = "undoButton";
             undoButton.ShortcutKeys = Keys.Control | Keys.Z;
-            undoButton.Size = new System.Drawing.Size(213, 30);
+            undoButton.Size = new System.Drawing.Size(215, 30);
             undoButton.Text = "Undo";
             undoButton.Click += UndoClicked;
             // 
@@ -280,7 +278,7 @@ namespace HeavenTool
             redoButton.ImageScaling = ToolStripItemImageScaling.None;
             redoButton.Name = "redoButton";
             redoButton.ShortcutKeys = Keys.Control | Keys.Y;
-            redoButton.Size = new System.Drawing.Size(213, 30);
+            redoButton.Size = new System.Drawing.Size(215, 30);
             redoButton.Text = "Redo";
             redoButton.Click += RedoClicked;
             // 
@@ -288,7 +286,6 @@ namespace HeavenTool
             // 
             viewToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             viewToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { toggleAllColumnsVisibilityToolStripMenuItem, viewColumnsMenuItem, selectionTypeMenuItem });
-            viewToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             viewToolStripMenuItem.Name = "viewToolStripMenuItem";
             viewToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             viewToolStripMenuItem.Text = "View";
@@ -337,7 +334,6 @@ namespace HeavenTool
             // 
             devToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             devToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { associateBcsvToolStripMenuItem });
-            devToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             devToolStripMenuItem.Name = "devToolStripMenuItem";
             devToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
             devToolStripMenuItem.Text = "Options";
@@ -354,25 +350,23 @@ namespace HeavenTool
             // 
             toolsToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(31, 31, 32);
             toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchOnFilesToolStripMenuItem, hashFinderToolStripMenuItem });
-            toolsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             toolsToolStripMenuItem.Size = new System.Drawing.Size(47, 20);
             toolsToolStripMenuItem.Text = "Tools";
             // 
             // searchOnFilesToolStripMenuItem
             // 
-            searchOnFilesToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(213, 213, 213);
             searchOnFilesToolStripMenuItem.Image = Properties.Resources.search;
             searchOnFilesToolStripMenuItem.ImageScaling = ToolStripItemImageScaling.None;
             searchOnFilesToolStripMenuItem.Name = "searchOnFilesToolStripMenuItem";
-            searchOnFilesToolStripMenuItem.Size = new System.Drawing.Size(158, 30);
+            searchOnFilesToolStripMenuItem.Size = new System.Drawing.Size(188, 30);
             searchOnFilesToolStripMenuItem.Text = "Search on files";
             searchOnFilesToolStripMenuItem.Click += SearchOnFilesToolStripMenuItem_Click;
             // 
             // hashFinderToolStripMenuItem
             // 
             hashFinderToolStripMenuItem.Name = "hashFinderToolStripMenuItem";
-            hashFinderToolStripMenuItem.Size = new System.Drawing.Size(158, 30);
+            hashFinderToolStripMenuItem.Size = new System.Drawing.Size(188, 30);
             hashFinderToolStripMenuItem.Text = "Hash Finder";
             hashFinderToolStripMenuItem.Click += HashFinderToolStripMenuItem_Click;
             // 
@@ -514,7 +508,7 @@ namespace HeavenTool
             dragInfo.TabIndex = 5;
             dragInfo.Text = "Drag a file here\r\nor use File > Open";
             dragInfo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
+            //
             // BCSVForm
             // 
             AllowDrop = true;

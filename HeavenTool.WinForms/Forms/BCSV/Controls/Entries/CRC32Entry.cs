@@ -43,7 +43,7 @@ public partial class CRC32Entry : BCSVEntry
             crcComboBox.Items.AddRange(items);
             crcComboBox.EndUpdate();
 
-            int index = Array.FindIndex(items, x => x.Value == value);
+            var index = Array.FindIndex(items, x => x.Value == value);
             if (index >= 0)
                 crcComboBox.SelectedIndex = index;
         }

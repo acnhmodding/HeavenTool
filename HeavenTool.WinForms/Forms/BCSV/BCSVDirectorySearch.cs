@@ -1,5 +1,4 @@
 ﻿using AltUI.Controls;
-using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
 using System;
 using System.IO;
@@ -31,7 +30,7 @@ public partial class BCSVDirectorySearch : Form
         searchButton.Enabled = false;
         if (Directory.Exists(directoryPath.Text))
         {
-            
+
             try
             {
                 foreach (var file in Directory.GetFiles(directoryPath.Text))
@@ -42,14 +41,14 @@ public partial class BCSVDirectorySearch : Form
                     ReadBCSVFileAndSearch(file);
                 }
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 MessageBox.Show("Error while searching:\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            } 
+            }
         }
 
         searchButton.Enabled = true;
     }
-
 
     private void ReadBCSVFileAndSearch(string path)
     {
@@ -72,12 +71,12 @@ public partial class BCSVDirectorySearch : Form
                 node?.Nodes.Add(new DarkTreeNode($"Header: {name}"));
             }
         }
-        
-        foreach(var (entry, index) in bcsvFile.Entries.Select((x, y) => (x, y)))
+
+        foreach (var (entry, index) in bcsvFile.Entries.Select((x, y) => (x, y)))
         {
-            for (int fieldIndex = 0; fieldIndex < entry.Length; fieldIndex++)
+            for (var fieldIndex = 0; fieldIndex < entry.Length; fieldIndex++)
             {
-                object item = entry[fieldIndex];
+                var item = entry[fieldIndex];
                 var value = item.ToString();
                 if ((containButton.Checked && value != null && value.Contains(searchField.Text, StringComparison.CurrentCultureIgnoreCase)) || value == searchField.Text)
                 {
@@ -89,7 +88,7 @@ public partial class BCSVDirectorySearch : Form
                     var entryField = bcsvFile.Fields[fieldIndex];
                     if (entryField != null)
                         node?.Nodes.Add(new DarkTreeNode($"Entry: {index} | Header: {entryField.GetTranslatedNameOrHash()} | {value} (value)"));
-                    else 
+                    else
                         node?.Nodes.Add(new DarkTreeNode($"Entry: {index} | {value} (value)"));
                 }
             }

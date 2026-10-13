@@ -1,8 +1,8 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-using System.ComponentModel;
 
 namespace HeavenTool.Forms.BCSV.Controls;
 
@@ -32,7 +32,6 @@ public class CheckedComboBox : ComboBox
             Dock = DockStyle.Fill,
             CheckOnClick = true
         };
-
 
         _checkedListBox.ItemCheck += CheckedListBox_ItemCheck;
 
@@ -159,8 +158,8 @@ public class CheckedComboBox : ComboBox
         if (_checkedListBox.Items.Count == 0)
             return;
 
-        int itemCount = Math.Min(MaxDropDownItems, _checkedListBox.Items.Count);
-        int height = _checkedListBox.ItemHeight * itemCount + 2;
+        var itemCount = Math.Min(MaxDropDownItems, _checkedListBox.Items.Count);
+        var height = _checkedListBox.ItemHeight * itemCount + 2;
 
         _checkedListBox.Height = height;
         _checkedListBox.Width = Width;
@@ -200,7 +199,7 @@ public class CheckedComboBox : ComboBox
         }
         else if (e.KeyCode == Keys.Delete)
         {
-            for (int i = 0; i < _checkedListBox.Items.Count; i++)
+            for (var i = 0; i < _checkedListBox.Items.Count; i++)
                 _checkedListBox.SetItemChecked(i, e.Shift);
 
             UpdateText();
@@ -212,7 +211,7 @@ public class CheckedComboBox : ComboBox
     {
         StringBuilder sb = new();
 
-        for (int i = 0; i < _checkedListBox.Items.Count; i++)
+        for (var i = 0; i < _checkedListBox.Items.Count; i++)
         {
             bool isChecked;
 

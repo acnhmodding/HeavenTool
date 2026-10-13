@@ -1,27 +1,27 @@
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Globalization;
-using System.Text;
-using System.Windows.Forms;
 using HeavenTool.Forms;
-using System.Diagnostics;
-using HeavenTool.Forms.Search;
-using HeavenTool.Forms.Components;
-using HeavenTool.IO.FileFormats.BCSV;
-using ProgramAssociation = HeavenTool.Utility.ProgramAssociation;
-using HeavenTool.IO;
-using HeavenTool.Forms.BCSV.Controls;
-using HeavenTool.Forms.BCSV.Templates;
 using HeavenTool.Forms.BCSV;
-using System.Text.RegularExpressions;
+using HeavenTool.Forms.BCSV.Controls;
 using HeavenTool.Forms.BCSV.Controls.Entries;
+using HeavenTool.Forms.BCSV.Templates;
+using HeavenTool.Forms.Components;
+using HeavenTool.Forms.Editor;
+using HeavenTool.Forms.Search;
+using HeavenTool.IO;
+using HeavenTool.IO.FileFormats.BCSV;
 using HeavenTool.Utility;
 using HeavenTool.Utility.UndoSystem;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using HeavenTool.Forms.Editor;
+using System.Drawing;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
+using ProgramAssociation = HeavenTool.Utility.ProgramAssociation;
 
 namespace HeavenTool;
 
@@ -64,7 +64,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
     private static readonly Brush RowHeaderBrush = new SolidBrush(Color.FromArgb(110, 110, 110));
     private static readonly string OriginalFormName = "BCSV Editor";
-
 
     private BinaryCSV? LoadedFile { get; set; }
 
@@ -160,7 +159,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
         reorderableIndexDictionary ??= [];
         reorderableIndexDictionary.Clear();
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
             reorderableIndexDictionary.Add(i);
 
         mainDataGridView.RowCount = count;
@@ -209,7 +208,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                         oldValue = LoadedFile[entryIndex, entryColumn],
                         newValue = val,
                     });
-                    //LoadedFile.Entries[entryIndex][entryColumn] = val;
                 }
         }
         else
@@ -227,7 +225,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                 oldValue = LoadedFile[entryIndex, fieldIndex],
                 newValue = e.Value!,
             });
-            //LoadedFile.Entries[entryIndex][fieldIndex] = e.Value;
 
             if (mainDataGridView.SelectionMode == DataGridViewSelectionMode.CellSelect)
             {
@@ -357,7 +354,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
         var entry = LoadedFile.Entries[entryIndex];
         var field = LoadedFile.Fields[column.HeaderIndex];
 
-
         if (column.CellTemplate is ColorDataGridCell)
         {
             // If its a Color Cell, apply color to the button and get text in R, G, B format
@@ -414,7 +410,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
     private static int CompareObjects(object entryX, object entryY)
     {
-        // Checking both may be useless
         if (entryX is uint xUint && entryY is uint yUint)
             return xUint.CompareTo(yUint);
 
@@ -468,9 +463,9 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                 }
             }
 
-            TryGetColorValue("R", out float r);
-            TryGetColorValue("G", out float g);
-            TryGetColorValue("B", out float b);
+            TryGetColorValue("R", out var r);
+            TryGetColorValue("G", out var g);
+            TryGetColorValue("B", out var b);
 
             e.Value = ColorDataGridCell.GetColor(r, g, b);
         }
@@ -583,7 +578,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
     [GeneratedRegex(@"^(.*?)(?:Color([RGB]))?\s+f32$")]
     private static partial Regex ColorRegex();
 
-
     public async void LoadFile(string path)
     {
         LoadedFile = null;
@@ -601,13 +595,12 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
         }
     }
 
-
     public async override void LoadFile(Stream stream)
     {
         ClearDataGrid();
 
         LoadedFile = new BinaryCSV(stream);
-        
+
         if (LoadedFile == null)
             return;
 
@@ -624,7 +617,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
         var menuItems = new List<ToolStripItem>();
         var boldFont = new Font(mainDataGridView.Font, FontStyle.Bold);
 
-        for (int fieldIndex = 0; fieldIndex < LoadedFile.Fields.Length; fieldIndex++)
+        for (var fieldIndex = 0; fieldIndex < LoadedFile.Fields.Length; fieldIndex++)
         {
             var fieldHeader = LoadedFile.Fields[fieldIndex];
             var translatedName = fieldHeader.GetTranslatedNameOrNull();
@@ -661,7 +654,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                 cellTemplate = new ColorDataGridCell { ColorFieldIndexes = colorFields[colorColumn] };
             }
 
-            string tooltip = (translatedName != null ? $"Name: {translatedName}\n" : "") +
+            var tooltip = (translatedName != null ? $"Name: {translatedName}\n" : "") +
                 $"Hash: {fieldHeader.HEX}\n" +
                 $"Type: {fieldHeader.DataType}\n" +
                 $"Size: {fieldHeader.Size}\n" +
@@ -680,7 +673,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
             if (colorColumn != null)
                 col.HeaderText = $"{colorColumn} Color";
 
-            if (fieldHeader.DataType == DataType.CRC32 || fieldHeader.DataType == DataType.MMH3)
+            if (fieldHeader.DataType is DataType.CRC32 or DataType.MMH3)
                 col.DefaultCellStyle.Font = boldFont;
 
             if (fieldHeader.IsMissingHash)
@@ -751,7 +744,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
     BCSVDirectorySearch? directorySearchWindow = null;
     private void SearchOnFilesToolStripMenuItem_Click(object? sender, EventArgs e)
     {
-        // Create directory search window if needed
         if (directorySearchWindow == null || directorySearchWindow.IsDisposed)
             directorySearchWindow = new BCSVDirectorySearch();
 
@@ -790,9 +782,9 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
             if (lastEntry != null && lastEntry.Length == LoadedFile.Fields.Length)
             {
-                for (int i = 0; i < LoadedFile.Fields.Length; i++)
+                for (var i = 0; i < LoadedFile.Fields.Length; i++)
                 {
-                    Field field = LoadedFile.Fields[i];
+                    var field = LoadedFile.Fields[i];
                     newValues[field] = lastEntry[i];
                 }
             }
@@ -805,9 +797,9 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
             var entr = newEntryWindow.GetEntries().ToDictionary(y => y.Field!, v => v.GetValue());
             var newEntry = new object[LoadedFile.Fields.Length];
 
-            for (int i = 0; i < LoadedFile.Fields.Length; i++)
+            for (var i = 0; i < LoadedFile.Fields.Length; i++)
             {
-                Field field = LoadedFile.Fields[i];
+                var field = LoadedFile.Fields[i];
 
                 if (!entr.TryGetValue(field, out var val))
                 {
@@ -828,7 +820,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
             ConsoleUtilities.WriteLine($"Adding new entry: {string.Join(", ", newEntry)}", ConsoleColor.Cyan);
             UndoManager.Execute(new NewRowCommand(LoadedFile, newEntry));
             SetDirty(true);
-            
+
             ChangedRowCount(LoadedFile.Length);
             mainDataGridView.FirstDisplayedScrollingRowIndex = LoadedFile.Length - 1;
 
@@ -836,10 +828,10 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
         });
 
         newEntryWindow.contentPanel.SuspendLayout();
-        for (int fieldIndex = 0; fieldIndex < LoadedFile.Fields.Length; fieldIndex++)
+        for (var fieldIndex = 0; fieldIndex < LoadedFile.Fields.Length; fieldIndex++)
         {
-            Field field = LoadedFile.Fields[fieldIndex];
-            var defaultValue = newValues.TryGetValue(field, out object? val) ? val : field.GetFieldDefaultValue();
+            var field = LoadedFile.Fields[fieldIndex];
+            var defaultValue = newValues.TryGetValue(field, out var val) ? val : field.GetFieldDefaultValue();
 
             BCSVEntry? entry = field.DataType switch
             {
@@ -852,7 +844,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                 DataType.Float32 => new Float32Entry(defaultValue),
                 DataType.String => new StringEntry(defaultValue, field.Size),
                 DataType.CRC32 => new CRC32Entry(defaultValue, field.Hash),
-                DataType.BitField => new BitFieldEntry(field.Size, defaultValue, HashManager.BitField.TryGetValue(field.Hash, out string[]? bitfields) ? bitfields : null),
+                DataType.BitField => new BitFieldEntry(field.Size, defaultValue, HashManager.BitField.TryGetValue(field.Hash, out var bitfields) ? bitfields : null),
                 _ => null
             };
 
@@ -869,7 +861,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                     newEntryWindow.MoveContent(entry, 0);
                 }
             }
-            //else throw new Exception($"No class implemented for {field.DataType}");
         }
         newEntryWindow.contentPanel.ResumeLayout();
 
@@ -994,7 +985,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
         if (e.Button == MouseButtons.Left)
         {
-            string clickedColumn = mainDataGridView.Columns[e.ColumnIndex].Name;
+            var clickedColumn = mainDataGridView.Columns[e.ColumnIndex].Name;
 
             if (sortColumn != null && sortColumn != clickedColumn && TryGetColumn(sortColumn, out var column))
                 column.HeaderCell.SortGlyphDirection = SortOrder.None;
@@ -1057,7 +1048,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
         if (e.Data.GetDataPresent(DataFormats.FileDrop) && e.Data.GetData(DataFormats.FileDrop) is string[] fileList)
         {
-            foreach (string filePath in fileList)
+            foreach (var filePath in fileList)
             {
                 if (Path.GetExtension(filePath) == ".bcsv")
                 {
@@ -1088,7 +1079,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
         }
     }
 
-
     private void ExportToCSVFileToolStripMenuItem_Click(object? sender, EventArgs e)
     {
         if (LoadedFile == null || mainDataGridView.Columns.Count == 0) return;
@@ -1108,7 +1098,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
             var headers = mainDataGridView.Columns.Cast<DataGridViewColumn>();
             sb.AppendLine(string.Join(",", [.. headers.Select(column => $"\"{column.HeaderText}\"")]));
 
-            for (int i = 0; i < LoadedFile.Entries.Count; i++)
+            for (var i = 0; i < LoadedFile.Entries.Count; i++)
             {
                 var row = LoadedFile.Entries[i];
 
@@ -1137,7 +1127,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                                 break;
                             }
                     }
-
 
                     return parsedValue;
                 }
@@ -1228,7 +1217,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
         compareWindow.ShowDialog();
     }
 
-
     private SearchBox? searchBox;
     private FindReplaceBox? findReplaceBox;
 
@@ -1244,7 +1232,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
     private void SearchToolStripMenuItem_Click(object? sender, EventArgs e)
     {
-        // Create SearchBox Window if needed
         searchBox ??= new SearchBox(this)
         {
             StartPosition = FormStartPosition.CenterParent
@@ -1254,7 +1241,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
         RestoreSearchCache();
     }
-
 
     private string lastSearch = "";
     private bool lastCaseSensitive = false;
@@ -1335,14 +1321,14 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
             if (!caseSensitive) search = search.ToLower();
 
             var cellsTemp = new List<(int ColumnIndex, int RowIndex)>();
-            for (int columnIndex = 0; columnIndex < mainDataGridView.Columns.Count; columnIndex++)
+            for (var columnIndex = 0; columnIndex < mainDataGridView.Columns.Count; columnIndex++)
             {
                 if (mainDataGridView.Columns[columnIndex] is not IndexableDataGridColumn indexableDataGridColumn) continue;
                 if (indexableDataGridColumn.HeaderIndex >= LoadedFile.Fields.Length) continue;
 
                 var field = LoadedFile.Fields[indexableDataGridColumn.HeaderIndex];
 
-                for (int rowIndex = 0; rowIndex < mainDataGridView.RowCount; rowIndex++)
+                for (var rowIndex = 0; rowIndex < mainDataGridView.RowCount; rowIndex++)
                 {
                     var actualIndex = reorderableIndexDictionary[rowIndex];
                     var (formattedValue, isFormatted) = GetFormattedValue(LoadedFile.Entries[actualIndex], indexableDataGridColumn.HeaderIndex, field);
@@ -1354,7 +1340,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                     if ((searchType == SearchType.Contains && formattedValue.Contains(search)) ||
                         (searchType == SearchType.Exactly && formattedValue == search))
                         cellsTemp.Add((columnIndex, rowIndex));
-
 
                 }
             }
@@ -1387,13 +1372,11 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
         }
 
-        // If its out of bounds, return to start (in case o backwards return to the last one)
         if (currentSearchIndex >= searchCache.Length || currentSearchIndex < 0)
         {
             currentSearchIndex = searchBackwards ? searchCache.Length - 1 : 0;
         }
 
-        // Safe check, don't should occur but checking again doesn't hurt
         if (searchCache.Length > 0 && currentSearchIndex < searchCache.Length && currentSearchIndex >= 0)
         {
             if (lastSearchCell.HasValue)
@@ -1874,10 +1857,8 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                 return;
             }
 
-
             List<Field> missingFieldsInLoadedFile = [.. LoadedFile.Fields.Where(x => !bcsvToCopy.Fields.Contains(x))];
             List<Field> missingFieldsInSource = [.. bcsvToCopy.Fields.Where(x => !LoadedFile.Fields.Contains(x))];
-
 
             foreach (var entry in bcsvToCopy.Entries)
             {
@@ -1895,7 +1876,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
                     }
                     else
                     {
-                        // Use default value instead
                         var fieldIndex = Array.IndexOf(LoadedFile.Fields, field);
                         var defaultValue = field.GetFieldDefaultValue();
 
@@ -1968,7 +1948,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
     {
         if (e.StateChanged == DataGridViewElementStates.Visible)
         {
-            string key = $"ViewColumn_{e.Column.Name}";
+            var key = $"ViewColumn_{e.Column.Name}";
 
             if (viewColumnsMenuItem.DropDownItems.ContainsKey(key) && viewColumnsMenuItem.DropDownItems[key] is ToolStripMenuItem item)
                 item.Checked = e.Column.Visible;
@@ -2004,12 +1984,9 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
     private void RowSelectToolStripMenuItem_Click(object? sender, EventArgs e) => ChangeSelectionMode(DataGridViewSelectionMode.FullRowSelect);
 
-
     private void CellSelectToolStripMenuItem_Click(object? sender, EventArgs e) => ChangeSelectionMode(DataGridViewSelectionMode.CellSelect);
 
-
     private void HashFinderToolStripMenuItem_Click(object? sender, EventArgs e) => new HashFinderForm().Show();
-
 
     private void CopyToolStripMenuItem_Click(object? sender, EventArgs e)
     {
@@ -2038,8 +2015,6 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
         Clipboard.SetText(sb.ToString());
     }
-
-
 
     private void UndoClicked(object sender, EventArgs e) => Undo();
 

@@ -8,7 +8,7 @@ public class ExplorerWindow : DockContent
 {
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public TreeView TreeView { get; set; }
-    
+
     public ExplorerWindow()
     {
         Text = "Explorer";
