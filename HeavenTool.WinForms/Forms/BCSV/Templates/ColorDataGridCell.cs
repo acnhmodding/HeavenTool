@@ -27,7 +27,7 @@ public class ColorDataGridCell : DataGridViewButtonCell
 
     protected override void OnClick(DataGridViewCellEventArgs e)
     {
-        var colorPicker = new ColorPickerDialog()
+        using var colorPicker = new ColorPickerDialog()
         {
             ShowAlphaChannel = false,
         };

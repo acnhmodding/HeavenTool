@@ -66,6 +66,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
     private static readonly string OriginalFormName = "BCSV Editor";
 
     private BinaryCSV? LoadedFile { get; set; }
+    private Font? columnBoldFont;
 
     public BCSVForm(bool isEditor = false)
     {
@@ -123,6 +124,11 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
         }
 
         FormClosing += (_, e) => WinFormsUtility.FormClosingConfirmation(e, LoadedFile != null, UnloadFile);
+        Disposed += (_, _) =>
+        {
+            columnBoldFont?.Dispose();
+            columnBoldFont = null;
+        };
     }
 
     private void MainDataGridView_CellParsing(object? sender, DataGridViewCellParsingEventArgs e)
@@ -533,6 +539,9 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
             mainDataGridView.Columns.Clear();
         }
 
+        columnBoldFont?.Dispose();
+        columnBoldFont = null;
+
         ChangedRowCount(0);
         mainDataGridView.Refresh();
 
@@ -615,7 +624,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
         var columns = new List<IndexableDataGridColumn>();
         var menuItems = new List<ToolStripItem>();
-        var boldFont = new Font(mainDataGridView.Font, FontStyle.Bold);
+        var boldFont = columnBoldFont = new Font(mainDataGridView.Font, FontStyle.Bold);
 
         for (var fieldIndex = 0; fieldIndex < LoadedFile.Fields.Length; fieldIndex++)
         {
@@ -1195,7 +1204,7 @@ public partial class BCSVForm : BaseEditor, ISearchable, IFindReplaceable
 
     private void CompareRowsToolStripMenuItem_Click(object? sender, EventArgs e)
     {
-        var compareWindow = new BCSVCompareWindow();
+        using var compareWindow = new BCSVCompareWindow();
         compareWindow.compareDataGrid.Columns.Clear();
 
         foreach (DataGridViewColumn column in mainDataGridView.Columns)
