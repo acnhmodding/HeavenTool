@@ -347,7 +347,7 @@ public class ResourceSizeTable : IDisposable
             && !romfsName.StartsWith("Model/Layout_"))
             return -1;
 #endif
-        var fileStream = new FileStream(entireFileName, FileMode.Open);
+        using var fileStream = File.OpenRead(entireFileName);
 
         long size = -1;
         if (entireFileName.EndsWith(".zs") || ZstdDecompressor.CanDecompress(fileStream))

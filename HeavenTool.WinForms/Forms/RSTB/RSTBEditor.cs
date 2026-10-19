@@ -24,6 +24,8 @@ public partial class RSTBEditor : Form, ISearchable
     private string OriginalText { get; }
 
     private SearchBox? searchBox;
+    private ResourceSizeTable.ResourceTableEntry[] displayedEntries = [];
+    private bool isUpdating;
     public RSTBEditor()
     {
         InitializeComponent();
@@ -66,12 +68,10 @@ public partial class RSTBEditor : Form, ISearchable
 
     private void DataGrid_CellValueNeeded(object? sender, DataGridViewCellValueEventArgs e)
     {
-        if (LoadedFile == null) return;
-
-        if (e.RowIndex < 0 || e.RowIndex >= LoadedFile.Length)
+        if (e.RowIndex < 0 || e.RowIndex >= displayedEntries.Length)
             return;
 
-        var entry = LoadedFile[e.RowIndex];
+        var entry = displayedEntries[e.RowIndex];
 
         switch (dataGrid.Columns[e.ColumnIndex].Name)
         {
@@ -137,13 +137,15 @@ public partial class RSTBEditor : Form, ISearchable
 
         if (LoadedFile?.IsLoaded != true)
         {
+            displayedEntries = [];
             dataGrid.RowCount = 0;
             return;
         }
 
-        var uniqueEntries = LoadedFile.Dictionary.Values.Where(x => !x.IsCollided).ToList();
-        var nonUniqueEntries = LoadedFile.Dictionary.Values.Where(x => x.IsCollided).ToList();
-        dataGrid.RowCount = LoadedFile.Length;
+        // Virtual-mode paint callbacks must not enumerate a dictionary that can change.
+        displayedEntries = LoadedFile.Dictionary.Values.ToArray();
+        dataGrid.RowCount = displayedEntries.Length;
+        dataGrid.Invalidate();
 
         Text = $"{OriginalText}: {LoadedFile.Length} ({LoadedFile.UniqueEntries.Count}/{LoadedFile.NonUniqueEntries.Count})";
     }
@@ -168,7 +170,7 @@ public partial class RSTBEditor : Form, ISearchable
         }
     }
 
-    private void UpdateFromModdedRomFs_Click(object sender, EventArgs e)
+    private async void UpdateFromModdedRomFs_Click(object sender, EventArgs e)
     {
         if (LoadedFile == null || !LoadedFile.IsLoaded) return;
 
@@ -179,97 +181,70 @@ public partial class RSTBEditor : Form, ISearchable
 
         if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
         {
-            CreateUpdatedRSTBFromModdedRomFs(LoadedFile, folderBrowserDialog.SelectedPath);
-
-            TopMenu.Enabled = true;
-            statusBar.Visible = false;
-            statusProgressBar.Visible = false;
+            try
+            {
+                await CreateUpdatedRSTBFromModdedRomFs(LoadedFile, folderBrowserDialog.SelectedPath);
+            }
+            catch (Exception ex)
+            {
+                if (!IsDisposed && !Disposing)
+                    MessageBox.Show(this, $"Failed to update the table: {ex.Message}", "Update failed",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
 
         }
     }
 
-    public async void CreateUpdatedRSTBFromModdedRomFs(ResourceSizeTable rstb, string moddedRomFsPath, bool showResults = true)
+    public async Task CreateUpdatedRSTBFromModdedRomFs(ResourceSizeTable rstb, string moddedRomFsPath, bool showResults = true)
     {
-        var allFiles = Directory.GetFiles(moddedRomFsPath, "*", SearchOption.AllDirectories);
-
-        var changedFiles = 0;
-        var addedFiles = 0;
-        var skippedFiles = 0;
-        var removedFiles = 0;
-
+        if (isUpdating) return;
+        isUpdating = true;
         TopMenu.Enabled = false;
 
-        statusLabel.Text = $"";
+        statusLabel.Text = "Getting file sizes...";
         statusBar.Visible = true;
         statusProgressBar.Visible = true;
-        statusProgressBar.Maximum = allFiles.Length;
+        statusProgressBar.Maximum = 1;
         statusProgressBar.Value = 0;
 
-        var progress = new Progress<(int Index, string FileName)>(value =>
+        var progress = new Progress<(int Index, int Total, string FileName)>(value =>
         {
-            statusLabel.Text = $"Getting file size... {value.FileName} ({value.Index}/{allFiles.Length})";
+            if (IsDisposed || Disposing || !isUpdating) return;
+            statusLabel.Text = $"Getting file size... {value.FileName} ({value.Index}/{value.Total})";
+            statusProgressBar.Maximum = value.Total;
             statusProgressBar.Value = value.Index;
         });
 
-        await Task.Run(() =>
+        try
         {
-            var currentPosition = 1;
+            var patch = await Task.Run(() => ResourceSizeTablePatcher.CalculatePatch(moddedRomFsPath, progress));
+            if (IsDisposed || Disposing || !ReferenceEquals(LoadedFile, rstb)) return;
 
-            foreach (var originalFile in allFiles)
+            // Resume on the UI thread before changing anything the grid reads.
+            var (changedFiles, addedFiles, removedFiles) = patch.ApplyTo(rstb);
+            DiffDictionary.Clear();
+            RefreshData();
+
+            if (showResults && (changedFiles > 0 || addedFiles > 0 || removedFiles > 0))
             {
-                if (IsDisposed || Disposing) break;
-
-                // TODO: Update this based on HeavenTool.ModManager
-                var path = Path.GetRelativePath(moddedRomFsPath, originalFile).Replace('\\', '/');
-
-                if (path.StartsWith("skyline") || path is "System/Resource/ResourceSizeTable.srsizetable" or "System/Resource/ResourceSizeTable.rsizetable")
-                {
-                    skippedFiles++;
-                    continue;
-                }
-
-                if (path.EndsWith(".byml") && path != "EventFlow/Info/EventFlowInfoProduct.byml")
-                    continue;
-
-                (progress as IProgress<(int, string)>).Report((currentPosition, path));
-
-                if (path.EndsWith(".zs"))
-                    path = path[..^3];
-
-                var fileSize = ResourceSizeTable.GetFileSize(originalFile, path);
-
-                if (fileSize is < 0 or > uint.MaxValue)
-                {
-                    ConsoleUtilities.WriteLine($"File {path} has an invalid file size, skipping it...", ConsoleColor.Red);
-                    rstb.Dictionary.Remove(path);
-                    removedFiles++;
-                }
-                else if (rstb.Dictionary.TryGetValue(path, out var entry) && fileSize != entry.FileSize)
-                {
-                    entry.FileSize = (uint)fileSize;
-                    changedFiles++;
-                }
-                else if (!rstb.Dictionary.ContainsKey(path))
-                {
-                    rstb.AddEntry(new ResourceSizeTable.ResourceTableEntry(path, (uint)fileSize, 0, false));
-                    addedFiles++;
-                }
-
-                currentPosition++;
+                MessageBox.Show($"Successfully updated table values!" +
+                                (changedFiles > 0 ? $"\nUpdated {changedFiles} entries." : "") +
+                                (addedFiles > 0 ? $"\nAdded {addedFiles} entries." : "") +
+                                (patch.SkippedFiles > 0 ? $"\nSkipped {patch.SkippedFiles} entries." : "") +
+                                (removedFiles > 0 ? $"\nRemoved {removedFiles} entries." : "") +
+                                "\n\nYou need to manually save your file in File > Save as...",
+                    "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-        });
-
-        RefreshData();
-
-        if (showResults && (changedFiles > 0 || addedFiles > 0 || removedFiles > 0))
+        }
+        finally
         {
-            MessageBox.Show($"Successfully updated table values!" +
-                            (changedFiles > 0 ? $"\nUpdated {changedFiles} entries." : "") +
-                            (addedFiles > 0 ? $"\nAdded {addedFiles} entries." : "") +
-                            (skippedFiles > 0 ? $"\nSkipped {skippedFiles} entries." : "") +
-                            (removedFiles > 0 ? $"\nRemoved {removedFiles} entries." : "") +
-                            "\n\nYou need to manually save your file in File > Save as...",
-                "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            isUpdating = false;
+            if (!IsDisposed && !Disposing)
+            {
+                TopMenu.Enabled = true;
+                statusBar.Visible = false;
+                statusProgressBar.Visible = false;
+            }
         }
 
     }
@@ -543,15 +518,9 @@ public partial class RSTBEditor : Form, ISearchable
         statusProgressBar.Maximum = dataGrid.RowCount;
         statusProgressBar.Value = 0;
 
-        var rowCount = LoadedFile.Length;
-        var rowsData = new (int Index, string? FileName, uint FileSize)[rowCount];
-
-        for (var i = 0; i < rowCount; i++)
-        {
-            var row = LoadedFile[i];
-
-            rowsData[i] = (i, row.FileName, row.FileSize);
-        }
+        var rowsData = displayedEntries
+            .Select((entry, index) => (Index: index, FileName: entry.FileName, FileSize: entry.FileSize))
+            .ToArray();
 
         var rowsToColor = new ConcurrentBag<int>();
 

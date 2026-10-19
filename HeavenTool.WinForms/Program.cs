@@ -122,7 +122,7 @@ internal static partial class Program
                     rstbEditor.LoadFile(path);
                     if (rstbEditor.LoadedFile is ResourceSizeTable rstb)
                     {
-                        rstbEditor.CreateUpdatedRSTBFromModdedRomFs(rstb, originalArguments[1], false);
+                        ResourceSizeTablePatcher.CalculatePatch(originalArguments[1]).ApplyTo(rstb);
                         var outPath = path;
                         if (originalArguments.Length >= 3)
                             outPath = originalArguments[2];
