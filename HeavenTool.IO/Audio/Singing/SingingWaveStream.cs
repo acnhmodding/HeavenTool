@@ -116,14 +116,30 @@ public sealed class SingingWaveStream : WaveStream
             while (frames < requestedFrames && PrepareFrame())
             {
                 UpdateSinging();
-                var voice = singing.ReadFrame();
-                for (var channel = 0; channel < WaveFormat.Channels; channel++)
-                    output[frames * WaveFormat.Channels + channel] = (short)Math.Clamp(
-                        Math.Round(song[songFrame * WaveFormat.Channels + channel] + (double)voice),
-                        short.MinValue, short.MaxValue);
-                songFrame++;
-                elapsedFrames++;
-                frames++;
+                // Check note and modulation changes at their 30 Hz update boundaries.
+                var nextTick = ((elapsedFrames * 30 / WaveFormat.SampleRate + 1)
+                    * WaveFormat.SampleRate + 29) / 30;
+                int countFrames = (int)Math.Min(nextTick - elapsedFrames,
+                    Math.Min(requestedFrames - frames, (loopEnabled ? loopEnd : FrameCount) - songFrame));
+                int channels = WaveFormat.Channels;
+                var source = song.AsSpan(songFrame * channels, countFrames * channels);
+                var destination = output.Slice(frames * channels, source.Length);
+                if (!singing.HasVoices)
+                    source.CopyTo(destination);
+                else
+                    for (int frame = 0; frame < countFrames; frame++)
+                    {
+                        var voice = singing.ReadFrame();
+                        for (int channel = 0; channel < channels; channel++)
+                        {
+                            int index = frame * channels + channel;
+                            destination[index] = (short)Math.Clamp(Math.Round(source[index] + (double)voice),
+                                short.MinValue, short.MaxValue);
+                        }
+                    }
+                songFrame += countFrames;
+                elapsedFrames += countFrames;
+                frames += countFrames;
             }
             return frames * WaveFormat.BlockAlign;
         }

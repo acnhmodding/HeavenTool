@@ -78,8 +78,7 @@ public class BARSFileReader : IDisposable
                 try { metadataSize = reader.ReadInt32At(metadataOffset + 8); }
                 finally { reader.BigEndian = archiveEndian; }
 
-                audioAsset.RawAudioMetadata = reader.ReadByteArrayAt(metadataOffset, metadataSize);
-                audioAsset.AudioMetadata = new AudioMetadata(audioAsset, performanceFormat);
+                audioAsset.AudioMetadata = new AudioMetadata(reader.ReadByteArrayAt(metadataOffset, metadataSize), performanceFormat);
             }
 
             var checkHash = audioAsset.AudioMetadata.AssetName.ToCRC32();
@@ -122,7 +121,6 @@ public class BARSFileReader : IDisposable
             foreach (var audioAsset in group)
             {
                 audioAsset.BinaryWave = binaryWave;
-                audioAsset.RawBinaryWave = assetData;
                 audioAsset.IsPrefetch = binaryWave.AssetType == AssetType.Prefetch;
             }
         }

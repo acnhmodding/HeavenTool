@@ -8,10 +8,11 @@ public sealed class VoiceSampleBank
 {
     private readonly Dictionary<(string VoiceType, byte Pitch), VoiceSample> samples = [];
 
-    public VoiceSampleBank(BARSFileReader archive, string prefix)
+    public VoiceSampleBank(BARSFileReader archive, string prefix, CancellationToken cancellationToken = default)
     {
         foreach (var asset in archive.AudioAssets)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var name = asset.AudioMetadata?.AssetName;
             if (name == null || !name.StartsWith(prefix + "_", StringComparison.Ordinal)) continue;
             var separator = name.LastIndexOf('_');
@@ -21,7 +22,7 @@ public sealed class VoiceSampleBank
             if (wave == null || wave.Channels.Length != 1)
                 throw new InvalidDataException($"Voice sample {name} must have one channel.");
             var channel = wave.Channels[0];
-            samples.TryAdd((vowel, pitch), new VoiceSample(channel.Decode(), channel.SampleRate, pitch,
+            samples.TryAdd((vowel, pitch), new VoiceSample(channel.Decode(cancellationToken), channel.SampleRate, pitch,
                 channel.LoopStart, channel.LoopEnd));
         }
     }

@@ -3,7 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
-using System.Drawing.Drawing2D;
+using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using static HeavenTool.IO.FileFormats.BARS.MarkerList;
@@ -13,47 +14,51 @@ namespace HeavenTool.Forms.Components;
 public partial class CustomWaveViewer : UserControl
 {
     private WaveStream? waveStream;
-
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public WaveStream? PlaybackStream { get; set; }
-
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public long? PlaybackPosition { get; set; }
-
+    private WaveformPeaks? peaks;
+    private CancellationTokenSource? peakCancellation;
+    private Bitmap? waveformImage;
+    private string? waveformError;
+    private readonly List<MarkerEntry> markers = [];
+    private long markerEnd;
     private int samplesPerPixel = 128;
     private long startPosition;
-    private int bytesPerSample;
-
+    private int bytesPerFrame;
+    private long? playbackPosition;
     private Color waveColor = Color.White;
-    private Pen? penColor;
-
     private bool isDragging;
-    private Point lastMousePos;
-
-    private readonly Dictionary<int, PeakData> peakCache = [];
-    private readonly HashSet<int> pendingPeaks = [];
-    private int waveRevision;
-    private readonly List<MarkerEntry> markers = [];
+    private bool mouseDown;
+    private Point mouseDownPosition;
+    private int lastMouseX;
     private int loopStart = -1;
     private int loopEnd = -1;
-
-    private class PeakData
-    {
-        public Peak[] Peaks = [];
-        public long BytesPerPixel;
-    }
-
-    private struct Peak
-    {
-        public float Min;
-        public float Max;
-    }
+    private long BytesPerPixel => (long)samplesPerPixel * bytesPerFrame;
 
     public CustomWaveViewer()
     {
         InitializeComponent();
         DoubleBuffered = true;
         SetStyle(ControlStyles.ResizeRedraw, true);
+        SetStyle(ControlStyles.Selectable, true);
+        TabStop = true;
+    }
+
+    /// <summary>Requests a seek to an absolute sample frame.</summary>
+    public event EventHandler<long>? SeekRequested;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public WaveStream? PlaybackStream { get; set; }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public long? PlaybackPosition
+    {
+        get => playbackPosition;
+        set
+        {
+            if (playbackPosition == value) return;
+            InvalidatePlayhead();
+            playbackPosition = value;
+            InvalidatePlayhead();
+        }
     }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -62,59 +67,48 @@ public partial class CustomWaveViewer : UserControl
         get => waveStream;
         set
         {
+            Capture = false;
+            CancelPeakGeneration();
             waveStream = value;
-            waveRevision++;
-
-            peakCache.Clear();
-            pendingPeaks.Clear();
-            StartPosition = 0;
-
-            if (waveStream != null)
+            peaks = null;
+            waveformError = null;
+            bytesPerFrame = value?.WaveFormat.BlockAlign ?? 0;
+            startPosition = 0;
+            InvalidateWaveform();
+            if (value != null && !IsDisposed)
             {
-                waveStream.Position = 0;
-
-                bytesPerSample = waveStream.WaveFormat.BitsPerSample / 8 * waveStream.WaveFormat.Channels;
-
-                _ = BuildPeaksAsync(samplesPerPixel);
+                peakCancellation = new CancellationTokenSource();
+                _ = BuildPeaksAsync(value, peakCancellation.Token);
             }
-
-            Invalidate();
         }
     }
 
     [DefaultValue(128)]
+    [Description("Frames per pixel, rounded up to a power of two between 16 and 4096.")]
     public int SamplesPerPixel
     {
         get => samplesPerPixel;
         set
         {
-            if (value < 16) value = 16;
-            if (value > 4096) value = 4096;
-
-            if (samplesPerPixel == value)
-                return;
-
+            value = (int)BitOperations.RoundUpToPowerOf2((uint)Math.Clamp(value,
+                WaveformPeaks.MinimumSamplesPerPixel, WaveformPeaks.MaximumSamplesPerPixel));
+            if (samplesPerPixel == value) return;
             samplesPerPixel = value;
             ClampStart();
-
-            if (waveStream != null && !peakCache.ContainsKey(value))
-            {
-                _ = BuildPeaksAsync(value);
-            }
-
-            Invalidate();
+            InvalidateWaveform();
         }
     }
 
-    [DefaultValue(0)]
+    [DefaultValue(0L)]
     public long StartPosition
     {
         get => startPosition;
         set
         {
+            long previous = startPosition;
             startPosition = value;
             ClampStart();
-            Invalidate();
+            if (startPosition != previous) InvalidateWaveform();
         }
     }
 
@@ -124,147 +118,131 @@ public partial class CustomWaveViewer : UserControl
         get => waveColor;
         set
         {
+            if (waveColor == value) return;
             waveColor = value;
-
-            penColor?.Dispose();
-            penColor = new Pen(waveColor, 1f);
-
-            Invalidate();
+            InvalidateWaveform();
         }
+    }
+
+    private void InvalidateWaveform()
+    {
+        waveformImage?.Dispose();
+        waveformImage = null;
+        Invalidate();
+    }
+
+    private double GetX(long position) => BytesPerPixel == 0 ? -1 : (position - startPosition) / (double)BytesPerPixel;
+    private double PlayheadX => GetX(playbackPosition ?? PlaybackStream?.Position ?? 0);
+
+    private void InvalidatePlayhead()
+    {
+        double x = PlayheadX;
+        if (x >= -2 && x <= Width + 2) Invalidate(new Rectangle((int)Math.Floor(x) - 2, 0, 5, Height));
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-
-        if (waveStream == null)
-            return;
-
-        if (!peakCache.TryGetValue(samplesPerPixel, out var data))
-            return;
-
-        penColor ??= new Pen(waveColor, 1f);
-
-        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        e.Graphics.Clear(BackColor);
-
-        DrawCenterLine(e.Graphics);
-
-        var bytesPerPixel = data.BytesPerPixel;
-
-        var firstPixel = (int)(startPosition / bytesPerPixel);
-
-        var mid = Height / 2f;
-        var scale = Height / 2f;
-
-        for (var x = 0; x < Width; x++)
+        if (waveStream == null || Width <= 0 || Height <= 0 || bytesPerFrame == 0) return;
+        if (waveformImage == null)
         {
-            var index = firstPixel + x;
-
-            if (index < 0 || index >= data.Peaks.Length)
-                continue;
-
-            var p = data.Peaks[index];
-
-            var y1 = mid - (p.Max * scale);
-            var y2 = mid - (p.Min * scale);
-
-            e.Graphics.DrawLine(penColor, x, y1, x, y2);
+            waveformImage = new Bitmap(Width, Height);
+            using var graphics = Graphics.FromImage(waveformImage);
+            graphics.Clear(BackColor);
+            DrawWaveform(graphics);
         }
-
-        DrawLoop(e.Graphics, bytesPerPixel);
-        DrawMarkers(e.Graphics, bytesPerPixel);
-        DrawPlayhead(e.Graphics, bytesPerPixel);
+        e.Graphics.DrawImageUnscaled(waveformImage, 0, 0);
+        double x = PlayheadX;
+        if (x >= 0 && x < Width)
+            e.Graphics.DrawLine(Pens.Yellow, (float)x, 0, (float)x, Height);
     }
 
-    private void DrawCenterLine(Graphics g)
+    private void DrawWaveform(Graphics graphics)
     {
-        using Pen p = new(Color.FromArgb(50, Color.Gray));
-        g.DrawLine(p, 0, Height / 2, Width, Height / 2);
-    }
-
-    private void DrawLoop(Graphics g, long bytesPerPixel)
-    {
-        if (loopEnd == -1) return;
-
-        var loopStartPosition = (int)(((long)loopStart * bytesPerSample - startPosition) / bytesPerPixel);
-        var loopEndPosition = (int)(((long)loopEnd * bytesPerSample - startPosition) / bytesPerPixel);
-
-        using var markerPen = new Pen(Color.Green, 2f);
-
-        g.DrawLine(markerPen, loopStartPosition, 0, loopStartPosition, Height);
-        g.DrawLine(markerPen, loopEndPosition, 0, loopEndPosition, Height);
-    }
-
-    private void DrawMarkers(Graphics g, long bytesPerPixel)
-    {
-        if (SamplesPerPixel >= 2048)
-            return;
-
-        foreach (var marker in markers)
+        float middle = Height / 2f;
+        graphics.DrawLine(Pens.DimGray, 0, middle, Width, middle);
+        if (peaks != null)
         {
-            var markerX = (int)((marker.StartPosition * bytesPerSample - startPosition) / bytesPerPixel);
-
-            if (markerX >= 0 && markerX < Width)
+            var level = peaks.GetLevel(samplesPerPixel);
+            long first = startPosition / BytesPerPixel;
+            double offset = (startPosition % BytesPerPixel) / (double)BytesPerPixel;
+            using var pen = new Pen(waveColor);
+            int count = (int)Math.Min(Width + 1L, level.LongLength - first);
+            for (int i = 0; i < count; i++)
             {
-                using var markerPen = new Pen(Color.Red, 2f);
-                g.DrawLine(markerPen, markerX, Height / 2, markerX, Height);
-                if (SamplesPerPixel <= 128)
-                    g.DrawString(marker.Name, Font, Brushes.Red, markerX + 2, (Height / 2) + 2);
+                var peak = level[(int)(first + i)];
+                float x = (float)(i - offset);
+                graphics.DrawLine(pen, x, middle - Math.Clamp(peak.Max, -1, 1) * middle,
+                    x, middle - Math.Clamp(peak.Min, -1, 1) * middle);
             }
         }
+        using var loopPen = new Pen(Color.Green, 2);
+        if (loopEnd >= 0)
+        {
+            DrawPosition(graphics, (long)loopStart * bytesPerFrame, loopPen);
+            DrawPosition(graphics, (long)loopEnd * bytesPerFrame, loopPen);
+        }
+        if (samplesPerPixel < 2048)
+        {
+            using var markerPen = new Pen(Color.Red, 2);
+            foreach (var marker in markers)
+            {
+                double x = GetX((long)marker.StartPosition * bytesPerFrame);
+                if (x < 0 || x >= Width) continue;
+                graphics.DrawLine(markerPen, (float)x, middle, (float)x, Height);
+                if (samplesPerPixel <= 128)
+                    graphics.DrawString(marker.Name, Font, Brushes.Red, (float)x + 2, middle + 2);
+            }
+        }
+        if (waveformError != null)
+            TextRenderer.DrawText(graphics, waveformError, Font, ClientRectangle, ForeColor,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
     }
 
-    private void DrawPlayhead(Graphics g, long bytesPerPixel)
+    private void DrawPosition(Graphics graphics, long position, Pen pen)
     {
-        if (waveStream == null)
-            return;
-
-        var position = PlaybackPosition ?? (PlaybackStream ?? waveStream).Position;
-        var x = (int)((position - startPosition) / bytesPerPixel);
-
-        if (x >= 0 && x < Width)
-        {
-            using var pen = new Pen(Color.Yellow, 2f); // playhead color
-            g.DrawLine(pen, x, 0, x, Height);
-        }
+        double x = GetX(position);
+        if (x >= 0 && x < Width) graphics.DrawLine(pen, (float)x, 0, (float)x, Height);
     }
 
     protected override void OnMouseWheel(MouseEventArgs e)
     {
-        if (e.Delta > 0)
-            ZoomIn();
-        else
-            ZoomOut();
-
+        long anchor = startPosition + (long)e.X * BytesPerPixel;
+        int steps = Math.Max(1, Math.Abs(e.Delta / 120));
+        for (int i = 0; i < Math.Min(steps, 8); i++)
+            if (e.Delta > 0) ZoomIn(); else if (e.Delta < 0) ZoomOut();
+        StartPosition = anchor - (long)e.X * BytesPerPixel;
         base.OnMouseWheel(e);
     }
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Left)
+        if (e.Button == MouseButtons.Left && waveStream != null)
         {
-            isDragging = true;
-            lastMousePos = e.Location;
-            Cursor = Cursors.Hand;
+            Focus();
+            mouseDown = true;
+            mouseDownPosition = e.Location;
+            isDragging = false;
+            lastMouseX = e.X;
+            Capture = true;
         }
-
         base.OnMouseDown(e);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        if (isDragging && waveStream != null)
+        if (mouseDown && !isDragging)
         {
-            var dx = e.X - lastMousePos.X;
-
-            long bytesPerPixel = samplesPerPixel * bytesPerSample;
-
-            StartPosition -= (long)(dx * bytesPerPixel * 1.1f);
-
-            lastMousePos = e.Location;
+            var size = SystemInformation.DragSize;
+            isDragging = !new Rectangle(mouseDownPosition.X - size.Width / 2,
+                mouseDownPosition.Y - size.Height / 2, size.Width, size.Height).Contains(e.Location);
+            if (isDragging) Cursor = Cursors.Hand;
         }
-
+        if (isDragging)
+        {
+            StartPosition -= (long)(e.X - lastMouseX) * BytesPerPixel;
+            lastMouseX = e.X;
+        }
         base.OnMouseMove(e);
     }
 
@@ -272,177 +250,132 @@ public partial class CustomWaveViewer : UserControl
     {
         if (e.Button == MouseButtons.Left)
         {
-            isDragging = false;
-            Cursor = Cursors.Default;
+            bool seek = mouseDown && !isDragging && ClientRectangle.Contains(e.Location) && waveStream != null;
+            Capture = false;
+            if (seek && waveStream != null && bytesPerFrame > 0)
+                SeekRequested?.Invoke(this, Math.Clamp(startPosition / bytesPerFrame + (long)e.X * samplesPerPixel,
+                    0, waveStream.Length / bytesPerFrame));
         }
-
         base.OnMouseUp(e);
     }
 
-    public void ZoomIn()
+    protected override void OnMouseCaptureChanged(EventArgs e)
     {
-        SamplesPerPixel = samplesPerPixel / 2;
+        if (!Capture)
+        {
+            isDragging = false;
+            mouseDown = false;
+            Cursor = Cursors.Default;
+        }
+        base.OnMouseCaptureChanged(e);
     }
 
-    public void ZoomOut()
-    {
-        SamplesPerPixel = samplesPerPixel * 2;
-    }
+    public void ZoomIn() => SamplesPerPixel /= 2;
+    public void ZoomOut() => SamplesPerPixel *= 2;
+    public void ResetZoom() => SamplesPerPixel = 128;
 
-    public void ResetZoom()
+    public void EnsurePositionVisible(long position)
     {
-        SamplesPerPixel = 128;
+        if (GetX(position) < 0 || GetX(position) >= Width)
+            StartPosition = position - (Width / 2L) * BytesPerPixel;
     }
 
     public void AddMarker(MarkerEntry marker)
     {
         markers.Add(marker);
+        markerEnd = Math.Max(markerEnd, (long)marker.StartPosition + marker.Length + 2);
         ClampStart();
-        Invalidate();
+        InvalidateWaveform();
     }
 
     public void ClearMarkers()
+        => SetMarkers([]);
+
+    public void SetMarkers(IEnumerable<MarkerEntry> values)
     {
         markers.Clear();
-        Invalidate();
+        markers.AddRange(values);
+        markerEnd = 0;
+        foreach (var marker in markers)
+            markerEnd = Math.Max(markerEnd, (long)marker.StartPosition + marker.Length + 2);
+        ClampStart();
+        InvalidateWaveform();
     }
+
     public void SetLoop(int start, int end)
     {
         loopStart = start;
         loopEnd = end;
-        Invalidate();
+        InvalidateWaveform();
     }
 
-    public void RemoveLoop()
+    public void RemoveLoop() => SetLoop(-1, -1);
+
+    private async Task BuildPeaksAsync(WaveStream stream, CancellationToken cancellation)
     {
-        loopStart = -1;
-        loopEnd = -1;
-        Invalidate();
-    }
-
-    private async Task BuildPeaksAsync(int spp)
-    {
-        var stream = waveStream;
-        var revision = waveRevision;
-        if (stream == null || !pendingPeaks.Add(spp))
-            return;
-
-        var peaks = await Task.Run(() => BuildPeaks(stream, spp));
-        if (IsDisposed || revision != waveRevision || stream != waveStream) return;
-        pendingPeaks.Remove(spp);
-        peakCache[spp] = peaks;
-        Invalidate();
-    }
-
-    private static PeakData BuildPeaks(WaveStream stream, int spp)
-    {
-        var isFloat =
-            stream.WaveFormat.Encoding == WaveFormatEncoding.IeeeFloat;
-
-        var channels = stream.WaveFormat.Channels;
-        var bits = stream.WaveFormat.BitsPerSample;
-
-        var bytesPerFrame = stream.WaveFormat.BlockAlign;
-
-        var bytesPerPixel = (long)spp * bytesPerFrame;
-
-        List<Peak> peaks = [];
-
-        var buffer = new byte[spp * bytesPerFrame];
-
-        lock (stream)
+        try
         {
-            var oldPosition = stream.Position;
-            stream.Position = 0;
-
-            while (true)
-            {
-                var read = stream.Read(buffer, 0, buffer.Length);
-
-                if (read == 0)
-                    break;
-
-                var min = 1f;
-                var max = -1f;
-
-                if (isFloat && bits == 32)
-                {
-                    for (var i = 0; i + bytesPerFrame <= read; i += bytesPerFrame)
-                    {
-                        for (var c = 0; c < channels; c++)
-                        {
-                            var s = BitConverter.ToSingle(
-                                buffer,
-                                i + (c * 4));
-
-                            if (!float.IsFinite(s)) continue;
-                            min = Math.Min(min, s);
-                            max = Math.Max(max, s);
-                        }
-
-                    }
-                }
-                else if (bits == 16)
-                {
-                    for (var i = 0; i + bytesPerFrame <= read; i += bytesPerFrame)
-                    {
-                        for (var c = 0; c < channels; c++)
-                        {
-                            var s = BitConverter.ToInt16(
-                                buffer,
-                                i + (c * 2));
-
-                            var sample = s / 32768f;
-                            min = Math.Min(min, sample);
-                            max = Math.Max(max, sample);
-                        }
-
-                    }
-                }
-                else
-                {
-                    continue;
-                }
-
-                peaks.Add(new Peak
-                {
-                    Min = min,
-                    Max = max
-                });
-            }
-
-            stream.Position = oldPosition;
+            var result = await Task.Run(() => WaveformPeaks.Build(stream, cancellation));
+            if (result == null || cancellation.IsCancellationRequested || IsDisposed || stream != waveStream) return;
+            peaks = result;
+            InvalidateWaveform();
         }
-
-        return new PeakData
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+        catch (Exception ex)
         {
-            Peaks = [.. peaks],
-            BytesPerPixel = bytesPerPixel
-        };
+            if (cancellation.IsCancellationRequested || IsDisposed || stream != waveStream) return;
+            waveformError = ex.Message;
+            InvalidateWaveform();
+        }
+    }
+
+    private void CancelPeakGeneration()
+    {
+        peakCancellation?.Cancel();
+        peakCancellation?.Dispose();
+        peakCancellation = null;
+    }
+
+    private void DisposeWaveform()
+    {
+        CancelPeakGeneration();
+        peaks = null;
+        waveStream = null;
+        PlaybackStream = null;
+        waveformImage?.Dispose();
+        waveformImage = null;
     }
 
     private void ClampStart()
     {
-        if (waveStream == null)
-            return;
-
-        var length = waveStream.Length;
-
-        // Prefetched songs may have no local samples; markers still define a scrollable range.
-        if (length == 0 && markers.Count > 0)
-            foreach (var marker in markers)
-                length = Math.Max(length, ((long)marker.StartPosition + marker.Length + 2) * bytesPerSample);
-
-        var visibleBytes = (long)Width * samplesPerPixel * bytesPerSample;
-
-        var max = Math.Max(0, length - visibleBytes);
-
-        startPosition = Math.Clamp(startPosition, 0, max);
+        long length = waveStream?.Length ?? 0;
+        if (length == 0) length = markerEnd * bytesPerFrame;
+        startPosition = Math.Clamp(startPosition, 0, Math.Max(0, length - (long)Width * BytesPerPixel));
+        if (bytesPerFrame > 0) startPosition -= startPosition % bytesPerFrame;
     }
 
     protected override void OnResize(EventArgs e)
     {
         base.OnResize(e);
         ClampStart();
+        InvalidateWaveform();
+    }
+
+    protected override void OnBackColorChanged(EventArgs e)
+    {
+        base.OnBackColorChanged(e);
+        InvalidateWaveform();
+    }
+
+    protected override void OnFontChanged(EventArgs e)
+    {
+        base.OnFontChanged(e);
+        InvalidateWaveform();
+    }
+
+    protected override void OnForeColorChanged(EventArgs e)
+    {
+        base.OnForeColorChanged(e);
+        InvalidateWaveform();
     }
 }

@@ -2,6 +2,7 @@ using HeavenTool.IO.Audio;
 using HeavenTool.IO.FileFormats.BARS.AMTA;
 using HeavenTool.IO.FileFormats.BARS.MINF;
 using HeavenTool.IO.FileFormats.BARS.MINF.Sections;
+using HeavenTool.IO.FileFormats.BWAV;
 using System.ComponentModel;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
@@ -21,14 +22,10 @@ public class AudioMetadata
         V5 = 0x0500
     }
 
-    public AudioMetadata(AudioAsset parent, PerformanceSequenceFormat? performanceFormat = null)
+    public AudioMetadata(byte[] data, PerformanceSequenceFormat? performanceFormat = null)
     {
-        ArgumentNullException.ThrowIfNull(parent);
-
-        if (parent.RawAudioMetadata == null)
-            throw new NullReferenceException("Raw audio metadata was not found on file");
-
-        using var stream = new MemoryStream(parent.RawAudioMetadata);
+        ArgumentNullException.ThrowIfNull(data);
+        using var stream = new MemoryStream(data);
         using var reader = new BinaryReader(stream);
 
         var initialPosition = reader.Position;
@@ -50,6 +47,62 @@ public class AudioMetadata
             default:
                 throw new Exception($"Unsupported AMTA version: 0x{((ushort)Version):X4}");
         }
+    }
+
+    internal void UseWave(ResTrack[] tracks, BinaryWaveFile wave, bool streaming)
+    {
+        Tracks = tracks;
+        Flags &= ~(MetadataFlags.IsStreaming | MetadataFlags.IsLoop | MetadataFlags.HasLocalSamples);
+        var channel = wave.Channels[0];
+        if (channel.LocalSampleCount > 0) Flags |= MetadataFlags.HasLocalSamples;
+        if (channel.LoopEnd > channel.LoopStart) Flags |= MetadataFlags.IsLoop;
+        if (streaming) Flags |= MetadataFlags.IsStreaming;
+    }
+
+    internal ResTrack[] GetReplacementTracks(BinaryWaveFile? previous, BinaryWaveFile replacement)
+    {
+        var channels = replacement.Channels;
+        if (Tracks.Length == 0) return Tracks;
+        if (previous != null && previous.Channels.Select(c => c.ChannelPan).SequenceEqual(channels.Select(c => c.ChannelPan)))
+            return Tracks;
+        if (channels.Length > byte.MaxValue)
+            throw new InvalidDataException("AMTA supports at most 255 channels per track.");
+
+        var previousChannels = previous?.Channels ?? [];
+        var available = new SortedSet<int>(Enumerable.Range(0, channels.Length));
+        var map = new Dictionary<int, int>();
+        for (int old = 0; old < previousChannels.Length; old++)
+        {
+            var pan = previousChannels[old].ChannelPan;
+            int index = available.FirstOrDefault(i => pan != PanType.Invalid && channels[i].ChannelPan == pan, -1);
+            if (index < 0) continue;
+            map.Add(old, index);
+            available.Remove(index);
+        }
+        for (int old = 0; old < previousChannels.Length; old++)
+        {
+            if (map.ContainsKey(old)) continue;
+            int index = available.Contains(old) ? old : available.FirstOrDefault(-1);
+            if (index < 0) break;
+            map.Add(old, index);
+            available.Remove(index);
+        }
+
+        ResStreamChannel Remap(ResStreamChannel route)
+        {
+            int index = map[route.ChannelIndex];
+            return previousChannels[route.ChannelIndex].ChannelPan == channels[index].ChannelPan
+                ? new ResStreamChannel { ChannelIndex = checked((byte)index), OutputChannel = route.OutputChannel }
+                : AudioChannelRouting.CreateRoute(index, channels[index].ChannelPan);
+        }
+        var tracks = Tracks.Select(t => new ResTrack
+        {
+            Channels = [.. t.Channels.Where(c => map.ContainsKey(c.ChannelIndex)).Select(Remap)]
+        }).ToArray();
+        tracks[0].Channels = [.. tracks[0].Channels, .. available.Select(i => AudioChannelRouting.CreateRoute(i, channels[i].ChannelPan))];
+        if (tracks[0].Channels.Length > byte.MaxValue)
+            throw new InvalidDataException("Replacement channel routing exceeds the AMTA track limit.");
+        return tracks;
     }
 
     private uint ReservedOffset { get; set; }

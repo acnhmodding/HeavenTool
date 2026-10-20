@@ -13,9 +13,10 @@
         /// <param name="disposing">true se for necessário descartar os recursos gerenciados; caso contrário, false.</param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
+            if (disposing)
             {
-                components.Dispose();
+                DisposeWaveform();
+                components?.Dispose();
             }
             base.Dispose(disposing);
         }

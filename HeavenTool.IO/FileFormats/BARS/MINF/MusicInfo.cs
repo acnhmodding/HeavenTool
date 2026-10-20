@@ -8,7 +8,7 @@ namespace HeavenTool.IO.FileFormats.BARS.MINF;
 public class MusicInfo
 {
     public const string MAGIC = "MINF";
-    private readonly byte[] originalData;
+    private readonly byte[] originalData = [];
     private readonly int section2Offset;
     private readonly byte[]? originalModeledData;
 
@@ -55,8 +55,8 @@ public class MusicInfo
             if (size < 0x4c || size > reader.Length - location)
                 throw new InvalidDataException("MINF size is outside the resource.");
 
-            originalData = reader.ReadByteArrayAt(location, checked((int)size));
-            using var input = new BinaryReader(new MemoryStream(originalData)) { BigEndian = BigEndian };
+            var data = reader.ReadByteArrayAt(location, checked((int)size));
+            using var input = new BinaryReader(new MemoryStream(data)) { BigEndian = BigEndian };
             input.Position = 12;
             long NameOffset()
             {
@@ -104,6 +104,7 @@ public class MusicInfo
             section2Offset = checked((int)sections[2]);
             if (section2Offset != 0)
             {
+                originalData = data;
                 RawSection2 = originalData.AsMemory(section2Offset, checked((int)(EndOf(section2Offset) - section2Offset)));
                 originalModeledData = Build(false);
             }

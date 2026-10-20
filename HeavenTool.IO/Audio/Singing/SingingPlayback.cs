@@ -15,6 +15,8 @@ internal sealed class SingingPlayback
     private VocalTrack.Event? playingNote;
     private long lastTick = -1;
 
+    public bool HasVoices => voices.Count != 0;
+
     public SingingPlayback(PerformanceSequence? sequence, int sampleRate,
         IReadOnlyList<VoiceSampleBank> singers, VoiceSampleBank? whistles)
     {

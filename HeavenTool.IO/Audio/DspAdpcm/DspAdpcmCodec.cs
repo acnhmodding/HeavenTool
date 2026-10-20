@@ -23,7 +23,8 @@ public static class DspAdpcmCodec
         return DspAdpcmEncoder.Encode(samples, coefficients);
     }
 
-    public static void Decode(ReadOnlySpan<byte> data, Span<short> samples, ReadOnlySpan<short> coefficients, short history1 = 0, short history2 = 0)
+    public static void Decode(ReadOnlySpan<byte> data, Span<short> samples, ReadOnlySpan<short> coefficients, short history1 = 0, short history2 = 0,
+        CancellationToken cancellationToken = default)
     {
         ValidateCoefficients(coefficients);
         if (data.Length < GetByteCount(samples.Length))
@@ -31,6 +32,7 @@ public static class DspAdpcmCodec
 
         for (int position = 0, frameOffset = 0; position < samples.Length; frameOffset += BytesPerFrame)
         {
+            if ((frameOffset & 0x1fff) == 0) cancellationToken.ThrowIfCancellationRequested();
             var header = data[frameOffset];
             var predictor = header >> 4;
             if (predictor >= PredictorCount)
