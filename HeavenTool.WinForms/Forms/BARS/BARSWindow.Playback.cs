@@ -25,7 +25,7 @@ public partial class BARSWindow
     private long playbackOriginFrames;
     private SingingWaveStream? waveformStream;
     private SingingWaveStream? currentWave;
-    private readonly WaveOutEvent audioPlayer = new();
+    private readonly WaveOut audioPlayer = new();
 
     private BwavPreviewAudio GetAudioData(string assetName, AudioAsset audioAsset, bool includeSinging = true)
     {

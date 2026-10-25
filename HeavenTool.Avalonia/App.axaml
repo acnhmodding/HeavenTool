@@ -1,0 +1,24 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="HeavenTool.Avalonia.App"
+             RequestedThemeVariant="Dark"
+              xmlns:sty="using:FluentAvalonia.Styling">
+             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="/Assets/Icons/Icons.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <SolidColorBrush x:Key="ACNHGreen">#1aae5e</SolidColorBrush>
+    </ResourceDictionary>
+  </Application.Resources>
+  
+    <Application.Styles>
+      <FluentTheme/>
+      <sty:FluentAvaloniaTheme CustomAccentColor="#1aae5e" PreferUserAccentColor="False" PreferSystemTheme="False" />
+      <StyleInclude Source="/Assets/Styles/Styles.axaml" />
+      <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+    </Application.Styles>
+</Application>

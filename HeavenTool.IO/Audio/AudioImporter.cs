@@ -28,7 +28,7 @@ public static class AudioImporter
         var samples = new List<short>();
         var buffer = new float[checked(4096 * source.WaveFormat.Channels)];
         int count;
-        while ((count = source.Read(buffer, 0, buffer.Length)) > 0)
+        while ((count = source.Read(buffer.AsSpan())) > 0)
             for (int i = 0; i < count; i++)
             {
                 if (!float.IsFinite(buffer[i])) throw new InvalidDataException("WAV contains non-finite samples.");

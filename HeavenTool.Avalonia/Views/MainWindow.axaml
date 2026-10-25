@@ -1,0 +1,142 @@
+<fluent:FAAppWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:HeavenTool.Avalonia.ViewModels;assembly=HeavenTool.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="600"
+        xmlns:fluent="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
+        xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+        MinWidth="600" MinHeight="400"
+        x:Class="HeavenTool.Avalonia.Views.MainWindow"
+        Background="#333333"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Heaven Tool">
+
+  <Design.DataContext>
+    <vm:MainWindowViewModel/>
+  </Design.DataContext>
+
+  <Grid RowDefinitions="32, *">
+    <DockPanel Grid.Row="0" Background="#2D2D30"
+               WindowDecorationProperties.ElementRole="TitleBar">
+      <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16"/>
+      <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Margin="0 0 0 0" Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+      <TextBlock Text="v2.0" Margin="5 0 0 0" VerticalAlignment="Center" FontSize="11" Foreground="Gray"/>
+    </DockPanel>
+    
+    <SplitView IsPaneOpen="True" 
+               OpenPaneLength="200" 
+               CompactPaneLength="48" 
+               Grid.Row="1" 
+               DisplayMode="CompactInline">
+        
+      <SplitView.Pane>
+        <Grid VerticalAlignment="Stretch" Margin="10" RowDefinitions="Auto,Auto,*,Auto,Auto">
+          <ListBox Grid.Row="0" VerticalAlignment="Stretch">
+            <ListBoxItem IsSelected="true">
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconFire}" Width="20" Height="20" />
+                <TextBlock Text="Trending" Margin="10 0"/>
+              </StackPanel>
+            </ListBoxItem>
+
+            <ListBoxItem>
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconClock}" Width="20" Height="20" />
+                <TextBlock Text="Recent" Margin="10 0"/>
+              </StackPanel>
+            </ListBoxItem>
+
+            <ListBoxItem>
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconStar}" Width="20" Height="20" />
+                <TextBlock Text="Favorites" Margin="10 0"/>
+              </StackPanel>
+            </ListBoxItem>
+
+            <ListBoxItem>
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconDownload}" Width="20" Height="20" />
+                <TextBlock Text="Installed" Margin="10 0"/>
+              </StackPanel>
+              
+            </ListBoxItem>
+          </ListBox>
+
+      
+          
+          <Separator Grid.Row="1" Margin="0,10"/>
+          <StackPanel Grid.Row="2" Spacing="5">
+            <TextBlock HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold">Modding Tools</TextBlock>
+            <Button HorizontalAlignment="Stretch" Command="{Binding OpenBCSV}">BCSV Editor</Button>
+          </StackPanel>
+
+          <Separator Grid.Row="3" Margin="0,10"/>
+          <Button Grid.Row="4" Content="Settings" HorizontalAlignment="Stretch"/>
+        </Grid>
+      </SplitView.Pane>
+
+
+      <SplitView.Content>
+          
+        <Grid Background="#2b2b2b" RowDefinitions="Auto,*">
+
+          <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Background="#1aae5e">
+            <TextBox Grid.Column="0" Background="#149650" Margin="10" PlaceholderText="Search..."/>
+            <Button Grid.Column="1"  Background="#149650" Content="Search" Margin="0 10 10 10"/>
+          </Grid>
+
+          <ListBox Grid.Row="1" Padding="10" ItemsSource="{Binding ModItems}" ScrollViewer.VerticalScrollBarVisibility="Auto">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="5" HorizontalAlignment="Stretch" ColumnDefinitions="Auto,*,Auto">
+
+                  <Image Grid.Column="0"
+                          Width="64"
+                          Height="64"
+                          Margin="5"
+                          asyncImageLoader:ImageLoader.Source="{Binding ImagePath}" Stretch="UniformToFill">
+                    <ToolTip.Tip>
+                      <Image                        
+                          Height="256"
+                          
+                          asyncImageLoader:ImageLoader.Source="{Binding ImagePath}"/>
+                    </ToolTip.Tip>
+                    
+                  </Image>
+
+          
+                  <StackPanel Grid.Column="1" Margin="5" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Name}"
+                                FontSize="16"
+                                FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Description}"
+                                TextWrapping="Wrap"
+                                FontSize="12"
+                                Foreground="Gray"/>
+                  </StackPanel>
+
+
+                  <StackPanel Grid.Column="2"
+                              Margin="0"
+                              VerticalAlignment="Center"
+                              Orientation="Horizontal"
+                              Spacing="3">
+                    <Button Height="50" Width="70">
+                      <StackPanel Orientation="Horizontal" Spacing="4">
+                        <PathIcon Data="{StaticResource IconDownload}" Width="12" Height="12" />
+                        <TextBlock Text="Install" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </SplitView.Content>
+    </SplitView>
+
+  </Grid>
+
+</fluent:FAAppWindow>

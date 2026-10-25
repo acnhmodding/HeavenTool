@@ -1,0 +1,52 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Design.PreviewWith>
+    <Border Height="2000"
+                Padding="20">
+      <StackPanel Spacing="5">
+        <TextBlock Text="Code Font Family" />
+        <Grid RowDefinitions="*,Auto">
+          <Menu Grid.Row="1"
+                Width="100">
+            <MenuItem Header="File">
+              <MenuItem Header="Test 1" />
+              <MenuItem Header="Test 2" />
+              <MenuItem Header="Test 3">
+                <MenuItem.Icon>
+                  <CheckBox Margin="0" />
+                </MenuItem.Icon>
+              </MenuItem>
+            </MenuItem>
+          </Menu>
+          <StackPanel Orientation="Horizontal">
+            <ToggleButton
+                Name="btnAdd"
+                Height="28"
+                HorizontalAlignment="Right"
+                Content="Addy" />
+            <Button
+                Name="btnRem"
+                HorizontalAlignment="Right"
+                Content="Add" />
+            <TextBox
+                Width="100"
+                VerticalAlignment="Center"
+                Text="Rrrrr"
+                UseFloatingPlaceholder="True"
+                PlaceholderText="Hello" />
+            <CheckBox>Test Check</CheckBox>
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+    </Border>
+  </Design.PreviewWith>
+  <Style Selector="DropDownButton">
+    <Setter Property="FontSize"
+            Value="12" />
+  </Style>
+  <Style Selector="Border.small">
+    <Setter Property="Width"
+            Value="100" />
+  </Style>
+  <!-- Add Styles Here -->
+</Styles>

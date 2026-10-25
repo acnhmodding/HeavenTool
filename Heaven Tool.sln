@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.10.34928.147
+# Visual Studio Version 18
+VisualStudioVersion = 18.10.12224.181 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HeavenTool.WinForms", "HeavenTool.WinForms\HeavenTool.WinForms.csproj", "{6D35A83B-F96F-424C-9655-701D8080A698}"
 EndProject
@@ -11,6 +11,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeavenTool.ModManager.CLI", "HeavenTool.ModManager.CLI\HeavenTool.ModManager.CLI.csproj", "{A831CD4B-8E3C-45BD-BDE8-09FE305F1259}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AltUI", "AltUI\AltUI.csproj", "{8C4BC546-AF71-7A9E-A51B-B1DA856EBC9B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeavenTool.Avalonia", "HeavenTool.Avalonia\HeavenTool.Avalonia.csproj", "{C345F798-95E8-9F6E-8D27-04B0E557BB45}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamebananaAPI", "GamebananaAPI\GamebananaAPI.csproj", "{4072C879-67BC-5ABC-13FA-2B59402AAAB6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,6 +42,14 @@ Global
 		{8C4BC546-AF71-7A9E-A51B-B1DA856EBC9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C4BC546-AF71-7A9E-A51B-B1DA856EBC9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8C4BC546-AF71-7A9E-A51B-B1DA856EBC9B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C345F798-95E8-9F6E-8D27-04B0E557BB45}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C345F798-95E8-9F6E-8D27-04B0E557BB45}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C345F798-95E8-9F6E-8D27-04B0E557BB45}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C345F798-95E8-9F6E-8D27-04B0E557BB45}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4072C879-67BC-5ABC-13FA-2B59402AAAB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4072C879-67BC-5ABC-13FA-2B59402AAAB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4072C879-67BC-5ABC-13FA-2B59402AAAB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4072C879-67BC-5ABC-13FA-2B59402AAAB6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

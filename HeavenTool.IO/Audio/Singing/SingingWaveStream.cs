@@ -107,11 +107,16 @@ public sealed class SingingWaveStream : WaveStream
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (offset > buffer.Length - count) throw new ArgumentException("Buffer range is invalid.");
+        return Read(buffer.AsSpan(offset, count));
+    }
+
+    public override int Read(Span<byte> buffer)
+    {
         lock (sync)
         {
-            var requestedFrames = count / WaveFormat.BlockAlign;
+            var requestedFrames = buffer.Length / WaveFormat.BlockAlign;
             var output = MemoryMarshal.Cast<byte, short>(
-                buffer.AsSpan(offset, requestedFrames * WaveFormat.BlockAlign));
+                buffer[..(requestedFrames * WaveFormat.BlockAlign)]);
             var frames = 0;
             while (frames < requestedFrames && PrepareFrame())
             {

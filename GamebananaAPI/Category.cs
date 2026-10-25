@@ -1,0 +1,36 @@
+﻿namespace GamebananaAPI;
+
+public enum Category
+{
+    Any,
+    App, 
+    Article, 
+    Bug, 
+    Blog, 
+    Club, 
+    Contest, 
+    Concept, 
+    Event, 
+    Game,
+    Idea, 
+    Initiative, 
+    Jam, 
+    Mod, 
+    Model, 
+    Member, 
+    News, 
+    Poll, 
+    Project, 
+    Question, 
+    Review, 
+    Request, 
+    Script, 
+    Sound, 
+    Spray, 
+    Studio, 
+    Thread, 
+    Tool, 
+    Tutorial,
+    Wiki, 
+    Wip
+}
