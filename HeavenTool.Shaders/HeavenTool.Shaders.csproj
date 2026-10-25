@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../HeavenTool.IO/HeavenTool.IO.csproj" />
+    <Reference Include="Ryujinx.Graphics.Shader"><HintPath>../ThirdParty/Ryujinx/Ryujinx.Graphics.Shader.dll</HintPath></Reference>
+    <Reference Include="Ryujinx.Common"><HintPath>../ThirdParty/Ryujinx/Ryujinx.Common.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>
