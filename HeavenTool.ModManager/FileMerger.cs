@@ -233,34 +233,7 @@ namespace HeavenTool.ModManager
             if (rstbFile != null)
             {
                 using var resourceSizeTable = new ResourceSizeTable(rstbFile);
-
-                var allFiles = Directory.GetFiles(romfsPath, "*", SearchOption.AllDirectories);
-                foreach (var originalFile in allFiles)
-                {
-
-                    var path = Path.GetRelativePath(romfsDirectory.FullName, originalFile).Replace('\\', '/');
-                    if (path == "System/Resource/ResourceSizeTable.srsizetable" || path == "System/Resource/ResourceSizeTable.rsizetable")
-                        continue;
-
-                    // skip byml files, but not EventFlow byml
-                    if (path.EndsWith(".byml") && path != "EventFlow/Info/EventFlowInfoProduct.byml")
-                        continue;
-
-                    if (path.EndsWith(".zs"))
-                        path = path[..^3];
-
-                    var fileSize = ResourceSizeTable.GetFileSize(originalFile, path);
-
-                    if (fileSize < 0 || fileSize > uint.MaxValue)
-                        resourceSizeTable.Dictionary.Remove(path);
-
-                    else if (resourceSizeTable.Dictionary.TryGetValue(path, out var entry) && fileSize != entry.FileSize)
-                        entry.FileSize = (uint)fileSize;
-
-                    else if (!resourceSizeTable.Dictionary.ContainsKey(path))
-                        resourceSizeTable.AddEntry(new ResourceSizeTable.ResourceTableEntry(path, (uint)fileSize, 0, false));
-
-                }
+                ResourceSizeTablePatcher.CalculatePatch(romfsDirectory.FullName).ApplyTo(resourceSizeTable);
 
                 outputPath = Path.Combine(outputPath, "ResourceSizeTable.srsizetable");
                 File.WriteAllBytes(outputPath, resourceSizeTable.Save());
