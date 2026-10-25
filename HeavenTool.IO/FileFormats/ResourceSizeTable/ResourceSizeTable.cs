@@ -1,13 +1,12 @@
 ﻿using AeonSake.NintendoTools.Compression.Yaz0;
 using AeonSake.NintendoTools.Compression.Zstd;
-using AeonSake.NintendoTools.FileFormats.Sarc;
 using HeavenTool.IO.Common;
 using System.Text;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 
 namespace HeavenTool.IO.FileFormats.ResourceSizeTable;
 
-public class ResourceSizeTable : IDisposable
+public partial class ResourceSizeTable : IDisposable
 {
     public static readonly Yaz0Decompressor Decompressor = new();
     public static readonly Yaz0Compressor Compressor = new();
@@ -326,111 +325,6 @@ public class ResourceSizeTable : IDisposable
         }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="entireFileName"></param>
-    /// <param name="romfsName"></param>
-    /// <returns>
-    /// <para><b>File Size</b> with proper padding</para>
-    /// <para>or <b>-1</b> if unsupported Zstd file</para>
-    /// <para>or <b>-2</b> if unsupported file</para>
-    /// </returns>
-    /// <exception cref="OverflowException">Throws when file size exceeds the <see cref="uint.MaxValue"/></exception>
-    public static long GetFileSize(string entireFileName, string romfsName)
-    {
-        // If it's a zstd file
-#if !DEBUG
-        if (entireFileName.EndsWith(".zs")
-            && !romfsName.StartsWith("Layout/")
-            && !romfsName.StartsWith("Message/")
-            && !romfsName.StartsWith("Model/Layout_"))
-            return -1;
-#endif
-        using var fileStream = File.OpenRead(entireFileName);
-
-        long size = -1;
-        if (entireFileName.EndsWith(".zs") || ZstdDecompressor.CanDecompress(fileStream))
-        {
-            using var decompressed = new MemoryStream();
-            ZstdDecompressor.Decompress(fileStream, decompressed);
-            size = decompressed.Length;
-
-#if DEBUG
-            // wip, support for models/sarc files
-            if (decompressed.Length >= 32 && romfsName.StartsWith("Model/") && romfsName.EndsWith(".Nin_NX_NVN"))
-            {
-                decompressed.Position = 0;
-                if (SarcFileReader.CanReadStatic(decompressed))
-                {
-                    long GetSARCSize(MemoryStream decompressed)
-                    {
-                        long size;
-                        var file = sarcFileReader.Read(decompressed);
-
-                        long count = 0;
-                        foreach (var item in file.Files)
-                        {
-                            if (item.Data.StartsWith("FRES"u8))
-                            {
-                                using var memoryStream = new MemoryStream(item.Data);
-                                using var reader = new BinaryReader(memoryStream);
-                                var binaryFileHeader = new BinaryFileHeader(reader, "FRES");
-
-                                count += binaryFileHeader.FileSize;
-                            }
-                            else if (item.Data.StartsWith("SARC"u8))
-                                count += GetSARCSize(new MemoryStream(item.Data));
-                            else if (item.Data.StartsWith("pbc"u8))
-                                count += item.Data.Length;
-                            else if (item.Data.StartsWith("Phive"u8))
-                                count += new Phive.PhiveFileReader(item.Data).FileSize;
-                            else
-                            {
-                                var magic = Encoding.UTF8.GetString(item.Data[0..10]).TrimEnd();
-                                Console.WriteLine($"File {romfsName} - {item.Name} | Magic: {magic}");
-                                count += item.Data.Length;
-                            }
-                        }
-
-                        size = count;
-                        return size;
-                    }
-
-                    size = GetSARCSize(decompressed);
-                }
-                else Console.WriteLine($"File {romfsName} is not a SARC file");
-            }
-#endif
-        }
-
-
-        if (size == -1) size = new FileInfo(entireFileName).Length;
-
-        // Round up to the next number divisible by 32
-        size = size + 31 & -32;
-
-        if (romfsName.StartsWith("Layout/"))
-            size += 8192;
-        else if (romfsName.StartsWith("Model/Layout_"))
-            size += 9264;
-        else if (romfsName.StartsWith("Message/"))
-            size += 512;
-        else if (entireFileName.EndsWith(".bars"))
-            size += 712;
-        else if (entireFileName.EndsWith(".bcsv") || entireFileName.EndsWith(".bfevfl") || entireFileName.EndsWith(".byml"))
-            size += 416;
-#if !DEBUG
-        else return -2; // unsupported file
-#endif
-
-        if (size > uint.MaxValue)
-            throw new OverflowException($"{entireFileName} is too big!");
-
-        return size;
-
-    }
-
     public void Dispose()
     {
         Dispose(true);
@@ -438,7 +332,6 @@ public class ResourceSizeTable : IDisposable
     }
 
     private bool disposed = false;
-    private static readonly SarcFileReader sarcFileReader = new();
 
     protected virtual void Dispose(bool disposing)
     {
