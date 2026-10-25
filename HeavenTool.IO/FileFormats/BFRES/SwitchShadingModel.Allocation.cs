@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
+using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 
 namespace HeavenTool.IO.FileFormats.BFRES;
 
@@ -14,28 +15,17 @@ public sealed partial class SwitchShadingModel
     {
         get
         {
-            int index = owner.Byte(modelOffset + 0xf0);
-            if (index == 255) return 0;
-            if (index >= UniformBlocks.Count) throw new InvalidDataException("Invalid material uniform block index.");
-            return UniformBlocks[index].Size;
+            if (materialBlock == 255) return 0;
+            if (materialBlock >= UniformBlocks.Count) throw new InvalidDataException("Invalid material uniform block index.");
+            return UniformBlocks[materialBlock].Size;
         }
     }
 
-    internal bool HasAllocationShaderOptionBindings
-    {
-        get
-        {
-            int array = owner.Pointer(modelOffset + 8), count = owner.U16(modelOffset + 0xe4);
-            owner.Range(array, checked(count * 0x28));
-            for (int i = 0; i < count; i++)
-                if ((owner.Byte(array + i * 0x28 + 0x1c) & 1) != 0) return true;
-            return UniformBlocks.Any(b => b.Type == 4 && b.Size != 0);
-        }
-    }
+    internal bool HasAllocationShaderOptionBindings => staticOptionBindings || UniformBlocks.Any(b => b.Type == 4 && b.Size != 0);
 
     internal int AllocationShaderObjectWorkBytes => AlignedBlocks(
         staticKeyWords * 4, staticKeyWords * 4,
-        ((owner.U16(modelOffset + 0xe4) + 31) / 32) * 4, 0x48);
+        ((staticOptionCount + 31) / 32) * 4, 0x48);
 
     internal int AllocationSelectorWorkBytes => AlignedBlocks(
         (keyWords - staticKeyWords) * 4, (keyWords - staticKeyWords) * 4, (keyWords - staticKeyWords) * 4);
@@ -61,10 +51,7 @@ public sealed partial class SwitchShadingModel
         int match = -1;
         foreach (int index in candidates)
         {
-            bool matches = true;
-            for (int j = 0; j < words.Length; j++)
-                if (owner.U32(keyTable + (index * keyWords + staticKeyWords + j) * 4) != words[j]) { matches = false; break; }
-            if (!matches) continue;
+            if (!keys.AsSpan(index * keyWords + staticKeyWords, words.Length).SequenceEqual(words)) continue;
             if (match >= 0) throw new InvalidDataException("Duplicate compiled shader key.");
             match = index;
         }
@@ -73,10 +60,9 @@ public sealed partial class SwitchShadingModel
 
     private uint[] AllocationKey(IReadOnlyDictionary<string, string> choices, bool dynamic)
     {
-        int staticCount = owner.U16(modelOffset + 0xe4);
         uint[] words = new uint[dynamic ? keyWords - staticKeyWords : staticKeyWords];
         // Static keys are encoded once per material, not once per render pass.
-        for (int i = dynamic ? staticCount : 0; i < (dynamic ? Options.Count : staticCount); i++)
+        for (int i = dynamic ? staticOptionCount : 0; i < (dynamic ? Options.Count : staticOptionCount); i++)
         {
             var option = Options[i];
             int word = option.Word - (dynamic ? staticKeyWords : 0);
@@ -84,9 +70,7 @@ public sealed partial class SwitchShadingModel
             int selected = option.DefaultChoice;
             if (choices.TryGetValue(option.Name, out string? value))
             {
-                int found = -1;
-                for (int choice = 0; choice < option.Choices.Count; choice++)
-                    if (option.Choices[choice] == value) { found = choice; break; }
+                int found = ChoiceIndex(option, value);
                 // The dynamic setter leaves its default for an unknown choice.
                 // An unknown static value cannot establish a compiled candidate.
                 if (found >= 0) selected = found;
@@ -110,9 +94,7 @@ public sealed partial class SwitchShadingModel
             var statics = new Dictionary<string, List<int>>(StringComparer.Ordinal);
             for (int i = 0; i < ProgramCount; i++)
             {
-                var words = new uint[staticKeyWords];
-                for (int j = 0; j < words.Length; j++) words[j] = owner.U32(keyTable + (i * keyWords + j) * 4);
-                string key = KeyText(words);
+                string key = KeyText(keys.AsSpan(i * keyWords, staticKeyWords));
                 if (!statics.TryGetValue(key, out var indices)) statics.Add(key, indices = []);
                 indices.Add(i);
             }
@@ -129,28 +111,27 @@ public sealed partial class SwitchShadingModel
 
     internal AllocationProgramLayout ReadAllocationLayout(int index)
     {
-        if ((uint)index >= ProgramCount) throw new ArgumentOutOfRangeException(nameof(index));
-        int program = programArray + index * 0x40;
-        uint mask = owner.U32(program + 0x30);
+        using var reader = owner.Open();
+        long program = programArray + index * 0x40;
+        uint mask = reader.ReadUInt32At(program + 0x30);
         var attributes = Attributes.Where((a, i) => (mask & (1u << i)) != 0 && a.Location >= 0).ToArray();
-        var samplers = AllocationLocations(owner.Pointer(program), samplerNames);
-        var uniforms = AllocationLocations(owner.Pointer(program + 0x10), UniformBlocks.Select(b => b.Name).ToArray());
-        var storage = AllocationLocations(owner.Pointer(program + 0x18), owner.Dictionary(owner.Pointer(modelOffset + 0x78)));
+        var samplers = AllocationLocations(reader, reader.ReadPointerAt(program), samplerNames);
+        var uniforms = AllocationLocations(reader, reader.ReadPointerAt(program + 0x10), UniformBlocks.Select(b => b.Name).ToArray());
+        var storage = AllocationLocations(reader, reader.ReadPointerAt(program + 0x18), storageNames);
         return new(attributes, samplers, uniforms, storage);
     }
 
-    private Dictionary<string, uint> AllocationLocations(int at, IReadOnlyList<string> names)
+    private static Dictionary<string, uint> AllocationLocations(BinaryReader reader, long at, IReadOnlyList<string> names)
     {
         var locations = new Dictionary<string, uint>(StringComparer.Ordinal);
         if (names.Count == 0) return locations;
         if (at == 0) throw new InvalidDataException("Missing compiled resource locations.");
-        owner.Range(at, checked(names.Count * 24));
         for (int i = 0; i < names.Count; i++)
         {
-            int entry = at + i * 24;
+            long entry = at + i * 24;
             // The game packs source stages 0, 2, 1, and an absent compute slot.
-            uint packed = (owner.U32(entry) & 255) | ((owner.U32(entry + 8) & 255) << 8)
-                | ((owner.U32(entry + 4) & 255) << 16) | 0xff000000;
+            uint packed = (reader.ReadUInt32At(entry) & 255) | ((reader.ReadUInt32At(entry + 8) & 255) << 8)
+                | ((reader.ReadUInt32At(entry + 4) & 255) << 16) | 0xff000000;
             locations.Add(names[i], packed);
         }
         return locations;
