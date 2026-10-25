@@ -1,46 +1,31 @@
 using Avalonia.Interactivity;
 using Avalonia.Controls;
 using Avalonia.Data;
-using Avalonia.Controls.Utils;
 using Avalonia.Input;
+using Avalonia.Data.Converters;
 
 namespace HeavenTool.Avalonia.FileTypes.BCSV;
 
 public class DataGridStringColumn : HeavenDataGridColumn
 {
     public int MaxLength { get; set; }
+    protected override IValueConverter DisplayConverter => new Converters.FieldValueConverter(FieldType, FieldSize);
 
     protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out BindingExpressionBase? binding)
     {
-        binding = null;
-
         var textBox = new TextBox
         {
             MaxLength = MaxLength
         };
 
-        if (Binding is ReflectionBinding currentBinding)
-        {
-            var newBinding = new ReflectionBinding(currentBinding.Path)
-            {
-                Mode = BindingMode.TwoWay,
-            };
-
-            binding = textBox.Bind(TextBox.TextProperty, newBinding);
-        }
+        binding = BindEditor(textBox, TextBox.TextProperty, dataItem);
 
         return textBox;
     }
 
-    protected override Control GenerateElement(DataGridCell cell, object dataItem)
+    protected override void CancelCellEdit(Control editingElement, object uneditedValue)
     {
-        var textBlock = new TextBlock();
-
-        if (Binding is ReflectionBinding binding)
-            textBlock.Bind(TextBlock.TextProperty, binding);
-        
-
-        return textBlock;
+        if (editingElement is TextBox textBox) textBox.Text = (string)uneditedValue;
     }
 
     protected override object PrepareCellForEdit(Control editingElement, RoutedEventArgs editingEventArgs)

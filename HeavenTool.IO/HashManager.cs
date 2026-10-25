@@ -1,4 +1,4 @@
-﻿using HeavenTool.IO.FileFormats.BCSV;
+using HeavenTool.IO.FileFormats.BCSV;
 using System.Globalization;
 
 namespace HeavenTool.IO;
@@ -19,12 +19,20 @@ public static class HashManager
     public static Dictionary<uint, string[]> BitField { get; } = [];
 
     private static bool isInitialized;
+    private static readonly Lock initializeLock = new();
     public static void InitializeHashes()
     {
-        if (isInitialized) return;
+        lock (initializeLock)
+        {
+            if (isInitialized) return;
+            LoadHashes();
+            isInitialized = true;
+        }
+    }
 
+    private static void LoadHashes()
+    {
         Console.WriteLine("[BCSV] Initializing Hashes...");
-        isInitialized = true;
 
         var crcHashes = Path.Combine(AppContext.BaseDirectory, "extra", "hashes");
         var murmurHashes = Path.Combine(AppContext.BaseDirectory, "extra", "murmur3-hashes");

@@ -1,6 +1,5 @@
 ﻿using System.Buffers.Binary;
 using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 using BinaryWriter = AeonSake.BinaryTools.BinaryWriter;
 
@@ -157,6 +156,9 @@ public class BinaryCSV
     {
         if (name == null) return current;
 
+        if (current == DataType.BitField && name.Contains(" string", StringComparison.Ordinal))
+            return DataType.String;
+
         foreach (var rule in suffixRules)
             if (name.EndsWith(rule.Suffix) && (rule.Condition == null || rule.Condition(size)))
                 return rule.Type;
@@ -180,6 +182,9 @@ public class BinaryCSV
 
         using var reader = new BinaryReader(stream);
 
+        if (reader.BaseStream.Length < 12)
+            throw new InvalidDataException("The BCSV header is incomplete.");
+
         reader.Position = 0;
         var entryCount = reader.ReadUInt32();
         EntrySize = reader.ReadInt32();
@@ -201,6 +206,11 @@ public class BinaryCSV
             reader.Skip(8);
         }
 
+        long dataOffset = reader.Position + fieldCount * 8L;
+        if (EntrySize < 0 || (EntrySize == 0 && entryCount != 0) || entryCount > int.MaxValue
+            || dataOffset + EntrySize * entryCount > reader.BaseStream.Length)
+            throw new InvalidDataException("The BCSV row count or row size exceeds the file length.");
+
         // Read Fields
         Fields = new Field[fieldCount];
         for (ushort i = 0; i < fieldCount; i++)
@@ -221,7 +231,8 @@ public class BinaryCSV
 
 
             var translatedName = currentField.GetTranslatedNameOrNull();
-            var type = baseTypeBySize.TryGetValue(currentField.Size, out var baseType) ? baseType : DataType.String;
+            // An unknown field may contain opaque data, not UTF-8 text.
+            var type = baseTypeBySize.TryGetValue(currentField.Size, out var baseType) ? baseType : DataType.BitField;
 
             // Consider the translated name to get the correct type.
             type = ApplySuffixRules(translatedName, currentField.Size, type);
@@ -235,7 +246,6 @@ public class BinaryCSV
 
         Entries = new List<object[]>(checked((int)entryCount));
 
-        int rowReadSize = EntrySize;
         foreach (var field in Fields)
         {
             int size = field.DataType switch
@@ -246,9 +256,10 @@ public class BinaryCSV
                 DataType.String or DataType.BitField => field.Size,
                 _ => 0,
             };
-            rowReadSize = Math.Max(rowReadSize, checked(field.Offset + size));
+            if (field.Offset < 0 || size < 0 || field.Offset > EntrySize - size)
+                throw new InvalidDataException($"Field {field.HEX} extends beyond the declared row size.");
         }
-        var rowBuffer = new byte[rowReadSize];
+        var rowBuffer = new byte[EntrySize];
 
         for (var i = 0; i < entryCount; i++)
         {
@@ -285,8 +296,9 @@ public class BinaryCSV
 
     private static string ReadFixedString(ReadOnlySpan<byte> data)
     {
-        while (!data.IsEmpty && data[^1] == 0)
-            data = data[..^1];
+        int terminator = data.IndexOf<byte>(0);
+        if (terminator >= 0)
+            data = data[..terminator];
         return Encoding.UTF8.GetString(data);
     }
 
@@ -320,15 +332,15 @@ public class BinaryCSV
 
         for (var currentEntry = 0; currentEntry < Entries.Count; currentEntry++)
         {
-            var pos = (int)writer.BaseStream.Position;
-            writer.Write(pos);
+            var startPosition = writer.Position;
+            writer.Write((uint)startPosition);
 
+            var entry = Entries[currentEntry];
             for (var fieldId = 0; fieldId < Fields.Length; fieldId++)
             {
+                var cellPosition = writer.Position;
                 var field = Fields[fieldId];
-                writer.Position = pos + field.Offset;
-
-                var entryValue = Entries[currentEntry][fieldId];
+                var entryValue = entry[fieldId];
                 switch (field.DataType)
                 {
                     case DataType.BitField:
@@ -370,7 +382,7 @@ public class BinaryCSV
                         {
                             try
                             {
-                                var stringValue = entryValue?.ToString()?.Trim() ?? "";
+                                var stringValue = entryValue?.ToString() ?? "";
                                 var bytes = Encoding.UTF8.GetBytes(stringValue);
                                 Array.Resize(ref bytes, field.Size);
                                 bytes[^1] = 0;
@@ -384,9 +396,12 @@ public class BinaryCSV
                         break;
                 }
 
+                var padding = field.Size - (writer.Position - cellPosition);
+                if (padding > 0) writer.Pad(padding);
+                else if (padding < 0) throw new Exception($"Cell value \"{entryValue}\" exceeds size of {field.Size} bytes.");
             }
 
-            writer.Position = pos + EntrySize;
+            writer.Align(4);
         }
 
         writer.Align(4);

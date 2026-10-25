@@ -1,112 +1,149 @@
-<fa:FAAppWindow  xmlns="https://github.com/avaloniaui" 
-              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:fa="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
-              xmlns:vm="clr-namespace:HeavenTool.Avalonia.ViewModels;assembly=HeavenTool.Avalonia"
-              xmlns:ct="clr-namespace:HeavenTool.Avalonia.Controls;assembly=HeavenTool.Avalonia"
-              mc:Ignorable="d"
-              Width="800" Height="600"
-              x:Class="HeavenTool.Avalonia.Views.FileEditors.BCSVWindow"
-              Title="Heaven Tool"      
-              Background="#333333"
-              Name="Window"
-              x:DataType="vm:BCSVViewModel">
+<fa:FAAppWindow  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:fa="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
+  xmlns:vm="clr-namespace:HeavenTool.Avalonia.ViewModels;assembly=HeavenTool.Avalonia"
+  mc:Ignorable="d"
+  Width="800" Height="600"
+  x:Class="HeavenTool.Avalonia.Views.FileEditors.BCSVWindow"
+  Title="Heaven Tool"
+  Background="#333333"
+  x:DataType="vm:BCSVViewModel">
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveFileCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}" />
+  </Window.KeyBindings>
 
   <Grid RowDefinitions="Auto, *">
-  <DockPanel Grid.Row="0" Height="32" Background="#2D2D30"
-             WindowDecorationProperties.ElementRole="TitleBar">
-    <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16"/>
-    <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Margin="0 0 0 0" Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
-    <TextBlock Text="v2.0" Margin="5 0 0 0" VerticalAlignment="Center" FontSize="11" Foreground="Gray"/>
-  </DockPanel>
-  <DockPanel Grid.Row="1">    
-    <Menu DockPanel.Dock="Top" Padding="0" Background="#222" Height="30" Foreground="White" FontSize="11">
-      <MenuItem Header="_File">
-        <MenuItem Header="_Open..." Command="{Binding OpenFile}">
-          <MenuItem.Icon>
-            <PathIcon Data="{StaticResource IconFile}" Width="14" Height="14" />
-          </MenuItem.Icon>
-        </MenuItem>
+    <DockPanel Grid.Row="0" Height="32" Background="#2D2D30"
+      WindowDecorationProperties.ElementRole="TitleBar">
+      <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16"/>
+      <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Margin="0 0 0 0" Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+      <TextBlock Text="v2.0" Margin="5 0 0 0" VerticalAlignment="Center" FontSize="11" Foreground="Gray"/>
+    </DockPanel>
+    <DockPanel Grid.Row="1">
+      <Menu DockPanel.Dock="Top" Padding="0" Background="#222" Height="30" Foreground="White" FontSize="11">
+        <MenuItem Header="_File">
+          <MenuItem Header="_Open..." Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconFile}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
 
-        <MenuItem Header="_Save as...">
-          <MenuItem.Icon>
-            <PathIcon Data="{StaticResource IconFileExport}" Width="14" Height="14" />
-          </MenuItem.Icon>
-        </MenuItem>
+          <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" InputGesture="Ctrl+S">
+            <MenuItem.Icon>
+              <Image Source="/Assets/Icons/save.png" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="Save _as..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconFileExport}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
 
-        <Separator/>
-        
-        <MenuItem Header="Column _Visibility" IsEnabled="{Binding IsFileLoaded}">
-          <MenuItem.Icon>
-            <PathIcon Data="{StaticResource IconEye}" Width="14" Height="14" />
-          </MenuItem.Icon>
-          <MenuItem.Items>
-            <CheckBox Content="Toggle All" IsThreeState="True" IsChecked="{Binding ToggleAll, Mode=TwoWay}" />
-            <Separator/>
-            <ItemsControl ItemsSource="{Binding Columns}">
+          <Separator/>
+
+          <MenuItem Header="Column _Visibility" IsEnabled="{Binding IsFileLoaded}">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconEye}" Width="14" Height="14" />
+            </MenuItem.Icon>
+            <MenuItem.Items>
+              <CheckBox Content="Toggle All" IsThreeState="True" IsChecked="{Binding ToggleAll, Mode=TwoWay}" />
+              <Separator/>
+              <ItemsControl ItemsSource="{Binding Columns}">
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <CheckBox Content="{Binding Header}" IsChecked="{Binding IsVisible, Mode=TwoWay}" />
-                    </DataTemplate>
+                  <DataTemplate>
+                    <CheckBox Content="{Binding Header}" IsChecked="{Binding IsVisible, Mode=TwoWay}" />
+                  </DataTemplate>
                 </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </MenuItem.Items>
+              </ItemsControl>
+            </MenuItem.Items>
+          </MenuItem>
+
+          <Separator/>
+
+          <MenuItem Header="Unload" Command="{Binding CloseFileCommand}">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconClose}" Width="14" Height="14" />
+            </MenuItem.Icon>
+
+          </MenuItem>
         </MenuItem>
-        
-        <Separator/>
-   
-        <MenuItem Header="Unload" Command="{Binding CloseFile}">
-          <MenuItem.Icon>
-            <PathIcon Data="{StaticResource IconClose}" Width="14" Height="14" />
-          </MenuItem.Icon>
 
-        </MenuItem>
-      </MenuItem>
-      
-      <MenuItem Header="_Edit"/>
+      </Menu>
 
-      <MenuItem Header="_Tools">
-        <MenuItem Header="Load BCSV Hashes" Command="{Binding LoadBCSVHashes}" />
-      </MenuItem>
-    </Menu>
-
-    <Grid x:Name="ContentGrid">
+      <StackPanel DockPanel.Dock="Bottom" Margin="8,4" Spacing="3">
+        <ProgressBar Height="3" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+        <TextBlock Text="{Binding StatusText}" FontSize="11" />
+        <TextBlock Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}"
+          Foreground="#ff9696" TextWrapping="Wrap" />
+      </StackPanel>
       <DataGrid x:Name="MainDataGrid"
-                    Background="#3C3C3C"
-                    Foreground="White"
-                    GridLinesVisibility="Vertical"
-                    SelectionMode="Single"
-                    DockPanel.Dock="Top"
-                    IsVisible="{Binding IsFileLoaded}"
-                    CanUserSortColumns="True"
-                    CanUserResizeColumns="True"
-                    ItemsSource="{Binding LoadedFile.Entries}">
+        Background="#3C3C3C"
+        Foreground="White"
+        GridLinesVisibility="Vertical"
+        SelectionMode="Single"
+        IsVisible="{Binding IsFileLoaded}"
+        CanUserSortColumns="True"
+        CanUserResizeColumns="True"
+        AutoGenerateColumns="False"
+        RowHeight="32"
+        ColumnHeaderHeight="30"
+        IsReadOnly="{Binding IsBusy}"
+        IsHitTestVisible="{Binding !IsBusy}">
+
+        <DataGrid.Resources>
+          <!-- Wide tables instantiate thousands of cells. Keep their template small;
+            focus and validation share the border instead of extra visual layers. -->
+          <ControlTheme x:Key="{x:Type DataGridCell}" TargetType="DataGridCell">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+              <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                      Foreground="{TemplateBinding Foreground}"
+                      Margin="{TemplateBinding Padding}"
+                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    <Rectangle Name="PART_RightGridLine" Grid.Column="1" Width="1" />
+                  </Grid>
+                </Border>
+              </ControlTemplate>
+            </Setter>
+            <Style Selector="^:current">
+              <Setter Property="BorderBrush" Value="#1aae5e" />
+            </Style>
+            <Style Selector="^:invalid">
+              <Setter Property="BorderBrush" Value="#ff9696" />
+            </Style>
+          </ControlTheme>
+        </DataGrid.Resources>
 
         <DataGrid.Styles>
 
           <Style Selector="DataGridColumnHeader">
+            <Setter Property="Background" Value="#505050" />
+            <Setter Property="Foreground" Value="White" />
             <Setter Property="ContextMenu">
               <Setter.Value>
                 <ContextMenu>
                   <MenuItem Header="Hide Column"
-                            Command="{Binding HideColumn}"
-                            CommandParameter="{Binding $self}"/>
+                    Command="{Binding HideColumn}"
+                    CommandParameter="{Binding $parent[ContextMenu].PlacementTarget}"/>
 
-                  <MenuItem Header="Change Type" ItemsSource="{Binding DataTypes}">
-                    <MenuItem.Styles>
-                      <Style Selector="MenuItem">
-                        <Setter Property="Command" Value="{ReflectionBinding #Window.DataContext.SelectDataType}"/>
-                        <Setter Property="Header" Value="{ReflectionBinding EnumName}"/>
-                        <Setter Property="CommandParameter">
-                          <MultiBinding>
-                            <ReflectionBinding Path="Value"/>
-                            <Binding Path="$parent[DataGridColumnHeader]"/>
-                          </MultiBinding>
-                        </Setter>
-                      </Style>
-                    </MenuItem.Styles>
-                  </MenuItem>
                 </ContextMenu>
               </Setter.Value>
             </Setter>
@@ -121,18 +158,8 @@
             <Setter Property="Foreground" Value="White"/>
           </Style>
 
-          <Style Selector="DataGridCell">
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-          </Style>
-
-          <Style Selector="DataGridColumnHeader">
-            <Setter Property="Background" Value="#505050"/>
-            <Setter Property="Foreground" Value="White"/>
-          </Style>
         </DataGrid.Styles>
       </DataGrid>
-    </Grid>
-  </DockPanel>
+    </DockPanel>
   </Grid>
 </fa:FAAppWindow>
