@@ -41,7 +41,7 @@ public static class HashManager
         Directory.CreateDirectory(crcHashes);
         Directory.CreateDirectory(murmurHashes);
 
-        foreach (var file in Directory.GetFiles(crcHashes, "*.txt"))
+        foreach (var file in Directory.EnumerateFiles(crcHashes, "*.txt"))
         {
             if (Path.GetExtension(file) != ".txt") continue;
 
@@ -52,7 +52,7 @@ public static class HashManager
 
         Console.WriteLine("[BCSV] Loaded {0} CRC32 Hashes", CRC32_Hashes.Count);
 
-        foreach (var file in Directory.GetFiles(murmurHashes, "*.txt"))
+        foreach (var file in Directory.EnumerateFiles(murmurHashes, "*.txt"))
         {
             if (Path.GetExtension(file) != ".txt")
                 continue;
@@ -74,7 +74,7 @@ public static class HashManager
         var enumFolder = Path.Combine(AppContext.BaseDirectory, "extra", "bitfields");
         Directory.CreateDirectory(enumFolder);
 
-        foreach (var file in Directory.GetFiles(enumFolder, "*.txt", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(enumFolder, "*.txt", SearchOption.AllDirectories))
         {
             if (Path.GetExtension(file) != ".txt") continue;
 
@@ -115,31 +115,29 @@ public static class HashManager
         var enumFolder = Path.Combine(AppContext.BaseDirectory, "extra", "hashes", "enum");
         Directory.CreateDirectory(enumFolder);
 
-        foreach (var file in Directory.GetFiles(enumFolder, "*.txt", SearchOption.AllDirectories))
-        {
-            if (Path.GetExtension(file) != ".txt")
-                continue;
-
-            var fileName = Path.GetFileNameWithoutExtension(file);
-            if (fileName.StartsWith("0x"))
-                fileName = fileName[2..];
-
-            var parsedSuccessfully = uint.TryParse(fileName, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out var enumHash);
-            if (parsedSuccessfully)
+        // Read independently, then merge in file order so duplicate hashes keep the same labels.
+        var enums = Directory.EnumerateFiles(enumFolder, "*.txt", SearchOption.AllDirectories)
+            .Where(file => Path.GetExtension(file) == ".txt")
+            .AsParallel().AsOrdered()
+            .Select(file =>
             {
-                if (!EnumListCRC32.ContainsKey(enumHash))
-                    EnumListCRC32.Add(enumHash, []);
+                var fileName = Path.GetFileNameWithoutExtension(file);
+                if (fileName.StartsWith("0x")) fileName = fileName[2..];
+                bool valid = uint.TryParse(fileName, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out var hash);
+                return (Hash: hash, Labels: valid ? File.ReadAllLines(file) : null);
+            });
 
-                var collection = EnumListCRC32[enumHash];
-                foreach (var hashStr in File.ReadAllLines(file))
-                {
-                    var hash = hashStr.ToCRC32();
-
-                    if (!collection.Contains(hash))
-                        collection.Add(hash);
-
-                    CRC32_Hashes.TryAdd(hash, hashStr);
-                }
+        foreach (var (enumHash, labels) in enums)
+        {
+            if (labels == null) continue;
+            if (!EnumListCRC32.TryGetValue(enumHash, out var collection))
+                EnumListCRC32.Add(enumHash, collection = []);
+            var seen = new HashSet<uint>(collection);
+            foreach (var hashStr in labels)
+            {
+                var hash = hashStr.ToCRC32();
+                if (seen.Add(hash)) collection.Add(hash);
+                CRC32_Hashes.TryAdd(hash, hashStr);
             }
         }
     }
