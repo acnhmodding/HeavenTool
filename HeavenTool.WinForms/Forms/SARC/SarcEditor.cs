@@ -148,6 +148,17 @@ public partial class SarcEditor : Form
                 filesTreeView.Nodes.Add(treeNode);
                 var context = new DarkContextMenuStrip();
 
+                if (sarcContent.Name.EndsWith(".bfres", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Items.Add("Open with BFRES Viewer", null, (_, _) =>
+                    {
+                        var viewer = new BFRES.BFRESViewer();
+                        viewer.Shown += async (_, _) => await viewer.LoadBytesAsync(sarcContent.Data, sarcContent.Name);
+                        viewer.Show();
+                        openedEditors.Add(viewer);
+                    });
+                }
+
                 if (sarcContent.Name.EndsWith(".pbc"))
                 {
                     var item = context.Items.Add("Open with PBC Editor");

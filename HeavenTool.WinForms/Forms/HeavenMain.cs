@@ -22,6 +22,7 @@ public partial class HeavenMain : Form
         InitializeComponent();
 
         Text = $"Heaven Tool {Program.VERSION}";
+        toolsToolStripMenuItem.DropDownItems.Add("BFRES Viewer", null, (_, _) => new Forms.BFRES.BFRESViewer().Show());
     }
 
     private void BcsvEditorButton_Click(object sender, EventArgs e)

@@ -107,6 +107,12 @@ internal static partial class Program
 
         switch (extension)
         {
+            case ".bfres":
+            case ".sbfres":
+                var bfresViewer = new Forms.BFRES.BFRESViewer();
+                bfresViewer.Shown += async (_, _) => await bfresViewer.LoadFileAsync(path);
+                return bfresViewer;
+
             case ".bcsv":
                 var bcsvEditor = new BCSVForm();
                 bcsvEditor.LoadFile(path);
