@@ -44,7 +44,7 @@ public partial class BCSVWindow : FAAppWindow
     {
         var dialog = new Window
         {
-            Title = "Unsaved BCSV changes", Width = 420, Height = 160,
+            Title = "Unsaved BCSV changes", Width = 400, Height = 120,
             CanResize = false, WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
         var save = new Button { Content = "Save", IsDefault = true };
@@ -53,19 +53,28 @@ public partial class BCSVWindow : FAAppWindow
         save.Click += (_, _) => dialog.Close(true);
         discard.Click += (_, _) => dialog.Close(false);
         cancel.Click += (_, _) => dialog.Close(null);
-        dialog.Content = new StackPanel
+        var grid = new Grid
         {
-            Margin = new Thickness(20), Spacing = 20,
+            Margin = new Thickness(20),
+            RowDefinitions =             {
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto)
+            },
             Children =
             {
                 new TextBlock { Text = "Save changes before closing this file?" },
                 new StackPanel
                 {
+
                     Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
                     Spacing = 8, Children = { save, discard, cancel }
                 }
             }
         };
+
+        Grid.SetRow(grid.Children[1], 1);
+
+        dialog.Content = grid;
         return dialog.ShowDialog<bool?>(this);
     }
 
