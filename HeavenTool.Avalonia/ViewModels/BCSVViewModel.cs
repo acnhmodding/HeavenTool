@@ -4,7 +4,9 @@ using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HeavenTool.Avalonia.FileTypes.BCSV;
+using HeavenTool.IO.UndoSystem;
 using HeavenTool.Avalonia.Views.FileEditors;
+using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
 using System;
 using System.Collections.Generic;
@@ -18,14 +20,18 @@ namespace HeavenTool.Avalonia.ViewModels;
 public partial class BCSVViewModel : ObservableObject
 {
     private readonly BCSVWindow window;
+    private readonly UndoManager undoManager = new();
     private BinaryCSV? loadedFile;
     private IStorageFile? sourceFile;
     private string? localPath;
     private string fileName = "BCSV Editor";
+    private bool isEditing;
     public DataGrid DataGrid { get; }
     public BinaryCSV? LoadedFile => loadedFile;
     public bool IsFileLoaded => loadedFile != null;
     public AvaloniaList<ColumnVisibilityModel> Columns { get; } = [];
+    /// <summary>The document's rows in file order; <see cref="LoadedFile"/> receives them when saving.</summary>
+    public AvaloniaList<BCSVRow> Rows { get; private set; } = [];
 
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool hasUnsavedChanges;
@@ -39,12 +45,22 @@ public partial class BCSVViewModel : ObservableObject
         DataGrid = window.FindControl<DataGrid>("MainDataGrid")!;
         DataGrid.CellEditEnding += (_, e) =>
         {
-            if (e.EditAction == DataGridEditAction.Commit && e.Column is HeavenDataGridColumn column
-                && !column.CommitPendingEdit()) e.Cancel = true;
+            if (e.Column is not HeavenDataGridColumn column) return;
+            if (e.EditAction == DataGridEditAction.Commit && !column.CommitPendingEdit())
+            {
+                e.Cancel = true;
+                return;
+            }
+            if (column.TryTakePendingEdit(out var row, out var value) && e.EditAction == DataGridEditAction.Commit)
+                ApplyEdit(row, column, value);
         };
-        DataGrid.CellEditEnded += (_, e) =>
+        DataGrid.PreparingCellForEdit += (_, _) => SetEditing(true);
+        DataGrid.CellEditEnded += (_, _) => SetEditing(false);
+        DataGrid.SelectionChanged += (_, _) => RefreshCommands();
+        undoManager.Changed += (_, _) =>
         {
-            if (e.EditAction == DataGridEditAction.Commit) HasUnsavedChanges = true;
+            HasUnsavedChanges = !undoManager.IsAtSavePoint;
+            RefreshCommands();
         };
     }
 
@@ -54,12 +70,29 @@ public partial class BCSVViewModel : ObservableObject
     private void UpdateTitle() => window.Title = $"{fileName}{(HasUnsavedChanges ? " *" : "")} — Heaven Tool";
     private bool CanOpen() => !IsBusy;
     private bool CanSave() => IsFileLoaded && !IsBusy;
+    private bool CanUndo() => CanSave() && !isEditing && undoManager.CanUndo;
+    private bool CanRedo() => CanSave() && !isEditing && undoManager.CanRedo;
+    private bool CanDuplicateRows() => CanSave() && DataGrid.SelectedItems.Count > 0;
+    // Delete belongs to the cell's text box while editing.
+    private bool CanDeleteRows() => CanDuplicateRows() && !isEditing;
+
     private void RefreshCommands()
     {
         OpenFileCommand.NotifyCanExecuteChanged();
         SaveFileCommand.NotifyCanExecuteChanged();
         SaveAsCommand.NotifyCanExecuteChanged();
         CloseFileCommand.NotifyCanExecuteChanged();
+        UndoCommand.NotifyCanExecuteChanged();
+        RedoCommand.NotifyCanExecuteChanged();
+        NewRowCommand.NotifyCanExecuteChanged();
+        DuplicateRowsCommand.NotifyCanExecuteChanged();
+        DeleteRowsCommand.NotifyCanExecuteChanged();
+    }
+
+    private void SetEditing(bool value)
+    {
+        isEditing = value;
+        RefreshCommands();
     }
 
     public bool? ToggleAll
@@ -119,10 +152,11 @@ public partial class BCSVViewModel : ObservableObject
         try
         {
             var bytes = await read();
-            var loaded = await Task.Run(() =>
+            var (loaded, rows) = await Task.Run(() =>
             {
                 using var stream = new MemoryStream(bytes, writable: false);
-                return new BinaryCSV(stream);
+                var file = new BinaryCSV(stream);
+                return (file, new AvaloniaList<BCSVRow>(file.Entries.Select(values => new BCSVRow(values))));
             });
             // Leave the previous document intact if reading/parsing fails.
             ClearGrid();
@@ -131,11 +165,13 @@ public partial class BCSVViewModel : ObservableObject
             sourceFile = source;
             localPath = source?.TryGetLocalPath();
             fileName = name;
-            DataGrid.ItemsSource = loaded.Entries;
-            HasUnsavedChanges = false;
+            Rows = rows;
+            DataGrid.ItemsSource = rows;
+            undoManager.Clear();
             UpdateTitle();
             OnPropertyChanged(nameof(LoadedFile));
             OnPropertyChanged(nameof(IsFileLoaded));
+            OnPropertyChanged(nameof(Rows));
             OnPropertyChanged(nameof(ToggleAll));
             StatusText = $"{loaded.Length:N0} rows · {loaded.Fields.Length:N0} columns · loaded in {timer.Elapsed.TotalMilliseconds:N0} ms";
             return true;
@@ -175,7 +211,6 @@ public partial class BCSVViewModel : ObservableObject
                 column.FieldSize = field.Size;
                 column.Header = field.DisplayName;
                 column.Tag = index;
-                column.SortMemberPath = $"[{index}]";
                 column.IsReadOnly = field.DataType == DataType.BitField;
                 // Fixed initial widths/heights keep offscreen cells out of the measurement pass.
                 column.Width = new DataGridLength(Math.Clamp(field.DisplayName.Length * 7.5 + 28, 90, 240));
@@ -199,6 +234,126 @@ public partial class BCSVViewModel : ObservableObject
         if (DataGrid.CommitEdit(DataGridEditingUnit.Row, true)) return true;
         ErrorMessage = "Correct the current cell's value before saving or closing the file.";
         return false;
+    }
+
+    private static string RowCount(int count) => count == 1 ? "1 row" : $"{count:N0} rows";
+
+    private void ApplyEdit(BCSVRow row, HeavenDataGridColumn column, object value)
+    {
+        // Editing a cell inside a multi-row selection sets that field on every selected row.
+        IEnumerable<BCSVRow> targets = DataGrid.SelectedItems.Count > 1 && DataGrid.SelectedItems.Contains(row)
+            ? DataGrid.SelectedItems.OfType<BCSVRow>() : [row];
+        int field = column.FieldIndex;
+        var changes = targets.Where(target => !Equals(target[field], value))
+            .Select(target => new CellChange(target, field, target[field], value)).ToList();
+        if (changes.Count == 0) return;
+        ErrorMessage = null;
+        undoManager.Execute(new SetCellsCommand(changes));
+        StatusText = changes.Count == 1 ? $"Edited {column.Header}" : $"Set {column.Header} on {RowCount(changes.Count)}";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUndo))]
+    private void Undo() => StepHistory(undo: true);
+
+    [RelayCommand(CanExecute = nameof(CanRedo))]
+    private void Redo() => StepHistory(undo: false);
+
+    private void StepHistory(bool undo)
+    {
+        // The grid updates its selection per removed row, so drop it before rows can leave.
+        DataGrid.SelectedItems.Clear();
+        var command = undo ? undoManager.Undo() : undoManager.Redo();
+        if (command is not IBCSVCommand step) return;
+        SelectRows([.. step.RowsToSelect(undo)]);
+        StatusText = $"{(undo ? "Undone" : "Redone")} · {RowCount(Rows.Count)}";
+    }
+
+    // Each SelectedItems.Add rescans the whole selection, so a large partial selection keeps only its first row.
+    private const int MaxReselectedRows = 1000;
+
+    private void SelectRows(List<BCSVRow> rows)
+    {
+        if (rows.Count == 0) return;
+        DataGrid.SelectedItems.Clear();
+        if (rows.Count == Rows.Count) DataGrid.SelectAll();
+        else foreach (var row in rows.Count <= MaxReselectedRows ? rows : rows[..1]) DataGrid.SelectedItems.Add(row);
+        DataGrid.ScrollIntoView(rows[0], DataGrid.CurrentColumn);
+    }
+
+    /// <summary>Selected rows with their file positions, in file order.</summary>
+    private List<(int Index, BCSVRow Row)> SelectedRows()
+    {
+        var selected = DataGrid.SelectedItems.OfType<BCSVRow>().ToHashSet();
+        var result = new List<(int Index, BCSVRow Row)>(selected.Count);
+        for (int i = 0; i < Rows.Count && result.Count < selected.Count; i++)
+            if (selected.Contains(Rows[i])) result.Add((i, Rows[i]));
+        return result;
+    }
+
+    // Numeric unique IDs continue after the highest one in use. An unsigned field's MaxValue is
+    // the game's "-1", so it is neither counted nor handed out.
+    private Func<object?>? CreateUniqueIdSource(out int fieldIndex)
+    {
+        fieldIndex = loadedFile?.UniqueField is { } unique ? Array.IndexOf(loadedFile.Fields, unique) : -1;
+        if (fieldIndex < 0) return null;
+        var type = loadedFile!.Fields[fieldIndex].DataType;
+        long max = type switch
+        {
+            DataType.S8 => sbyte.MaxValue,
+            DataType.U8 => byte.MaxValue - 1,
+            DataType.Int16 => short.MaxValue,
+            DataType.UInt16 => ushort.MaxValue - 1,
+            DataType.Int32 => int.MaxValue,
+            DataType.UInt32 => uint.MaxValue - 1,
+            _ => -1
+        };
+        if (max < 0) return null;
+        int index = fieldIndex;
+        long next = Rows.Select(row => Convert.ToInt64(row[index])).Where(id => id <= max).DefaultIfEmpty(-1).Max() + 1;
+        return () => next > max ? null : Convert.ChangeType(next++, type.ToType());
+    }
+
+    private void AddRows(List<object[]> entries, string action)
+    {
+        var items = entries.Select((values, offset) => (Rows.Count + offset, new BCSVRow(values))).ToList();
+        undoManager.Execute(new ChangeRowsCommand(Rows, items, remove: false));
+        SelectRows([.. items.Select(item => item.Item2)]);
+        StatusText = $"{action} · {RowCount(Rows.Count)}";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    private void NewRow()
+    {
+        if (!CommitEdits()) return;
+        var values = loadedFile!.Fields.Select(field => field.GetFieldDefaultValue()).ToArray();
+        if (CreateUniqueIdSource(out int idField)?.Invoke() is { } id) values[idField] = id;
+        AddRows([values], "Added a row");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanDuplicateRows))]
+    private void DuplicateRows()
+    {
+        if (!CommitEdits()) return;
+        var source = SelectedRows();
+        if (source.Count == 0) return;
+        var nextId = CreateUniqueIdSource(out int idField);
+        var copies = source.Select(item =>
+        {
+            var values = item.Row.Values.Select(value => value is byte[] bytes ? bytes.Clone() : value).ToArray();
+            if (nextId?.Invoke() is { } id) values[idField] = id;
+            return values;
+        }).ToList();
+        AddRows(copies, $"Duplicated {RowCount(copies.Count)}");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanDeleteRows))]
+    private void DeleteRows()
+    {
+        var items = SelectedRows();
+        if (items.Count == 0) return;
+        DataGrid.SelectedItems.Clear();
+        undoManager.Execute(new ChangeRowsCommand(Rows, items, remove: true));
+        StatusText = $"Deleted {RowCount(items.Count)} · Ctrl+Z to undo";
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
@@ -235,7 +390,8 @@ public partial class BCSVViewModel : ObservableObject
         StatusText = $"Saving {name}…";
         try
         {
-            var bytes = await Task.Run(loadedFile!.Save);
+            loadedFile!.Entries = [.. Rows.Select(row => row.Values)];
+            var bytes = await Task.Run(loadedFile.Save);
             if (path != null)
             {
                 path = Path.GetFullPath(path);
@@ -260,9 +416,10 @@ public partial class BCSVViewModel : ObservableObject
             sourceFile = destination;
             localPath = path;
             fileName = name;
+            undoManager.MarkSaved();
             HasUnsavedChanges = false;
             UpdateTitle();
-            StatusText = $"Saved {name} · {LoadedFile!.Length:N0} rows";
+            StatusText = $"Saved {name} · {RowCount(Rows.Count)}";
             return true;
         }
         catch (Exception ex)
@@ -294,10 +451,12 @@ public partial class BCSVViewModel : ObservableObject
         sourceFile = null;
         localPath = null;
         fileName = "BCSV Editor";
-        HasUnsavedChanges = false;
+        Rows = [];
+        undoManager.Clear();
         UpdateTitle();
         OnPropertyChanged(nameof(LoadedFile));
         OnPropertyChanged(nameof(IsFileLoaded));
+        OnPropertyChanged(nameof(Rows));
         OnPropertyChanged(nameof(ToggleAll));
         RefreshCommands();
         StatusText = "Open a BCSV file to begin.";

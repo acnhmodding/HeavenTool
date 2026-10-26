@@ -15,6 +15,12 @@
     <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
     <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveFileCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}" />
+    <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+    <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+    <KeyBinding Gesture="Ctrl+N" Command="{Binding NewRowCommand}" />
+    <KeyBinding Gesture="Ctrl+D" Command="{Binding DuplicateRowsCommand}" />
+    <KeyBinding Gesture="Delete" Command="{Binding DeleteRowsCommand}" />
   </Window.KeyBindings>
 
   <Grid RowDefinitions="Auto, *">
@@ -73,6 +79,37 @@
           </MenuItem>
         </MenuItem>
 
+        <MenuItem Header="_Edit" IsEnabled="{Binding IsFileLoaded}">
+          <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconUndo}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconRedo}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
+
+          <Separator/>
+
+          <MenuItem Header="_New Row" Command="{Binding NewRowCommand}" InputGesture="Ctrl+N">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="_Duplicate Rows" Command="{Binding DuplicateRowsCommand}" InputGesture="Ctrl+D">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconCopy}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="De_lete Rows" Command="{Binding DeleteRowsCommand}" InputGesture="Delete">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconTrash}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
+        </MenuItem>
+
       </Menu>
 
       <StackPanel DockPanel.Dock="Bottom" Margin="8,4" Spacing="3">
@@ -85,7 +122,7 @@
         Background="#3C3C3C"
         Foreground="White"
         GridLinesVisibility="Vertical"
-        SelectionMode="Single"
+        SelectionMode="Extended"
         IsVisible="{Binding IsFileLoaded}"
         CanUserSortColumns="True"
         CanUserResizeColumns="True"

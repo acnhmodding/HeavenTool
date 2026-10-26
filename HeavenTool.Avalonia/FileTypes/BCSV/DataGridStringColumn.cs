@@ -9,7 +9,8 @@ namespace HeavenTool.Avalonia.FileTypes.BCSV;
 public class DataGridStringColumn : HeavenDataGridColumn
 {
     public int MaxLength { get; set; }
-    protected override IValueConverter DisplayConverter => new Converters.FieldValueConverter(FieldType, FieldSize);
+    private IValueConverter? displayConverter;
+    protected override IValueConverter DisplayConverter => displayConverter ??= new Converters.FieldValueConverter(FieldType, FieldSize);
 
     protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out BindingExpressionBase? binding)
     {

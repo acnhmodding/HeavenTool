@@ -30,7 +30,7 @@ public class DataGridHashColumn(uint hash, bool isMurmur = false) : HeavenDataGr
             binding = BindEditor(text, TextBox.TextProperty, dataItem);
             return text;
         }
-        var current = DisplayConverter.Convert(((object[])dataItem)[FieldIndex], typeof(string), null, CultureInfo.CurrentCulture)?.ToString() ?? "";
+        var current = FormatValue(((BCSVRow)dataItem)[FieldIndex]);
         var comboBox = new ComboBox
         {
             ItemsSource = PossibleValues.Append(current).Distinct().ToArray(),
