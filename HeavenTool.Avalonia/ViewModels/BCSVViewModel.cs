@@ -181,7 +181,7 @@ public partial class BCSVViewModel : ObservableObject
             });
             // Leave the previous document intact if reading/parsing fails.
             ClearGrid();
-            CreateDataGridColumns(loaded.Fields);
+            CreateDataGridColumns(loaded.Fields, loaded.UniqueField);
             loadedFile = loaded;
             sourceFile = source;
             localPath = source?.TryGetLocalPath();
@@ -210,7 +210,7 @@ public partial class BCSVViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
-    private void CreateDataGridColumns(Field[] fields)
+    private void CreateDataGridColumns(Field[] fields, Field? uniqueField)
     {
         var visibility = new List<ColumnVisibilityModel>(fields.Length);
         DataGrid.BeginInit();
@@ -239,6 +239,11 @@ public partial class BCSVViewModel : ObservableObject
                 column.Tag = index;
                 column.IsReadOnly = field.DataType == DataType.BitField;
                 column.Highlights = highlights;
+                column.HeaderKind = field == uniqueField ? FieldHeaderKind.UniqueId
+                    : !field.IsMissingHash ? FieldHeaderKind.Normal
+                    : field.Size == 4 ? FieldHeaderKind.UnknownName : FieldHeaderKind.UnknownShortName;
+                column.HeaderTip = (field.GetTranslatedNameOrNull() is { } translated ? $"Name: {translated}\n" : "")
+                    + $"Hash: 0x{field.Hash:x8}\nType: {field.DataType}\nSize: {field.Size}\nIndex: {index}";
                 // Fixed initial widths/heights keep offscreen cells out of the measurement pass.
                 column.Width = new DataGridLength(Math.Clamp(field.DisplayName.Length * 7.5 + 28, 90, 240));
                 var model = new ColumnVisibilityModel(index, field.DisplayName);
@@ -253,6 +258,8 @@ public partial class BCSVViewModel : ObservableObject
                 DataGrid.Columns.Add(column);
             }
             Columns.AddRange(visibility);
+            // The unique ID leads, as in the WinForms editor.
+            if (uniqueField != null) DataGrid.Columns[Array.IndexOf(fields, uniqueField)].DisplayIndex = 0;
         }
         finally { DataGrid.EndInit(); }
     }

@@ -1,8 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using HeavenTool.Avalonia.FileTypes.BCSV.Converters;
 using HeavenTool.IO.FileFormats.BCSV;
 using System;
@@ -12,6 +15,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace HeavenTool.Avalonia.FileTypes.BCSV;
+
+/// <summary>How a column header stands out: the unique ID, or a field whose name isn't known.</summary>
+public enum FieldHeaderKind { Normal, UniqueId, UnknownName, UnknownShortName }
 
 public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
 {
@@ -28,6 +34,11 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     private object[]? editBuffer;
     protected Control? ActiveEditor => activeEditor;
     public SearchHighlights? Highlights { get; set; }
+    public FieldHeaderKind HeaderKind { get; set; }
+    public string? HeaderTip { get; set; }
+
+    /// <summary>Hash values without a known label stand out, as typos or missing names.</summary>
+    public virtual bool IsUnknownValue(object? value) => false;
 
     protected virtual IValueConverter? DisplayConverter => null;
     private FieldValueConverter? fieldConverter;
@@ -37,6 +48,7 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     {
         CustomSortComparer = new FieldComparer(this);
         CanUserSort = true;
+        HeaderTemplate = new FuncDataTemplate<object?>((header, _) => new FieldHeader(this) { Text = header?.ToString() });
     }
 
     public string FormatValue(object? value)
@@ -123,11 +135,37 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
         private static long Signed(object value) => value is ushort.MaxValue or uint.MaxValue ? -1 : Convert.ToInt64(value);
     }
 
+    // The header control belongs to the grid, so the label styles it once it's placed inside.
+    private sealed class FieldHeader(HeavenDataGridColumn column) : TextBlock
+    {
+        private static readonly IBrush UniqueBrush = new SolidColorBrush(Color.FromRgb(0, 100, 0));
+        private static readonly IBrush UnknownNameBrush = new SolidColorBrush(Color.FromRgb(160, 82, 110));
+        private static readonly IBrush UnknownShortNameBrush = new SolidColorBrush(Color.FromRgb(176, 109, 0));
+
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnAttachedToVisualTree(e);
+            VerticalAlignment = VerticalAlignment.Center;
+            if (column.HeaderKind == FieldHeaderKind.UniqueId) FontWeight = FontWeight.Bold;
+            if (this.FindAncestorOfType<DataGridColumnHeader>() is not { } header) return;
+            ToolTip.SetTip(header, column.HeaderTip);
+            var brush = column.HeaderKind switch
+            {
+                FieldHeaderKind.UniqueId => UniqueBrush,
+                FieldHeaderKind.UnknownName => UnknownNameBrush,
+                FieldHeaderKind.UnknownShortName => UnknownShortNameBrush,
+                _ => null
+            };
+            if (brush != null) header.Background = brush;
+        }
+    }
+
     // DataGrid creates cells for every column; format text only as a cell enters the viewport.
     private sealed class FieldTextCell(HeavenDataGridColumn column, DataGridCell cell) : TextBlock
     {
         private static readonly IBrush MatchBrush = new SolidColorBrush(Color.FromArgb(110, 180, 180, 10));
         private static readonly IBrush CurrentBrush = new SolidColorBrush(Color.FromArgb(170, 154, 205, 50));
+        private static readonly IBrush UnknownBrush = new SolidColorBrush(Color.FromArgb(150, 139, 0, 0));
         private BCSVRow? row;
         private SearchHighlights? highlights;
         private bool attached;
@@ -143,6 +181,8 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
         {
             base.OnAttachedToVisualTree(e);
             attached = true;
+            // Hash labels are bold, as in the WinForms editor.
+            if (column.FieldType is DataType.CRC32 or DataType.MMH3) FontWeight = FontWeight.SemiBold;
             Track();
         }
 
@@ -172,18 +212,21 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
             OnHighlightsChanged(null, EventArgs.Empty);
         }
 
-        // The whole cell is marked, so the highlight shows even when the text is short.
+        // The whole cell is marked, so the highlight shows even when the text is short. Search
+        // highlights win over the unknown-hash mark.
         private void OnHighlightsChanged(object? sender, EventArgs e)
         {
             var hit = row != null && highlights != null ? highlights[row, column.FieldIndex] : SearchHit.None;
-            if (hit == SearchHit.None) cell.ClearValue(DataGridCell.BackgroundProperty);
-            else cell.Background = hit == SearchHit.Current ? CurrentBrush : MatchBrush;
+            if (hit != SearchHit.None) cell.Background = hit == SearchHit.Current ? CurrentBrush : MatchBrush;
+            else if (row != null && column.IsUnknownValue(row[column.FieldIndex])) cell.Background = UnknownBrush;
+            else cell.ClearValue(DataGridCell.BackgroundProperty);
         }
 
         private void OnRowChanged(object? sender, PropertyChangedEventArgs? e)
         {
             stale = true;
             InvalidateMeasure();
+            if (e != null) OnHighlightsChanged(null, EventArgs.Empty);
         }
 
         protected override Size MeasureOverride(Size availableSize)

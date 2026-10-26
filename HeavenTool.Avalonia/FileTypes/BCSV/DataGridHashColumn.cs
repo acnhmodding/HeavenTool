@@ -17,6 +17,9 @@ public class DataGridHashColumn(uint hash, bool isMurmur = false) : HeavenDataGr
     protected override IValueConverter DisplayConverter => isMurmur ? MurmurConverter : CrcConverter;
     protected override IValueConverter EditConverter => DisplayConverter;
 
+    public override bool IsUnknownValue(object? value) =>
+        value is uint key && !(isMurmur ? HashManager.MMH3_Hashes : HashManager.CRC32_Hashes).ContainsKey(key);
+
     private string[]? possibleValues;
     private string[] PossibleValues => possibleValues ??=
         hash != 0 && (isMurmur ? HashManager.EnumListMMH3 : HashManager.EnumListCRC32).TryGetValue(hash, out var list)
