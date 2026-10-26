@@ -42,9 +42,16 @@ public partial class BCSVViewModel
     [ObservableProperty] private bool filterMatches;
 
     partial void OnIsSearchOpenChanged(bool value) => InvalidateSearch();
-    partial void OnSearchTextChanged(string value) => InvalidateSearch();
-    partial void OnMatchCaseChanged(bool value) => InvalidateSearch();
-    partial void OnMatchWholeCellChanged(bool value) => InvalidateSearch();
+    partial void OnSearchTextChanged(string value) => ChangeSearch();
+    partial void OnMatchCaseChanged(bool value) => ChangeSearch();
+    partial void OnMatchWholeCellChanged(bool value) => ChangeSearch();
+    partial void OnReplaceTextChanged(string value) => ClearFixableError();
+
+    private void ChangeSearch()
+    {
+        ClearFixableError();
+        InvalidateSearch();
+    }
     partial void OnFilterMatchesChanged(bool value)
     {
         InvalidateSearch();
@@ -288,7 +295,7 @@ public partial class BCSVViewModel
         var replaced = matches[index];
         if (!TryReplace(replaced, out var change, out var error, out var warning))
         {
-            ErrorMessage = error;
+            ShowFixableError(error);
             return;
         }
         ErrorMessage = null;
@@ -331,7 +338,7 @@ public partial class BCSVViewModel
             if (!TryReplace(matches[i], out var change, out var error, out var warning))
             {
                 GoToMatch(i);
-                ErrorMessage = error;
+                ShowFixableError(error);
                 return;
             }
             if (change is { } cell) changes.Add(cell);

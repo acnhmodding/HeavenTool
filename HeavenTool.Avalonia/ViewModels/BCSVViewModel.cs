@@ -73,7 +73,11 @@ public partial class BCSVViewModel : ObservableObject
             if (e.Row.DataContext is BCSVRow row) _ = EditInDialogAsync(row, e.Column);
         };
         DataGrid.PreparingCellForEdit += (_, _) => SetEditing(true);
-        DataGrid.CellEditEnded += (_, _) => SetEditing(false);
+        DataGrid.CellEditEnded += (_, _) =>
+        {
+            ClearFixableError();
+            SetEditing(false);
+        };
         DataGrid.SelectionChanged += (_, _) => RefreshCommands();
         DataGrid.LoadingRow += (_, e) => NumberRow(e.Row);
         undoManager.Changed += (_, _) =>
@@ -390,8 +394,19 @@ public partial class BCSVViewModel : ObservableObject
     private bool CommitEdits()
     {
         if (DataGrid.CommitEdit(DataGridEditingUnit.Row, true)) return true;
-        ErrorMessage = "Correct the current cell's value before saving or closing the file.";
+        ShowFixableError("Correct the current cell's value before saving or closing the file.");
         return false;
+    }
+
+    // An error about the open cell or the replacement text, which goes once that is dealt with.
+    private string? fixableError;
+
+    private void ShowFixableError(string message) => ErrorMessage = fixableError = message;
+
+    private void ClearFixableError()
+    {
+        if (fixableError != null && ErrorMessage == fixableError) ErrorMessage = null;
+        fixableError = null;
     }
 
     private static string RowCount(int count) => count == 1 ? "1 row" : $"{count:N0} rows";
