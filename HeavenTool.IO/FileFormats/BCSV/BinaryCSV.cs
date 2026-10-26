@@ -330,83 +330,51 @@ public class BinaryCSV
             writer.Write(field.Offset);
         }
 
-        for (var currentEntry = 0; currentEntry < Entries.Count; currentEntry++)
+        // Each field goes to its own offset, so the row keeps its declared size and bytes no field
+        // covers stay zero. The first four bytes hold the row's file offset unless a field starts there.
+        bool hasRowOffset = Fields.All(field => field.Offset >= 4);
+        var row = new byte[EntrySize];
+        foreach (var entry in Entries)
         {
-            var startPosition = writer.Position;
-            writer.Write((uint)startPosition);
-
-            var entry = Entries[currentEntry];
+            Array.Clear(row);
+            if (hasRowOffset) BinaryPrimitives.WriteUInt32LittleEndian(row, (uint)writer.Position);
             for (var fieldId = 0; fieldId < Fields.Length; fieldId++)
-            {
-                var cellPosition = writer.Position;
-                var field = Fields[fieldId];
-                var entryValue = entry[fieldId];
-                switch (field.DataType)
-                {
-                    case DataType.BitField:
-                        writer.Write((byte[])entryValue);
-                        break;
-
-                    case DataType.S8:
-                        writer.Write((sbyte)entryValue);
-                        break;
-
-                    case DataType.U8:
-                        writer.Write((byte)entryValue);
-                        break;
-
-                    case DataType.Float32:
-                        writer.Write((float)entryValue);
-                        break;
-
-                    case DataType.Int16:
-                        writer.Write((short)entryValue);
-                        break;
-
-                    case DataType.UInt16:
-                        writer.Write((ushort)entryValue);
-                        break;
-
-                    case DataType.Int32:
-                        writer.Write((int)entryValue);
-                        break;
-
-                    case DataType.UInt32:
-                    case DataType.CRC32:
-                    case DataType.MMH3:
-                        writer.Write((uint)entryValue);
-                        break;
-
-
-                    case DataType.String:
-                        {
-                            try
-                            {
-                                var stringValue = entryValue?.ToString() ?? "";
-                                var bytes = Encoding.UTF8.GetBytes(stringValue);
-                                Array.Resize(ref bytes, field.Size);
-                                bytes[^1] = 0;
-                                writer.Write(bytes);
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Failed to save string\n{ex}");
-                            }
-                        }
-                        break;
-                }
-
-                var padding = field.Size - (writer.Position - cellPosition);
-                if (padding > 0) writer.Pad(padding);
-                else if (padding < 0) throw new Exception($"Cell value \"{entryValue}\" exceeds size of {field.Size} bytes.");
-            }
-
-            writer.Align(4);
+                WriteCell(row.AsSpan(Fields[fieldId].Offset, Fields[fieldId].Size), Fields[fieldId].DataType, entry[fieldId]);
+            writer.Write(row);
         }
 
         writer.Align(4);
 
         return stream.ToArray();
+    }
+
+    private static void WriteCell(Span<byte> cell, DataType type, object value)
+    {
+        int size = type switch
+        {
+            DataType.S8 or DataType.U8 => 1,
+            DataType.Int16 or DataType.UInt16 => 2,
+            DataType.Float32 or DataType.Int32 or DataType.UInt32 or DataType.CRC32 or DataType.MMH3 => 4,
+            DataType.BitField => ((byte[])value).Length,
+            _ => 0,
+        };
+        if (size > cell.Length) throw new Exception($"Cell value \"{value}\" exceeds size of {cell.Length} bytes.");
+        switch (type)
+        {
+            case DataType.BitField: ((byte[])value).CopyTo(cell); break;
+            case DataType.S8: cell[0] = unchecked((byte)(sbyte)value); break;
+            case DataType.U8: cell[0] = (byte)value; break;
+            case DataType.Int16: BinaryPrimitives.WriteInt16LittleEndian(cell, (short)value); break;
+            case DataType.UInt16: BinaryPrimitives.WriteUInt16LittleEndian(cell, (ushort)value); break;
+            case DataType.Float32: BinaryPrimitives.WriteSingleLittleEndian(cell, (float)value); break;
+            case DataType.Int32: BinaryPrimitives.WriteInt32LittleEndian(cell, (int)value); break;
+            case DataType.UInt32 or DataType.CRC32 or DataType.MMH3: BinaryPrimitives.WriteUInt32LittleEndian(cell, (uint)value); break;
+            case DataType.String:
+                // Longer text is cut to fit, always leaving the final NUL.
+                var bytes = Encoding.UTF8.GetBytes(value?.ToString() ?? "");
+                bytes.AsSpan(0, Math.Min(bytes.Length, cell.Length - 1)).CopyTo(cell);
+                break;
+        }
     }
 
 }
