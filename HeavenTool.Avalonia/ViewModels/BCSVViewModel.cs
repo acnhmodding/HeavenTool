@@ -104,6 +104,10 @@ public partial class BCSVViewModel : ObservableObject
         CopyCommand.NotifyCanExecuteChanged();
         CopyWithHeadersCommand.NotifyCanExecuteChanged();
         CopyCellCommand.NotifyCanExecuteChanged();
+        ImportRowsCommand.NotifyCanExecuteChanged();
+        ExportCsvCommand.NotifyCanExecuteChanged();
+        ExportSelectionCommand.NotifyCanExecuteChanged();
+        ExportColumnValuesCommand.NotifyCanExecuteChanged();
     }
 
     private void SetEditing(bool value)

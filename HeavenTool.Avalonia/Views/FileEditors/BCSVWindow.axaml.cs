@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using FluentAvalonia.UI.Windowing;
 using HeavenTool.Avalonia.ViewModels;
 using System.Threading.Tasks;
@@ -76,6 +77,38 @@ public partial class BCSVWindow : FAAppWindow
 
         dialog.Content = grid;
         return dialog.ShowDialog<bool?>(this);
+    }
+
+    public Task ShowMessageAsync(string title, string message)
+    {
+        var dialog = new Window
+        {
+            Title = title, Width = 460, Height = 320,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+        var ok = new Button { Content = "OK", IsDefault = true, IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
+        ok.Click += (_, _) => dialog.Close();
+        var grid = new Grid
+        {
+            Margin = new Thickness(20),
+            RowSpacing = 12,
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto)
+            },
+            Children =
+            {
+                // Selectable, so the column names can be copied.
+                new ScrollViewer { Content = new SelectableTextBlock { Text = message, TextWrapping = TextWrapping.Wrap } },
+                ok
+            }
+        };
+
+        Grid.SetRow(ok, 1);
+
+        dialog.Content = grid;
+        return dialog.ShowDialog(this);
     }
 
     private void InitializeComponent()

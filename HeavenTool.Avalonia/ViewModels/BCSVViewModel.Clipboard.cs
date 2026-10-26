@@ -120,6 +120,7 @@ public partial class BCSVViewModel
             MenuEntry("_Copy", CopyCommand, gesture: "Ctrl+C"),
             MenuEntry("Copy with _Headers", CopyWithHeadersCommand),
             MenuEntry($"Copy {column.Header}", CopyCellCommand, column, "Ctrl+Shift+C"),
+            MenuEntry("_Export Selected Rows...", ExportSelectionCommand),
             new Separator(),
             MenuEntry("_Duplicate Rows", DuplicateRowsCommand, gesture: "Ctrl+D", icon: "IconCopy"),
             MenuEntry("De_lete Rows", DeleteRowsCommand, gesture: "Delete", icon: "IconTrash")
@@ -153,6 +154,7 @@ public partial class BCSVViewModel
                     }
                 },
                 viewAs,
+                MenuEntry("_Export Values...", ExportColumnValuesCommand, column),
                 new Separator(),
                 MenuEntry("_Hide Column", new RelayCommand(() => Columns[column.FieldIndex].IsVisible = false))
             }

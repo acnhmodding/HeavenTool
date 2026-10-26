@@ -55,6 +55,19 @@
 
           <Separator/>
 
+          <MenuItem Header="_Import Rows..." Command="{Binding ImportRowsCommand}">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconDownload}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="_Export" IsEnabled="{Binding IsFileLoaded}">
+            <MenuItem Header="As _CSV..." Command="{Binding ExportCsvCommand}" />
+            <MenuItem Header="_Selected Rows..." Command="{Binding ExportSelectionCommand}" />
+            <MenuItem Header="Current Column _Values..." Command="{Binding ExportColumnValuesCommand}" />
+          </MenuItem>
+
+          <Separator/>
+
           <MenuItem Header="Column _Visibility" IsEnabled="{Binding IsFileLoaded}">
             <MenuItem.Icon>
               <PathIcon Data="{StaticResource IconEye}" Width="14" Height="14" />
