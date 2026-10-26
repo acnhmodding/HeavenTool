@@ -228,6 +228,8 @@ public partial class BCSVViewModel : ObservableObject
     private void CreateDataGridColumns(Field[] fields, Field? uniqueField)
     {
         var visibility = new List<ColumnVisibilityModel>(fields.Length);
+        var colors = FindColorFields(fields).ToList();
+        var colorOf = colors.SelectMany(color => color.Fields, (color, field) => (color, field)).ToDictionary(pair => pair.field, pair => pair.color);
         DataGrid.BeginInit();
         try
         {
@@ -261,12 +263,20 @@ public partial class BCSVViewModel : ObservableObject
                     + $"Hash: 0x{field.Hash:x8}\nType: {field.DataType}\nSize: {field.Size}\nIndex: {index}";
                 // Fixed initial widths/heights keep offscreen cells out of the measurement pass.
                 column.Width = new DataGridLength(Math.Clamp(field.DisplayName.Length * 7.5 + 28, 90, 240));
-                var model = new ColumnVisibilityModel(index, field.DisplayName);
+                // A colour's fields are shown by its one column, listed under the colour's name.
+                var color = colorOf.GetValueOrDefault(index);
+                column.IsVisible = color == null;
+                var model = color == null ? new ColumnVisibilityModel(index, field.DisplayName)
+                    : new ColumnVisibilityModel(index, (string)color.Header!) { IsListed = index == color.Fields.Min() };
                 model.PropertyChanged += (_, e) =>
                 {
                     if (e.PropertyName != nameof(ColumnVisibilityModel.IsVisible)) return;
-                    column.IsVisible = model.IsVisible;
-                    UpdateColorColumns();
+                    if (color == null) column.IsVisible = model.IsVisible;
+                    else
+                    {
+                        foreach (var part in color.Fields) Columns[part].IsVisible = model.IsVisible;
+                        color.IsVisible = model.IsVisible;
+                    }
                     OnPropertyChanged(nameof(ToggleAll));
                     InvalidateSearch();
                 };
@@ -275,7 +285,7 @@ public partial class BCSVViewModel : ObservableObject
             }
             Columns.AddRange(visibility);
             // Colour columns come after every field column, so a field's column index stays its field index.
-            foreach (var color in FindColorFields(fields)) DataGrid.Columns.Add(color);
+            foreach (var color in colors) DataGrid.Columns.Add(color);
             PlaceColorColumns();
             // The unique ID leads, as in the WinForms editor.
             if (uniqueField != null) DataGrid.Columns[Array.IndexOf(fields, uniqueField)].DisplayIndex = 0;
@@ -311,18 +321,14 @@ public partial class BCSVViewModel : ObservableObject
 
     private IEnumerable<DataGridColorColumn> ColorColumns => DataGrid.Columns.OfType<DataGridColorColumn>();
 
-    // Each colour sits just before the first of its fields, and shows while any of them does.
+    // Each colour sits where the first of its hidden fields would be.
     private void PlaceColorColumns()
     {
         foreach (var color in ColorColumns)
-            color.DisplayIndex = new[] { color.RedField, color.GreenField, color.BlueField }.Min(field => DataGrid.Columns[field].DisplayIndex);
-        UpdateColorColumns();
-    }
-
-    private void UpdateColorColumns()
-    {
-        foreach (var color in ColorColumns)
-            color.IsVisible = Columns[color.RedField].IsVisible || Columns[color.GreenField].IsVisible || Columns[color.BlueField].IsVisible;
+        {
+            color.DisplayIndex = color.Fields.Min(field => DataGrid.Columns[field].DisplayIndex);
+            color.IsVisible = Columns[color.RedField].IsVisible;
+        }
     }
 
     private bool editorOpen;

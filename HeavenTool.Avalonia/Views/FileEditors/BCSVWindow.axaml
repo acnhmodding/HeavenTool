@@ -94,7 +94,7 @@
               <ItemsControl ItemsSource="{Binding Columns}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <CheckBox Content="{Binding Header}" IsChecked="{Binding IsVisible, Mode=TwoWay}" />
+                    <CheckBox Content="{Binding Header}" IsChecked="{Binding IsVisible, Mode=TwoWay}" IsVisible="{Binding IsListed}" />
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>

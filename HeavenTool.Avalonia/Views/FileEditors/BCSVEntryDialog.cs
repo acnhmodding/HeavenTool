@@ -43,16 +43,19 @@ public sealed class BCSVEntryDialog : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
         Editors = [.. fields.Select(CreateEditor)];
-        var colorAt = colors.ToLookup(color => new[] { color.RedField, color.GreenField, color.BlueField }.Min(field => fields[field].DisplayIndex));
+        var colorAt = colors.ToLookup(color => color.Fields.Min(field => fields[field].DisplayIndex));
+        // A colour's fields are set through its picker, as in the grid.
+        var components = colors.SelectMany(color => color.Fields).ToHashSet();
         var list = new StackPanel { Spacing = 6, Margin = new Thickness(0, 0, 14, 0) };
         // Fields follow the grid's column order, so the unique ID comes first.
         foreach (var column in fields.OrderBy(column => column.DisplayIndex))
         {
             foreach (var color in colorAt[column.DisplayIndex])
                 AddRow(list, color.Header?.ToString() ?? "Color", null, false, CreateColorEditor(color),
-                    [.. new[] { color.RedField, color.GreenField, color.BlueField }.Select(field => fields[field].Header?.ToString() ?? "")]);
-            AddRow(list, column.Header?.ToString() ?? "", column.HeaderTip, column.HeaderKind == FieldHeaderKind.UniqueId,
-                Editors[column.FieldIndex], []);
+                    [.. color.Fields.Select(field => fields[field].Header?.ToString() ?? "")]);
+            if (!components.Contains(column.FieldIndex))
+                AddRow(list, column.Header?.ToString() ?? "", column.HeaderTip, column.HeaderKind == FieldHeaderKind.UniqueId,
+                    Editors[column.FieldIndex], []);
         }
         Filter.PropertyChanged += (_, e) =>
         {
@@ -153,10 +156,10 @@ public sealed class BCSVEntryDialog : Window
 
     private bool syncingColor;
 
-    // The picker writes all three fields; typing a component moves the picker along.
+    // The picker writes all three fields through their (unshown) boxes, which keep it in step.
     private ColorPicker CreateColorEditor(DataGridColorColumn color)
     {
-        int[] components = [color.RedField, color.GreenField, color.BlueField];
+        int[] components = color.Fields;
         Color Current() => Color.FromRgb(DataGridColorColumn.ToByte(values[color.RedField]),
             DataGridColorColumn.ToByte(values[color.GreenField]), DataGridColorColumn.ToByte(values[color.BlueField]));
         var picker = new ColorPicker

@@ -75,8 +75,9 @@ public partial class BCSVViewModel
         return result;
     }
 
+    // A shown colour brings its hidden fields along, so its exact values are copied and exported.
     private List<HeavenDataGridColumn> VisibleColumns() =>
-        [.. DataGrid.Columns.OfType<HeavenDataGridColumn>().Where(column => column.IsVisible).OrderBy(column => column.DisplayIndex)];
+        [.. DataGrid.Columns.OfType<HeavenDataGridColumn>().Where(column => Columns[column.FieldIndex].IsVisible).OrderBy(column => column.DisplayIndex)];
 
     private async Task SetClipboardTextAsync(string text, string status)
     {
@@ -94,9 +95,14 @@ public partial class BCSVViewModel
         if (e.Handled || !CanSave() || isEditing || e.Source is not Control source) return;
         ContextMenu? menu = null;
         Control? target = null;
-        if (source.FindAncestorOfType<DataGridColumnHeader>(includeSelf: true) is { } header
-            && DataGridColumn.GetColumnContainingElement(header) is HeavenDataGridColumn headerColumn)
+        var header = source.FindAncestorOfType<DataGridColumnHeader>(includeSelf: true);
+        if (header != null && DataGridColumn.GetColumnContainingElement(header) is HeavenDataGridColumn headerColumn)
             (menu, target) = (CreateHeaderMenu(headerColumn), header);
+        else if (header != null && DataGridColumn.GetColumnContainingElement(header) is DataGridColorColumn colorColumn)
+            (menu, target) = (new ContextMenu
+            {
+                Items = { MenuEntry("_Hide Column", new RelayCommand(() => Columns[colorColumn.RedField].IsVisible = false), icon: "IconEyeSlash") }
+            }, header);
         else if (source.FindAncestorOfType<DataGridCell>(includeSelf: true) is { DataContext: BCSVRow row } cell
             && DataGridColumn.GetColumnContainingElement(cell) is { } cellColumn)
         {

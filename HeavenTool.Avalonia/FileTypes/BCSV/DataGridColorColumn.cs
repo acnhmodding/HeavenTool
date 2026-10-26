@@ -10,14 +10,15 @@ using System.ComponentModel;
 namespace HeavenTool.Avalonia.FileTypes.BCSV;
 
 /// <summary>
-/// Shows three float fields (0 to 1) as one colour; the fields keep their own columns for exact values.
-/// It holds no field of its own, so it is skipped by search, copy and exports.
+/// Shows three float fields (0 to 1) as one colour, in place of their own columns, which stay hidden.
+/// It holds no field of its own: copy and exports write the three fields, and search skips it.
 /// </summary>
 public sealed class DataGridColorColumn : DataGridColumn
 {
     public int RedField { get; init; }
     public int GreenField { get; init; }
     public int BlueField { get; init; }
+    public int[] Fields => [RedField, GreenField, BlueField];
 
     public DataGridColorColumn()
     {
