@@ -1,10 +1,13 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using FluentAvalonia.UI.Windowing;
 using HeavenTool.Avalonia.ViewModels;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace HeavenTool.Avalonia.Views.FileEditors;
@@ -22,6 +25,22 @@ public partial class BCSVWindow : FAAppWindow, IBCSVView
         _viewModel = new BCSVViewModel(this, this.FindControl<DataGrid>("MainDataGrid")!);
         DataContext = _viewModel;
         Closing += OnClosing;
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        AddHandler(DragDrop.DropEvent, OnDrop);
+    }
+
+    // Only the first .bcsv file counts, as in the WinForms editor.
+    private static IStorageFile? DroppedFile(DragEventArgs e) =>
+        e.DataTransfer.TryGetFiles()?.FirstOrDefault(BCSVViewModel.IsBcsvFile) as IStorageFile;
+
+    private void OnDragOver(object? sender, DragEventArgs e) =>
+        e.DragEffects = !_viewModel.IsBusy && DroppedFile(e) != null ? DragDropEffects.Copy : DragDropEffects.None;
+
+    private async void OnDrop(object? sender, DragEventArgs e)
+    {
+        if (DroppedFile(e) is not { } file) return;
+        e.Handled = true;
+        await _viewModel.OpenFileAsync(file);
     }
 
     private async void OnClosing(object? sender, WindowClosingEventArgs e)

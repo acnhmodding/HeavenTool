@@ -175,6 +175,25 @@ public partial class BCSVViewModel : ObservableObject
         catch (Exception ex) { ErrorMessage = $"Could not open file: {ex.Message}"; }
     }
 
+    public static bool IsBcsvFile(IStorageItem item) =>
+        item is IStorageFile && Path.GetExtension(item.Name).Equals(".bcsv", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Opens a file dropped on the window, asking about unsaved changes first.</summary>
+    public async Task<bool> OpenFileAsync(IStorageFile file)
+    {
+        if (IsBusy) return false;
+        try
+        {
+            if (!await ConfirmChangesAsync()) return false;
+            return await LoadAsync(() => ReadFileAsync(file), file.Name, file);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Could not open file: {ex.Message}";
+            return false;
+        }
+    }
+
     public Task<bool> LoadDataFromFileAsync(byte[] bytes, string name = "Untitled.bcsv") =>
         LoadAsync(() => Task.FromResult(bytes), name, null);
 

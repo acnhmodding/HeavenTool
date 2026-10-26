@@ -10,6 +10,7 @@
   x:Class="HeavenTool.Avalonia.Views.FileEditors.BCSVWindow"
   Title="{Binding Title}"
   Background="{StaticResource WindowBackground}"
+  DragDrop.AllowDrop="True"
   x:DataType="vm:BCSVViewModel">
 
   <Window.KeyBindings>
@@ -418,5 +419,9 @@
         </DataGrid.Styles>
       </DataGrid>
     </DockPanel>
+    <TextBlock Grid.Row="1" Text="Drag a file here&#10;or use File &gt; Open"
+      IsVisible="{Binding !IsFileLoaded}" IsHitTestVisible="False"
+      HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+      FontSize="16" Foreground="{StaticResource DimText}" />
   </Grid>
 </fa:FAAppWindow>
