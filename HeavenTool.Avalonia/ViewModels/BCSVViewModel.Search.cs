@@ -1,3 +1,4 @@
+using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -27,6 +28,9 @@ public partial class BCSVViewModel
     private readonly Dictionary<HeavenDataGridColumn, int> columnPositions = [];
     private SearchMatch? currentMatch;
     private bool searchDirty;
+    private DataGridCollectionView? rowsView;
+    private HashSet<BCSVRow> hiddenRows = [];
+    private string? filterKey;
 
     [ObservableProperty] private bool isSearchOpen;
     [ObservableProperty] private string searchText = "";
@@ -35,11 +39,17 @@ public partial class BCSVViewModel
     [ObservableProperty] private string searchSummary = "";
     [ObservableProperty] private bool isReplaceOpen;
     [ObservableProperty] private string replaceText = "";
+    [ObservableProperty] private bool filterMatches;
 
     partial void OnIsSearchOpenChanged(bool value) => InvalidateSearch();
     partial void OnSearchTextChanged(string value) => InvalidateSearch();
     partial void OnMatchCaseChanged(bool value) => InvalidateSearch();
     partial void OnMatchWholeCellChanged(bool value) => InvalidateSearch();
+    partial void OnFilterMatchesChanged(bool value)
+    {
+        InvalidateSearch();
+        FlushSearch();
+    }
 
     private bool CanSearch() => CanSave();
     private StringComparison SearchComparison => MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
@@ -86,6 +96,7 @@ public partial class BCSVViewModel
             currentMatch = null;
             highlights.Clear();
             SearchSummary = "";
+            ApplyFilter(null, []);
             return;
         }
 
@@ -94,17 +105,40 @@ public partial class BCSVViewModel
             .Where(column => column.IsVisible).OrderBy(column => column.DisplayIndex).ToArray();
         for (int i = 0; i < columns.Length; i++) columnPositions[columns[i]] = i;
         var cells = new HashSet<(BCSVRow, int)>();
+        bool IsCellMatch(BCSVRow row, int i)
+        {
+            var column = columns[i];
+            if (!IsMatch(column.FormatValue(row[column.FieldIndex]))) return false;
+            cells.Add((row, column.FieldIndex));
+            return true;
+        }
+
+        // Filtering checks hidden rows too, so rows that match again come back.
+        Dictionary<BCSVRow, List<int>>? rowHits = null;
+        if (FilterMatches || hiddenRows.Count > 0)
+        {
+            rowHits = [];
+            foreach (var row in Rows)
+            {
+                List<int>? hits = null;
+                for (int i = 0; i < columns.Length; i++)
+                    if (IsCellMatch(row, i)) (hits ??= []).Add(i);
+                if (hits != null) rowHits[row] = hits;
+            }
+            ApplyFilter(FilterMatches ? rowHits : null, columns);
+        }
+
         int position = 0;
         foreach (BCSVRow row in (IEnumerable?)DataGrid.CollectionView ?? Rows)
         {
             rowPositions[row] = position;
-            for (int i = 0; i < columns.Length; i++)
+            if (rowHits == null)
             {
-                var column = columns[i];
-                if (!IsMatch(column.FormatValue(row[column.FieldIndex]))) continue;
-                matches.Add(new SearchMatch(row, column, position, i));
-                cells.Add((row, column.FieldIndex));
+                for (int i = 0; i < columns.Length; i++)
+                    if (IsCellMatch(row, i)) matches.Add(new SearchMatch(row, columns[i], position, i));
             }
+            else if (rowHits.TryGetValue(row, out var hits))
+                foreach (int i in hits) matches.Add(new SearchMatch(row, columns[i], position, i));
             position++;
         }
 
@@ -114,6 +148,56 @@ public partial class BCSVViewModel
         currentMatch = index >= 0 ? matches[index] : null;
         highlights.Set(cells, currentMatch?.Row, currentMatch?.Column.FieldIndex ?? -1);
         SearchSummary = Summary(index);
+    }
+
+    private bool IsRowShown(object item) => !hiddenRows.Contains((BCSVRow)item);
+
+    // A new search hides every row without a match. After that, edits only bring rows back, so a row
+    // being worked on never vanishes and new rows stay in view.
+    private void ApplyFilter(Dictionary<BCSVRow, List<int>>? rowHits, HeavenDataGridColumn[] columns)
+    {
+        bool changed;
+        if (rowHits == null)
+        {
+            filterKey = null;
+            changed = hiddenRows.Count > 0;
+            hiddenRows.Clear();
+        }
+        else
+        {
+            string key = string.Join('\0', SearchText, MatchCase, MatchWholeCell,
+                string.Join(',', columns.Select(column => column.FieldIndex).Order()));
+            if (key != filterKey)
+            {
+                filterKey = key;
+                var hidden = Rows.Where(row => !rowHits.ContainsKey(row)).ToHashSet();
+                changed = !hidden.SetEquals(hiddenRows);
+                hiddenRows = hidden;
+            }
+            else changed = hiddenRows.RemoveWhere(rowHits.ContainsKey) > 0;
+        }
+        if (!changed) return;
+        RefreshFilter();
+        StatusText = hiddenRows.Count == 0 ? $"Showing all {RowCount(Rows.Count)}"
+            : $"Showing {Rows.Count - hiddenRows.Count:N0} of {RowCount(Rows.Count)}";
+    }
+
+    // Rows that undo or redo changed come back into view, so the change can be seen.
+    private void ShowRows(List<BCSVRow> rows)
+    {
+        int count = hiddenRows.Count;
+        if (count == 0) return;
+        hiddenRows.ExceptWith(rows);
+        if (hiddenRows.Count != count) RefreshFilter();
+    }
+
+    // The view only carries a filter while it hides rows, so unfiltered sorting and scrolling cost nothing extra.
+    private void RefreshFilter()
+    {
+        if (rowsView == null) return;
+        if (hiddenRows.Count == 0) rowsView.Filter = null;
+        else if (rowsView.Filter == null) rowsView.Filter = IsRowShown;
+        else rowsView.Refresh();
     }
 
     private string Summary(int index) =>

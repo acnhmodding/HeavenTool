@@ -187,7 +187,9 @@ public partial class BCSVViewModel : ObservableObject
             localPath = source?.TryGetLocalPath();
             fileName = name;
             Rows = rows;
-            DataGrid.ItemsSource = rows;
+            DataGrid.ItemsSource = rowsView = new DataGridCollectionView(rows);
+            hiddenRows.Clear();
+            filterKey = null;
             undoManager.Clear(atSavePoint: !unsaved);
             currentMatch = null;
             InvalidateSearch();
@@ -300,6 +302,7 @@ public partial class BCSVViewModel : ObservableObject
     private void SelectRows(List<BCSVRow> rows)
     {
         if (rows.Count == 0) return;
+        ShowRows(rows);
         DataGrid.SelectedItems.Clear();
         if (rows.Count == Rows.Count) DataGrid.SelectAll();
         else foreach (var row in rows.Count <= MaxReselectedRows ? rows : rows[..1]) DataGrid.SelectedItems.Add(row);
@@ -499,7 +502,7 @@ public partial class BCSVViewModel : ObservableObject
 
     private void ClearGrid()
     {
-        DataGrid.ItemsSource = null;
+        DataGrid.ItemsSource = rowsView = null;
         foreach (var column in DataGrid.Columns.OfType<HeavenDataGridColumn>()) column.Dispose();
         DataGrid.Columns.Clear();
         Columns.Clear();

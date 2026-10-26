@@ -276,6 +276,10 @@
                     <TextBlock Text="ab" FontSize="10" />
                   </Border>
                 </ToggleButton>
+                <ToggleButton Classes="option" IsChecked="{Binding FilterMatches}"
+                  ToolTip.Tip="Show only rows with a match">
+                  <PathIcon Data="{StaticResource IconFilter}" Width="11" Height="11" />
+                </ToggleButton>
               </StackPanel>
             </TextBox.InnerRightContent>
           </TextBox>
