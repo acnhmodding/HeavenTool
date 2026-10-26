@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -81,7 +82,7 @@ public partial class BCSVViewModel
 
     private async Task SetClipboardTextAsync(string text, string status)
     {
-        if (window.Clipboard is not { } clipboard) return;
+        if (view.Clipboard is not { } clipboard) return;
         try
         {
             await clipboard.SetTextAsync(text);
@@ -185,7 +186,7 @@ public partial class BCSVViewModel
         Icon = icon == null ? null : Icon(icon)
     };
 
-    private PathIcon? Icon(string key) => window.TryFindResource(key, out var data) && data is Geometry geometry
+    private static PathIcon? Icon(string key) => Application.Current?.TryGetResource(key, null, out var data) == true && data is Geometry geometry
         ? new PathIcon { Data = geometry, Width = 14, Height = 14 } : null;
 
     // Saving writes each value as its type, so only types that fill the field exactly keep every byte.

@@ -24,7 +24,7 @@ namespace HeavenTool.Avalonia.ViewModels;
 
 public partial class BCSVViewModel : ObservableObject
 {
-    private readonly BCSVWindow window;
+    private readonly IBCSVView view;
     private readonly UndoManager undoManager = new();
     private BinaryCSV? loadedFile;
     private IStorageFile? sourceFile;
@@ -47,10 +47,13 @@ public partial class BCSVViewModel : ObservableObject
     [ObservableProperty] private string? warningMessage;
     public bool HasWarning => !string.IsNullOrEmpty(WarningMessage);
 
-    public BCSVViewModel(BCSVWindow window)
+    [ObservableProperty] private string title = "Heaven Tool";
+
+    // The grid's columns and selection can't be bound, so the view hands over the grid itself.
+    public BCSVViewModel(IBCSVView view, DataGrid grid)
     {
-        this.window = window;
-        DataGrid = window.FindControl<DataGrid>("MainDataGrid")!;
+        this.view = view;
+        DataGrid = grid;
         DataGrid.CellEditEnding += (_, e) =>
         {
             if (e.Column is not HeavenDataGridColumn column) return;
@@ -98,7 +101,7 @@ public partial class BCSVViewModel : ObservableObject
     }
     partial void OnErrorMessageChanged(string? value) => OnPropertyChanged(nameof(HasError));
     partial void OnWarningMessageChanged(string? value) => OnPropertyChanged(nameof(HasWarning));
-    private void UpdateTitle() => window.Title = $"{fileName}{(HasUnsavedChanges ? " *" : "")} — Heaven Tool";
+    private void UpdateTitle() => Title = $"{fileName}{(HasUnsavedChanges ? " *" : "")} — Heaven Tool";
     private bool CanOpen() => !IsBusy;
     private bool CanSave() => IsFileLoaded && !IsBusy;
     // An open cell edit counts: saving commits it first.
@@ -161,7 +164,7 @@ public partial class BCSVViewModel : ObservableObject
         try
         {
             if (!await ConfirmChangesAsync()) return;
-            var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            var files = await view.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 AllowMultiple = false, FileTypeFilter = [BcsvFileType], Title = "Open a BCSV file..."
             });
@@ -355,7 +358,7 @@ public partial class BCSVViewModel : ObservableObject
             if (column is DataGridBitFieldColumn flags)
             {
                 var editor = new BitFieldEditor(flags, (byte[])row[flags.FieldIndex]);
-                if (await window.ShowEditorAsync($"Edit {flags.Header}", editor, 340, 460))
+                if (await view.ShowEditorAsync($"Edit {flags.Header}", editor, 340, 460))
                     ApplyValues(row, [(flags.FieldIndex, editor.Value)], flags.Header);
             }
             else if (column is DataGridColorColumn color)
@@ -366,7 +369,7 @@ public partial class BCSVViewModel : ObservableObject
                     Color = initial, IsAlphaEnabled = false, IsAlphaVisible = false, IsAccentColorsVisible = false
                 };
                 // An unchanged colour keeps the exact stored floats.
-                if (await window.ShowEditorAsync($"Edit {color.Header}", picker, 360, 520) && picker.Color != initial)
+                if (await view.ShowEditorAsync($"Edit {color.Header}", picker, 360, 520) && picker.Color != initial)
                     ApplyValues(row, [(color.RedField, picker.Color.R / 255f), (color.GreenField, picker.Color.G / 255f),
                         (color.BlueField, picker.Color.B / 255f)], color.Header);
             }
@@ -535,7 +538,7 @@ public partial class BCSVViewModel : ObservableObject
         editorOpen = true;
         try
         {
-            if (!await dialog.ShowDialog<bool>(window)) return false;
+            if (!await view.ShowDialogAsync(dialog)) return false;
             AddRows([dialog.Values], "Added a row");
             return true;
         }
@@ -581,7 +584,7 @@ public partial class BCSVViewModel : ObservableObject
         try
         {
             if (!CommitEdits()) return;
-            var destination = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            var destination = await view.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Save BCSV as...", SuggestedFileName = fileName,
                 DefaultExtension = "bcsv", FileTypeChoices = [BcsvFileType], ShowOverwritePrompt = true
@@ -654,7 +657,7 @@ public partial class BCSVViewModel : ObservableObject
     {
         if (IsBusy || !CommitEdits()) return false;
         if (!HasUnsavedChanges) return true;
-        bool? choice = await window.ConfirmSaveChangesAsync();
+        bool? choice = await view.ConfirmSaveChangesAsync();
         if (choice == null) return false;
         if (!choice.Value) return true;
         await SaveFile();

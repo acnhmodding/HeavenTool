@@ -26,7 +26,7 @@ public partial class BCSVViewModel
         try
         {
             if (!CommitEdits()) return;
-            var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            var files = await view.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 AllowMultiple = false, FileTypeFilter = [BcsvFileType], Title = "Import rows from a BCSV file..."
             });
@@ -120,7 +120,7 @@ public partial class BCSVViewModel
             if (reused > 0)
                 report.AppendLine($"{RowCount(reused)} reuse a {fields[idField].DisplayName} that this file already has.");
         }
-        if (report.Length > 0) await window.ShowMessageAsync("Import completed with warnings", report.ToString().TrimEnd());
+        if (report.Length > 0) await view.ShowMessageAsync("Import completed with warnings", report.ToString().TrimEnd());
         return true;
     }
 
@@ -227,7 +227,7 @@ public partial class BCSVViewModel
         try
         {
             if (!CommitEdits()) return;
-            var destination = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            var destination = await view.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = title, SuggestedFileName = suggestedName,
                 DefaultExtension = type.Patterns![0][2..], FileTypeChoices = [type], ShowOverwritePrompt = true

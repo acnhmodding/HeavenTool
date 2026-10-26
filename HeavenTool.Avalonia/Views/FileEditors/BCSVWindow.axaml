@@ -8,7 +8,7 @@
   mc:Ignorable="d"
   Width="800" Height="600"
   x:Class="HeavenTool.Avalonia.Views.FileEditors.BCSVWindow"
-  Title="Heaven Tool"
+  Title="{Binding Title}"
   Background="{StaticResource WindowBackground}"
   x:DataType="vm:BCSVViewModel">
 

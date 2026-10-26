@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace HeavenTool.Avalonia.Views.FileEditors;
 
-public partial class BCSVWindow : FAAppWindow
+public partial class BCSVWindow : FAAppWindow, IBCSVView
 {
 
     private readonly BCSVViewModel _viewModel;
@@ -19,7 +19,7 @@ public partial class BCSVWindow : FAAppWindow
     public BCSVWindow()
     {
         InitializeComponent();
-        _viewModel = new BCSVViewModel(this);
+        _viewModel = new BCSVViewModel(this, this.FindControl<DataGrid>("MainDataGrid")!);
         DataContext = _viewModel;
         Closing += OnClosing;
     }
@@ -144,6 +144,15 @@ public partial class BCSVWindow : FAAppWindow
 
         dialog.Content = grid;
         return dialog.ShowDialog(this);
+    }
+
+    public Task<bool> ShowDialogAsync(Window dialog) => dialog.ShowDialog<bool>(this);
+
+    public void FocusSearch()
+    {
+        var box = this.FindControl<TextBox>("SearchBox");
+        box?.Focus();
+        box?.SelectAll();
     }
 
     private void InitializeComponent()

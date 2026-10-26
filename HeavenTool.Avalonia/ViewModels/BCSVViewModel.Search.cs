@@ -222,9 +222,7 @@ public partial class BCSVViewModel
     {
         IsSearchOpen = true;
         IsReplaceOpen = replace;
-        var box = window.FindControl<TextBox>("SearchBox");
-        box?.Focus();
-        box?.SelectAll();
+        view.FocusSearch();
     }
 
     [RelayCommand]
