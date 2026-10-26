@@ -97,6 +97,9 @@ public partial class BCSVViewModel : ObservableObject
         OpenSearchCommand.NotifyCanExecuteChanged();
         FindNextCommand.NotifyCanExecuteChanged();
         FindPreviousCommand.NotifyCanExecuteChanged();
+        OpenReplaceCommand.NotifyCanExecuteChanged();
+        ReplaceNextCommand.NotifyCanExecuteChanged();
+        ReplaceAllCommand.NotifyCanExecuteChanged();
     }
 
     private void SetEditing(bool value)

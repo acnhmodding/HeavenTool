@@ -21,6 +21,7 @@
     <KeyBinding Gesture="Ctrl+N" Command="{Binding NewRowCommand}" />
     <KeyBinding Gesture="Ctrl+D" Command="{Binding DuplicateRowsCommand}" />
     <KeyBinding Gesture="Ctrl+F" Command="{Binding OpenSearchCommand}" />
+    <KeyBinding Gesture="Ctrl+H" Command="{Binding OpenReplaceCommand}" />
     <KeyBinding Gesture="F3" Command="{Binding FindNextCommand}" />
     <KeyBinding Gesture="Shift+F3" Command="{Binding FindPreviousCommand}" />
   </Window.KeyBindings>
@@ -128,6 +129,11 @@
               <PathIcon Data="{StaticResource IconChevronUp}" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
+          <MenuItem Header="R_eplace..." Command="{Binding OpenReplaceCommand}" InputGesture="Ctrl+H">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconReplace}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
         </MenuItem>
 
       </Menu>
@@ -144,30 +150,52 @@
             <Setter Property="FontSize" Value="12" />
             <Setter Property="VerticalAlignment" Value="Center" />
           </Style>
+          <Style Selector="ToggleButton#ReplaceToggle:unchecked PathIcon">
+            <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+          </Style>
         </Border.Styles>
-        <StackPanel Orientation="Horizontal" Spacing="4">
-          <TextBox x:Name="SearchBox" Width="260" PlaceholderText="Find in visible columns"
-            Text="{Binding SearchText}" FontSize="12" VerticalAlignment="Center">
-            <TextBox.KeyBindings>
-              <KeyBinding Gesture="Enter" Command="{Binding FindNextCommand}" />
-              <KeyBinding Gesture="Shift+Enter" Command="{Binding FindPreviousCommand}" />
-            </TextBox.KeyBindings>
-          </TextBox>
-          <ToggleButton Content="Aa" IsChecked="{Binding MatchCase}" ToolTip.Tip="Match case" />
-          <ToggleButton Content="Whole cell" IsChecked="{Binding MatchWholeCell}"
-            ToolTip.Tip="Match the entire cell text" />
-          <Button Command="{Binding FindPreviousCommand}" ToolTip.Tip="Previous match (Shift+F3)">
-            <PathIcon Data="{StaticResource IconChevronUp}" Width="12" Height="12" />
-          </Button>
-          <Button Command="{Binding FindNextCommand}" ToolTip.Tip="Next match (F3)">
-            <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" />
-          </Button>
-          <TextBlock Text="{Binding SearchSummary}" MinWidth="90" Margin="6,0"
-            VerticalAlignment="Center" FontSize="12" Foreground="#CCC" />
-          <Button Command="{Binding CloseSearchCommand}" ToolTip.Tip="Close (Esc)">
-            <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
-          </Button>
-        </StackPanel>
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+          <ToggleButton x:Name="ReplaceToggle" Grid.RowSpan="2" Margin="0,0,4,0" Padding="6,4"
+            IsChecked="{Binding IsReplaceOpen}" ToolTip.Tip="Toggle replace (Ctrl+H)">
+            <PathIcon Data="{StaticResource IconChevronDown}" Width="10" Height="10" />
+          </ToggleButton>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+            <TextBox x:Name="SearchBox" Width="260" PlaceholderText="Find in visible columns"
+              Text="{Binding SearchText}" FontSize="12" VerticalAlignment="Center">
+              <TextBox.KeyBindings>
+                <KeyBinding Gesture="Enter" Command="{Binding FindNextCommand}" />
+                <KeyBinding Gesture="Shift+Enter" Command="{Binding FindPreviousCommand}" />
+              </TextBox.KeyBindings>
+            </TextBox>
+            <ToggleButton Content="Aa" IsChecked="{Binding MatchCase}" ToolTip.Tip="Match case" />
+            <ToggleButton Content="Whole cell" IsChecked="{Binding MatchWholeCell}"
+              ToolTip.Tip="Match the entire cell text" />
+            <Button Command="{Binding FindPreviousCommand}" ToolTip.Tip="Previous match (Shift+F3)">
+              <PathIcon Data="{StaticResource IconChevronUp}" Width="12" Height="12" />
+            </Button>
+            <Button Command="{Binding FindNextCommand}" ToolTip.Tip="Next match (F3)">
+              <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" />
+            </Button>
+            <TextBlock Text="{Binding SearchSummary}" MinWidth="90" Margin="6,0"
+              VerticalAlignment="Center" FontSize="12" Foreground="#CCC" />
+            <Button Command="{Binding CloseSearchCommand}" ToolTip.Tip="Close (Esc)">
+              <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
+            </Button>
+          </StackPanel>
+          <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="0,4,0,0"
+            IsVisible="{Binding IsReplaceOpen}">
+            <TextBox x:Name="ReplaceBox" Width="260" PlaceholderText="Replace with"
+              Text="{Binding ReplaceText}" FontSize="12" VerticalAlignment="Center">
+              <TextBox.KeyBindings>
+                <KeyBinding Gesture="Enter" Command="{Binding ReplaceNextCommand}" />
+              </TextBox.KeyBindings>
+            </TextBox>
+            <Button Content="Replace" Command="{Binding ReplaceNextCommand}"
+              ToolTip.Tip="Replace this match and go to the next (Enter)" />
+            <Button Content="Replace All" Command="{Binding ReplaceAllCommand}"
+              ToolTip.Tip="Replace every match in the visible columns as one undo step" />
+          </StackPanel>
+        </Grid>
       </Border>
 
       <StackPanel DockPanel.Dock="Bottom" Margin="8,4" Spacing="3">

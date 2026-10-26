@@ -29,6 +29,9 @@ public sealed class FieldValueConverter(DataType type, int size) : IValueConvert
             default:
                 var integer = System.Convert.ToDecimal(value, culture);
                 if (integer != decimal.Truncate(integer)) throw new FormatException("Enter a whole number.");
+                // Unsigned fields store the game's "-1" as their maximum value.
+                if (integer == -1 && type is DataType.U8 or DataType.UInt16 or DataType.UInt32)
+                    return type switch { DataType.U8 => (object)byte.MaxValue, DataType.UInt16 => ushort.MaxValue, _ => uint.MaxValue };
                 return type switch
                 {
                     DataType.S8 => checked((sbyte)integer),

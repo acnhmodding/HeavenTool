@@ -6,6 +6,7 @@ using HeavenTool.Avalonia.FileTypes.BCSV;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace HeavenTool.Avalonia.ViewModels;
@@ -32,6 +33,8 @@ public partial class BCSVViewModel
     [ObservableProperty] private bool matchCase;
     [ObservableProperty] private bool matchWholeCell;
     [ObservableProperty] private string searchSummary = "";
+    [ObservableProperty] private bool isReplaceOpen;
+    [ObservableProperty] private string replaceText = "";
 
     partial void OnIsSearchOpenChanged(bool value) => InvalidateSearch();
     partial void OnSearchTextChanged(string value) => InvalidateSearch();
@@ -119,9 +122,15 @@ public partial class BCSVViewModel
         : matches.Count == 1 ? "1 match" : $"{matches.Count:N0} matches";
 
     [RelayCommand(CanExecute = nameof(CanSearch))]
-    private void OpenSearch()
+    private void OpenSearch() => ShowSearch(replace: false);
+
+    [RelayCommand(CanExecute = nameof(CanSearch))]
+    private void OpenReplace() => ShowSearch(replace: true);
+
+    private void ShowSearch(bool replace)
     {
         IsSearchOpen = true;
+        IsReplaceOpen = replace;
         var box = window.FindControl<TextBox>("SearchBox");
         box?.Focus();
         box?.SelectAll();
@@ -172,5 +181,100 @@ public partial class BCSVViewModel
         DataGrid.ScrollIntoView(match.Row, match.Column);
         highlights.SetCurrent(match.Row, match.Column.FieldIndex);
         SearchSummary = Summary(index);
+    }
+
+    private static string CellCount(int count) => count == 1 ? "1 cell" : $"{count:N0} cells";
+
+    /// <summary>Replaces the current match and moves to the next one; the first press only finds a match.</summary>
+    [RelayCommand(CanExecute = nameof(CanSearch))]
+    private void ReplaceNext()
+    {
+        IsSearchOpen = true;
+        FlushSearch();
+        if (matches.Count == 0 || !CommitEdits()) return;
+        int index = currentMatch is { } current && ReferenceEquals(DataGrid.SelectedItem, current.Row)
+            && DataGrid.CurrentColumn == current.Column
+            ? matches.FindIndex(match => match.Row == current.Row && match.Column == current.Column) : -1;
+        if (index < 0)
+        {
+            StepSearch(forward: true);
+            return;
+        }
+
+        var replaced = matches[index];
+        if (!TryReplace(replaced, out var change, out var error))
+        {
+            ErrorMessage = error;
+            return;
+        }
+        ErrorMessage = null;
+        if (change is { } cell)
+        {
+            undoManager.Execute(new SetCellsCommand([cell]));
+            // Recheck only the replaced cell so stepping on needs no full rescan.
+            searchTimer.Stop();
+            searchDirty = false;
+            if (!IsMatch(replaced.Column.FormatValue(cell.NewValue)))
+            {
+                matches.RemoveAt(index);
+                currentMatch = null;
+                highlights.Remove(cell.Row, cell.FieldIndex);
+                SearchSummary = Summary(-1);
+            }
+            StatusText = $"Replaced 1 cell in {replaced.Column.Header}";
+        }
+        if (matches.Count > 0) StepSearch(forward: true);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanSearch))]
+    private void ReplaceAll()
+    {
+        IsSearchOpen = true;
+        FlushSearch();
+        if (matches.Count == 0 || !CommitEdits()) return;
+        var changes = new List<CellChange>();
+        int readOnly = 0;
+        for (int i = 0; i < matches.Count; i++)
+        {
+            if (matches[i].Column.IsReadOnly)
+            {
+                readOnly++;
+                continue;
+            }
+            // Nothing is applied unless every replacement is valid; show the first one that isn't.
+            if (!TryReplace(matches[i], out var change, out var error))
+            {
+                GoToMatch(i);
+                ErrorMessage = error;
+                return;
+            }
+            if (change is { } cell) changes.Add(cell);
+        }
+        ErrorMessage = null;
+        if (changes.Count > 0) undoManager.Execute(new SetCellsCommand(changes));
+        RunSearch();
+        StatusText = $"Replaced {CellCount(changes.Count)}{(readOnly > 0 ? $" · skipped {CellCount(readOnly)} that can't be edited" : "")}";
+    }
+
+    private bool TryReplace(SearchMatch match, out CellChange? change, [NotNullWhen(false)] out string? error)
+    {
+        change = null;
+        var column = match.Column;
+        if (column.IsReadOnly)
+        {
+            error = $"{column.Header} can't be edited.";
+            return false;
+        }
+        var original = match.Row[column.FieldIndex];
+        var text = column.FormatValue(original);
+        var replaced = MatchWholeCell ? ReplaceText : text.Replace(SearchText, ReplaceText, SearchComparison);
+        if (!column.TryParseText(replaced, original, out var value, out var reason))
+        {
+            error = $"Can't replace \"{text}\" with \"{replaced}\" in {column.Header}: {reason}";
+            return false;
+        }
+        if (!Equals(value, original)) change = new CellChange(match.Row, column.FieldIndex, original, value);
+        error = null;
+        return true;
     }
 }
