@@ -20,7 +20,9 @@
     <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
     <KeyBinding Gesture="Ctrl+N" Command="{Binding NewRowCommand}" />
     <KeyBinding Gesture="Ctrl+D" Command="{Binding DuplicateRowsCommand}" />
-    <KeyBinding Gesture="Delete" Command="{Binding DeleteRowsCommand}" />
+    <KeyBinding Gesture="Ctrl+F" Command="{Binding OpenSearchCommand}" />
+    <KeyBinding Gesture="F3" Command="{Binding FindNextCommand}" />
+    <KeyBinding Gesture="Shift+F3" Command="{Binding FindPreviousCommand}" />
   </Window.KeyBindings>
 
   <Grid RowDefinitions="Auto, *">
@@ -108,9 +110,65 @@
               <PathIcon Data="{StaticResource IconTrash}" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
+
+          <Separator/>
+
+          <MenuItem Header="_Find..." Command="{Binding OpenSearchCommand}" InputGesture="Ctrl+F">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="Find Ne_xt" Command="{Binding FindNextCommand}" InputGesture="F3">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconChevronDown}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="Find Pre_vious" Command="{Binding FindPreviousCommand}" InputGesture="Shift+F3">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconChevronUp}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
         </MenuItem>
 
       </Menu>
+
+      <Border DockPanel.Dock="Top" IsVisible="{Binding IsSearchOpen}" Background="#2A2A2A"
+        BorderBrush="#444" BorderThickness="0,0,0,1" Padding="6,4">
+        <Border.KeyBindings>
+          <KeyBinding Gesture="Escape" Command="{Binding CloseSearchCommand}" />
+        </Border.KeyBindings>
+        <Border.Styles>
+          <Style Selector="Button, ToggleButton">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+          </Style>
+        </Border.Styles>
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <TextBox x:Name="SearchBox" Width="260" PlaceholderText="Find in visible columns"
+            Text="{Binding SearchText}" FontSize="12" VerticalAlignment="Center">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding FindNextCommand}" />
+              <KeyBinding Gesture="Shift+Enter" Command="{Binding FindPreviousCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+          <ToggleButton Content="Aa" IsChecked="{Binding MatchCase}" ToolTip.Tip="Match case" />
+          <ToggleButton Content="Whole cell" IsChecked="{Binding MatchWholeCell}"
+            ToolTip.Tip="Match the entire cell text" />
+          <Button Command="{Binding FindPreviousCommand}" ToolTip.Tip="Previous match (Shift+F3)">
+            <PathIcon Data="{StaticResource IconChevronUp}" Width="12" Height="12" />
+          </Button>
+          <Button Command="{Binding FindNextCommand}" ToolTip.Tip="Next match (F3)">
+            <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" />
+          </Button>
+          <TextBlock Text="{Binding SearchSummary}" MinWidth="90" Margin="6,0"
+            VerticalAlignment="Center" FontSize="12" Foreground="#CCC" />
+          <Button Command="{Binding CloseSearchCommand}" ToolTip.Tip="Close (Esc)">
+            <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
+          </Button>
+        </StackPanel>
+      </Border>
 
       <StackPanel DockPanel.Dock="Bottom" Margin="8,4" Spacing="3">
         <ProgressBar Height="3" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
@@ -131,6 +189,11 @@
         ColumnHeaderHeight="30"
         IsReadOnly="{Binding IsBusy}"
         IsHitTestVisible="{Binding !IsBusy}">
+
+        <!-- Scoped to the grid so Delete in the search box only edits text. -->
+        <DataGrid.KeyBindings>
+          <KeyBinding Gesture="Delete" Command="{Binding DeleteRowsCommand}" />
+        </DataGrid.KeyBindings>
 
         <DataGrid.Resources>
           <!-- Wide tables instantiate thousands of cells. Keep their template small;

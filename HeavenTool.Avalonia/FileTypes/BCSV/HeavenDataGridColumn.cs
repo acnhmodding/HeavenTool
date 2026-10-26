@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
+using Avalonia.Media;
 using HeavenTool.Avalonia.FileTypes.BCSV.Converters;
 using HeavenTool.IO.FileFormats.BCSV;
 using System;
@@ -26,6 +27,7 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     private BCSVRow? editRow;
     private object[]? editBuffer;
     protected Control? ActiveEditor => activeEditor;
+    public SearchHighlights? Highlights { get; set; }
 
     protected virtual IValueConverter? DisplayConverter => null;
     protected virtual IValueConverter EditConverter => new FieldValueConverter(FieldType, FieldSize);
@@ -42,7 +44,24 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
         return Convert.ToString(value, CultureInfo.CurrentCulture) ?? "";
     }
 
-    protected override Control GenerateElement(DataGridCell cell, object dataItem) => new FieldTextCell(this);
+    /// <summary>Parses text typed for this field, keeping the original value when the text is unchanged.</summary>
+    public bool TryParseText(string text, object original, [NotNullWhen(true)] out object? value, [NotNullWhen(false)] out string? error)
+    {
+        try
+        {
+            value = new EditValueConverter(EditConverter, original).ConvertBack(text, typeof(object), null, CultureInfo.CurrentCulture);
+            error = value == null ? "A value is required." : null;
+            return value != null;
+        }
+        catch (Exception ex) when (ex is FormatException or OverflowException or InvalidCastException)
+        {
+            value = null;
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    protected override Control GenerateElement(DataGridCell cell, object dataItem) => new FieldTextCell(this, cell);
 
     protected BindingExpressionBase BindEditor(Control editor, AvaloniaProperty property, object dataItem)
     {
@@ -100,9 +119,12 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     }
 
     // DataGrid creates cells for every column; format text only as a cell enters the viewport.
-    private sealed class FieldTextCell(HeavenDataGridColumn column) : TextBlock
+    private sealed class FieldTextCell(HeavenDataGridColumn column, DataGridCell cell) : TextBlock
     {
+        private static readonly IBrush MatchBrush = new SolidColorBrush(Color.FromArgb(110, 180, 180, 10));
+        private static readonly IBrush CurrentBrush = new SolidColorBrush(Color.FromArgb(170, 154, 205, 50));
         private BCSVRow? row;
+        private SearchHighlights? highlights;
         private bool attached;
         private bool stale = true;
 
@@ -129,12 +151,28 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
         // Only cells in the tree listen to their row, so recycled or removed cells don't leak.
         private void Track()
         {
+            var nextHighlights = attached ? column.Highlights : null;
+            if (!ReferenceEquals(highlights, nextHighlights))
+            {
+                if (highlights != null) highlights.Changed -= OnHighlightsChanged;
+                highlights = nextHighlights;
+                if (highlights != null) highlights.Changed += OnHighlightsChanged;
+            }
             var next = attached ? DataContext as BCSVRow : null;
             if (ReferenceEquals(row, next)) return;
             if (row != null) row.PropertyChanged -= OnRowChanged;
             row = next;
             if (row != null) row.PropertyChanged += OnRowChanged;
             OnRowChanged(null, null);
+            OnHighlightsChanged(null, EventArgs.Empty);
+        }
+
+        // The whole cell is marked, so the highlight shows even when the text is short.
+        private void OnHighlightsChanged(object? sender, EventArgs e)
+        {
+            var hit = row != null && highlights != null ? highlights[row, column.FieldIndex] : SearchHit.None;
+            if (hit == SearchHit.None) cell.ClearValue(DataGridCell.BackgroundProperty);
+            else cell.Background = hit == SearchHit.Current ? CurrentBrush : MatchBrush;
         }
 
         private void OnRowChanged(object? sender, PropertyChangedEventArgs? e)

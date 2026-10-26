@@ -62,6 +62,7 @@ public partial class BCSVViewModel : ObservableObject
             HasUnsavedChanges = !undoManager.IsAtSavePoint;
             RefreshCommands();
         };
+        InitializeSearch();
     }
 
     partial void OnIsBusyChanged(bool value) => RefreshCommands();
@@ -93,6 +94,9 @@ public partial class BCSVViewModel : ObservableObject
         NewRowCommand.NotifyCanExecuteChanged();
         DuplicateRowsCommand.NotifyCanExecuteChanged();
         DeleteRowsCommand.NotifyCanExecuteChanged();
+        OpenSearchCommand.NotifyCanExecuteChanged();
+        FindNextCommand.NotifyCanExecuteChanged();
+        FindPreviousCommand.NotifyCanExecuteChanged();
     }
 
     private void SetEditing(bool value)
@@ -174,6 +178,8 @@ public partial class BCSVViewModel : ObservableObject
             Rows = rows;
             DataGrid.ItemsSource = rows;
             undoManager.Clear();
+            currentMatch = null;
+            InvalidateSearch();
             UpdateTitle();
             OnPropertyChanged(nameof(LoadedFile));
             OnPropertyChanged(nameof(IsFileLoaded));
@@ -218,6 +224,7 @@ public partial class BCSVViewModel : ObservableObject
                 column.Header = field.DisplayName;
                 column.Tag = index;
                 column.IsReadOnly = field.DataType == DataType.BitField;
+                column.Highlights = highlights;
                 // Fixed initial widths/heights keep offscreen cells out of the measurement pass.
                 column.Width = new DataGridLength(Math.Clamp(field.DisplayName.Length * 7.5 + 28, 90, 240));
                 var model = new ColumnVisibilityModel(index, field.DisplayName);
@@ -226,6 +233,7 @@ public partial class BCSVViewModel : ObservableObject
                     if (e.PropertyName != nameof(ColumnVisibilityModel.IsVisible)) return;
                     column.IsVisible = model.IsVisible;
                     OnPropertyChanged(nameof(ToggleAll));
+                    InvalidateSearch();
                 };
                 visibility.Add(model);
                 DataGrid.Columns.Add(column);
@@ -459,6 +467,7 @@ public partial class BCSVViewModel : ObservableObject
         fileName = "BCSV Editor";
         Rows = [];
         undoManager.Clear();
+        IsSearchOpen = false;
         UpdateTitle();
         OnPropertyChanged(nameof(LoadedFile));
         OnPropertyChanged(nameof(IsFileLoaded));
