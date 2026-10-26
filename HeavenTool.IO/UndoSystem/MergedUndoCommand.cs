@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace HeavenTool.Utility.UndoSystem;
+namespace HeavenTool.IO.UndoSystem;
 
 public class MergedUndoCommand : IUndoCommand
 {

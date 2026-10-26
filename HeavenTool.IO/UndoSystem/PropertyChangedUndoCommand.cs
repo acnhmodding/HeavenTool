@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace HeavenTool.Utility.UndoSystem;
+namespace HeavenTool.IO.UndoSystem;
 
 public class PropertyChangeUndoCommand(object target, PropertyDescriptor property, object? oldValue, object? newValue) : IUndoCommand
 {

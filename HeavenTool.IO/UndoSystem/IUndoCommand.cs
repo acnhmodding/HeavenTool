@@ -1,4 +1,4 @@
-﻿namespace HeavenTool.Utility.UndoSystem;
+﻿namespace HeavenTool.IO.UndoSystem;
 
 public interface IUndoCommand
 {
