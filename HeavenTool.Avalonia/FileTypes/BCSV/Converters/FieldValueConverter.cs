@@ -1,3 +1,4 @@
+using Avalonia.Data;
 using Avalonia.Data.Converters;
 using HeavenTool.IO.FileFormats.BCSV;
 using System;
@@ -54,14 +55,34 @@ public sealed class FieldValueConverter(DataType type, int size) : IValueConvert
 /// <summary>A no-op edit must not re-encode legacy strings or reinterpret a hash label.</summary>
 internal sealed class EditValueConverter(IValueConverter converter, object original) : IValueConverter
 {
+    /// <summary>Why the text last written back was rejected, or null once it parsed.</summary>
+    public string? Error { get; private set; }
+
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         converter.Convert(value, targetType, parameter, culture);
 
+    // A thrown exception reaches the editor only as "Could not convert '(unset)'", so report the reason instead.
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        try
+        {
+            var result = Parse(value, parameter, culture);
+            Error = null;
+            return result;
+        }
+        catch (Exception ex) when (ex is FormatException or OverflowException or InvalidCastException)
+        {
+            Error = ex.Message;
+            return new BindingNotification(ex, BindingErrorType.DataValidationError);
+        }
+    }
+
+    /// <summary>Parses edited text, throwing when it isn't a valid value.</summary>
+    public object? Parse(object? value, object? parameter, CultureInfo culture)
     {
         if (value is string text && text == System.Convert.ToString(
             converter.Convert(original, typeof(string), parameter, culture), culture))
             return original;
-        return converter.ConvertBack(value, targetType, parameter, culture);
+        return converter.ConvertBack(value, typeof(object), parameter, culture);
     }
 }

@@ -30,6 +30,7 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     public int FieldSize { get; set; }
     private BindingExpressionBase? activeBinding;
     private Control? activeEditor;
+    private EditValueConverter? activeConverter;
     private BCSVRow? editRow;
     private object[]? editBuffer;
     protected Control? ActiveEditor => activeEditor;
@@ -68,7 +69,7 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     {
         try
         {
-            value = new EditValueConverter(EditConverter, original).ConvertBack(text, typeof(object), null, CultureInfo.CurrentCulture);
+            value = new EditValueConverter(EditConverter, original).Parse(text, null, CultureInfo.CurrentCulture);
             error = value == null ? "A value is required." : null;
             return value != null;
         }
@@ -94,7 +95,7 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
             Source = editBuffer,
             Mode = BindingMode.TwoWay,
             UpdateSourceTrigger = UpdateSourceTrigger.Explicit,
-            Converter = new EditValueConverter(EditConverter, original)
+            Converter = activeConverter = new EditValueConverter(EditConverter, original)
         };
         return activeBinding = editor.Bind(property, binding);
     }
@@ -102,7 +103,10 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     public virtual bool CommitPendingEdit()
     {
         activeBinding?.UpdateSource();
-        return activeEditor == null || !DataValidationErrors.GetHasErrors(activeEditor);
+        if (activeConverter?.Error != null) return false;
+        // The buffer doesn't notify, so text that parses after rejected text would keep the old error and block the commit.
+        if (activeEditor != null) DataValidationErrors.ClearErrors(activeEditor);
+        return true;
     }
 
     /// <summary>Hands over the committed editor value once, so a stale buffer can never reach another row.</summary>
@@ -121,6 +125,7 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     {
         activeBinding = null;
         activeEditor = null;
+        activeConverter = null;
         editRow = null;
         editBuffer = null;
         GC.SuppressFinalize(this);
