@@ -117,10 +117,10 @@ public partial class BCSVViewModel
     {
         Items =
         {
-            MenuEntry("_Copy", CopyCommand, gesture: "Ctrl+C"),
-            MenuEntry("Copy with _Headers", CopyWithHeadersCommand),
-            MenuEntry($"Copy {column.Header}", CopyCellCommand, column, "Ctrl+Shift+C"),
-            MenuEntry("_Export Selected Rows...", ExportSelectionCommand),
+            MenuEntry("_Copy", CopyCommand, gesture: "Ctrl+C", icon: "IconClipboard"),
+            MenuEntry("Copy with _Headers", CopyWithHeadersCommand, icon: "IconTable"),
+            MenuEntry($"Copy {column.Header}", CopyCellCommand, column, "Ctrl+Shift+C", "IconTableCells"),
+            MenuEntry("_Export Selected Rows...", ExportSelectionCommand, icon: "IconTableList"),
             new Separator(),
             MenuEntry("_Duplicate Rows", DuplicateRowsCommand, gesture: "Ctrl+D", icon: "IconCopy"),
             MenuEntry("De_lete Rows", DeleteRowsCommand, gesture: "Delete", icon: "IconTrash")
@@ -130,7 +130,7 @@ public partial class BCSVViewModel
     private ContextMenu CreateHeaderMenu(HeavenDataGridColumn column)
     {
         var field = loadedFile!.Fields[column.FieldIndex];
-        var viewAs = new MenuItem { Header = "_View as" };
+        var viewAs = new MenuItem { Header = "_View as", Icon = Icon("IconCode") };
         foreach (var type in ViewableTypes(field.Size))
         {
             var item = MenuEntry(type.ToString(), new AsyncRelayCommand(() => ViewColumnAsAsync(column.FieldIndex, type)));
@@ -145,18 +145,19 @@ public partial class BCSVViewModel
                 new MenuItem
                 {
                     Header = "_Copy",
+                    Icon = Icon("IconClipboard"),
                     Items =
                     {
                         MenuEntry("Header _Name", new AsyncRelayCommand(() =>
-                            SetClipboardTextAsync(field.GetTranslatedNameOrHash(), $"Copied the name of {column.Header}"))),
+                            SetClipboardTextAsync(field.GetTranslatedNameOrHash(), $"Copied the name of {column.Header}")), icon: "IconFont"),
                         MenuEntry("Header _Hash", new AsyncRelayCommand(() =>
-                            SetClipboardTextAsync($"0x{field.Hash:x}", $"Copied the hash of {column.Header}")))
+                            SetClipboardTextAsync($"0x{field.Hash:x}", $"Copied the hash of {column.Header}")), icon: "IconHashtag")
                     }
                 },
                 viewAs,
-                MenuEntry("_Export Values...", ExportColumnValuesCommand, column),
+                MenuEntry("_Export Values...", ExportColumnValuesCommand, column, icon: "IconList"),
                 new Separator(),
-                MenuEntry("_Hide Column", new RelayCommand(() => Columns[column.FieldIndex].IsVisible = false))
+                MenuEntry("_Hide Column", new RelayCommand(() => Columns[column.FieldIndex].IsVisible = false), icon: "IconEyeSlash")
             }
         };
     }
