@@ -1,4 +1,3 @@
-using Avalonia.Collections;
 using HeavenTool.IO.UndoSystem;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +28,7 @@ public sealed class SetCellsCommand(IReadOnlyList<CellChange> changes) : IBCSVCo
 }
 
 /// <summary>Inserts rows at their source indexes on redo (or removes them, when <paramref name="remove"/> is set).</summary>
-public sealed class ChangeRowsCommand(AvaloniaList<BCSVRow> rows, IReadOnlyList<(int Index, BCSVRow Row)> items, bool remove) : IBCSVCommand
+public sealed class ChangeRowsCommand(BCSVRowList rows, IReadOnlyList<(int Index, BCSVRow Row)> items, bool remove) : IBCSVCommand
 {
     // Ascending indexes are valid when inserting in order; removing walks them backwards.
     private readonly (int Index, BCSVRow Row)[] items = [.. items.OrderBy(item => item.Index)];
@@ -46,20 +45,31 @@ public sealed class ChangeRowsCommand(AvaloniaList<BCSVRow> rows, IReadOnlyList<
         else Remove();
     }
 
+    // The grid handles each insertion and removal on its own; past half the table one reset is cheaper.
     private void Insert()
     {
-        foreach (var (index, row) in items) rows.Insert(index, row);
+        if (items.Length <= rows.Count)
+        {
+            foreach (var (index, row) in items) rows.Insert(index, row);
+            return;
+        }
+        var merged = new List<BCSVRow>(rows.Count + items.Length);
+        int next = 0;
+        foreach (var (index, row) in items)
+        {
+            while (merged.Count < index) merged.Add(rows[next++]);
+            merged.Add(row);
+        }
+        while (next < rows.Count) merged.Add(rows[next++]);
+        rows.ReplaceAll(merged);
     }
 
     private void Remove()
     {
-        // The grid handles each removal on its own; past half the table one reset is cheaper.
         if (items.Length > rows.Count / 2)
         {
             var removed = items.Select(item => item.Row).ToHashSet();
-            var remaining = rows.Where(row => !removed.Contains(row)).ToList();
-            rows.Clear();
-            rows.AddRange(remaining);
+            rows.ReplaceAll([.. rows.Where(row => !removed.Contains(row))]);
             return;
         }
         for (int i = items.Length - 1; i >= 0; i--) rows.RemoveAt(items[i].Index);

@@ -36,7 +36,7 @@ public partial class BCSVViewModel : ObservableObject
     public bool IsFileLoaded => loadedFile != null;
     public AvaloniaList<ColumnVisibilityModel> Columns { get; } = [];
     /// <summary>The document's rows in file order; <see cref="LoadedFile"/> receives them when saving.</summary>
-    public AvaloniaList<BCSVRow> Rows { get; private set; } = [];
+    public BCSVRowList Rows { get; private set; } = [];
 
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool hasUnsavedChanges;
@@ -191,7 +191,7 @@ public partial class BCSVViewModel : ObservableObject
             {
                 using var stream = new MemoryStream(bytes, writable: false);
                 var file = new BinaryCSV(stream);
-                return (file, new AvaloniaList<BCSVRow>(file.Entries.Select(values => new BCSVRow(values))));
+                return (file, new BCSVRowList(file.Entries.Select(values => new BCSVRow(values))));
             });
             // Leave the previous document intact if reading/parsing fails.
             ClearGrid();
