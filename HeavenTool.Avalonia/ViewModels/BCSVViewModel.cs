@@ -414,27 +414,8 @@ public partial class BCSVViewModel : ObservableObject
         {
             loadedFile!.Entries = [.. Rows.Select(row => row.Values)];
             var bytes = await Task.Run(loadedFile.Save);
-            if (path != null)
-            {
-                path = Path.GetFullPath(path);
-                string temporary = Path.Combine(Path.GetDirectoryName(path)!, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
-                try
-                {
-                    await File.WriteAllBytesAsync(temporary, bytes);
-                    File.Move(temporary, path, overwrite: true);
-                }
-                finally
-                {
-                    if (File.Exists(temporary)) File.Delete(temporary);
-                }
-            }
-            else
-            {
-                await using var output = await destination!.OpenWriteAsync();
-                output.SetLength(0);
-                await output.WriteAsync(bytes);
-                await output.FlushAsync();
-            }
+            if (path != null) path = Path.GetFullPath(path);
+            await WriteFileAsync(path, destination, bytes);
             sourceFile = destination;
             localPath = path;
             fileName = name;
@@ -451,6 +432,32 @@ public partial class BCSVViewModel : ObservableObject
             return false;
         }
         finally { IsBusy = false; }
+    }
+
+    /// <summary>Writes a local file through a temporary copy, so a failed write leaves the old one intact.</summary>
+    private static async Task WriteFileAsync(string? path, IStorageFile? destination, byte[] bytes)
+    {
+        if (path != null)
+        {
+            path = Path.GetFullPath(path);
+            string temporary = Path.Combine(Path.GetDirectoryName(path)!, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+            try
+            {
+                await File.WriteAllBytesAsync(temporary, bytes);
+                File.Move(temporary, path, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(temporary)) File.Delete(temporary);
+            }
+        }
+        else
+        {
+            await using var output = await destination!.OpenWriteAsync();
+            output.SetLength(0);
+            await output.WriteAsync(bytes);
+            await output.FlushAsync();
+        }
     }
 
     public async Task<bool> ConfirmChangesAsync()
