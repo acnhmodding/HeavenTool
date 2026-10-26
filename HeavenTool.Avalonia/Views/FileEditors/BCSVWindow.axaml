@@ -96,6 +96,12 @@
 
           <Separator/>
 
+          <MenuItem Header="_Copy" Command="{Binding CopyCommand}" InputGesture="Ctrl+C" />
+          <MenuItem Header="Copy with _Headers" Command="{Binding CopyWithHeadersCommand}" />
+          <MenuItem Header="Copy Ce_ll" Command="{Binding CopyCellCommand}" InputGesture="Ctrl+Shift+C" />
+
+          <Separator/>
+
           <MenuItem Header="_New Row" Command="{Binding NewRowCommand}" InputGesture="Ctrl+N">
             <MenuItem.Icon>
               <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14" />
@@ -280,14 +286,17 @@
         CanUserSortColumns="True"
         CanUserResizeColumns="True"
         AutoGenerateColumns="False"
+        ClipboardCopyMode="None"
         RowHeight="32"
         ColumnHeaderHeight="30"
         IsReadOnly="{Binding IsBusy}"
         IsHitTestVisible="{Binding !IsBusy}">
 
-        <!-- Scoped to the grid so Delete in the search box only edits text. -->
+        <!-- Scoped to the grid so Delete and Ctrl+C in the search box only edit text. -->
         <DataGrid.KeyBindings>
           <KeyBinding Gesture="Delete" Command="{Binding DeleteRowsCommand}" />
+          <KeyBinding Gesture="Ctrl+C" Command="{Binding CopyCommand}" />
+          <KeyBinding Gesture="Ctrl+Shift+C" Command="{Binding CopyCellCommand}" />
         </DataGrid.KeyBindings>
 
         <DataGrid.Resources>
@@ -332,16 +341,6 @@
           <Style Selector="DataGridColumnHeader">
             <Setter Property="Background" Value="#505050" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="ContextMenu">
-              <Setter.Value>
-                <ContextMenu>
-                  <MenuItem Header="Hide Column"
-                    Command="{Binding HideColumn}"
-                    CommandParameter="{Binding $parent[ContextMenu].PlacementTarget}"/>
-
-                </ContextMenu>
-              </Setter.Value>
-            </Setter>
           </Style>
 
           <Style Selector="DataGridRow:nth-child(odd)">

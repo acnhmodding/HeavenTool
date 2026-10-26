@@ -63,6 +63,7 @@ public partial class BCSVViewModel : ObservableObject
             RefreshCommands();
         };
         InitializeSearch();
+        InitializeClipboard();
     }
 
     partial void OnIsBusyChanged(bool value) => RefreshCommands();
@@ -100,6 +101,9 @@ public partial class BCSVViewModel : ObservableObject
         OpenReplaceCommand.NotifyCanExecuteChanged();
         ReplaceNextCommand.NotifyCanExecuteChanged();
         ReplaceAllCommand.NotifyCanExecuteChanged();
+        CopyCommand.NotifyCanExecuteChanged();
+        CopyWithHeadersCommand.NotifyCanExecuteChanged();
+        CopyCellCommand.NotifyCanExecuteChanged();
     }
 
     private void SetEditing(bool value)
@@ -155,7 +159,7 @@ public partial class BCSVViewModel : ObservableObject
         return buffer.ToArray();
     }
 
-    private async Task<bool> LoadAsync(Func<Task<byte[]>> read, string name, IStorageFile? source)
+    private async Task<bool> LoadAsync(Func<Task<byte[]>> read, string name, IStorageFile? source, bool unsaved = false)
     {
         if (IsBusy) return false;
         IsBusy = true;
@@ -180,7 +184,7 @@ public partial class BCSVViewModel : ObservableObject
             fileName = name;
             Rows = rows;
             DataGrid.ItemsSource = rows;
-            undoManager.Clear();
+            undoManager.Clear(atSavePoint: !unsaved);
             currentMatch = null;
             InvalidateSearch();
             UpdateTitle();
@@ -488,13 +492,5 @@ public partial class BCSVViewModel : ObservableObject
         foreach (var column in DataGrid.Columns.OfType<HeavenDataGridColumn>()) column.Dispose();
         DataGrid.Columns.Clear();
         Columns.Clear();
-    }
-
-    public void HideColumn(object source)
-    {
-        if (source is not Control control) return;
-        while (control is not DataGridColumnHeader && control.Parent is Control parent) control = parent;
-        if (control is DataGridColumnHeader header && DataGridColumn.GetColumnContainingElement(header)?.Tag is int index)
-            Columns[index].IsVisible = false;
     }
 }

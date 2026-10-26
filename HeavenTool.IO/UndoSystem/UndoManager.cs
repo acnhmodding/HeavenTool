@@ -7,8 +7,9 @@ public class UndoManager
 {
     private readonly Stack<IUndoCommand> _undo = new();
     private readonly Stack<IUndoCommand> _redo = new();
-    // The command on top of the undo stack when the document was last saved; null means the initial state.
-    private IUndoCommand? _savePoint;
+    // The command on top of the undo stack when the document was last saved; null means the initial state,
+    // and any other object a state no command leads back to.
+    private object? _savePoint;
 
     public event EventHandler? Changed;
 
@@ -52,11 +53,12 @@ public class UndoManager
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
-    public void Clear()
+    /// <summary>Drops the history; with <paramref name="atSavePoint"/> false the document stays unsaved.</summary>
+    public void Clear(bool atSavePoint = true)
     {
         _undo.Clear();
         _redo.Clear();
-        _savePoint = null;
+        _savePoint = atSavePoint ? null : new object();
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
