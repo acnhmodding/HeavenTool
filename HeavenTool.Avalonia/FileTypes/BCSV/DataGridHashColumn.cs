@@ -5,6 +5,7 @@ using HeavenTool.Avalonia.FileTypes.BCSV.Converters;
 using HeavenTool.IO;
 using Avalonia.Layout;
 using Avalonia.Data.Converters;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
@@ -24,6 +25,9 @@ public class DataGridHashColumn(uint hash, bool isMurmur = false) : HeavenDataGr
     private string[] PossibleValues => possibleValues ??=
         hash != 0 && (isMurmur ? HashManager.EnumListMMH3 : HashManager.EnumListCRC32).TryGetValue(hash, out var list)
             ? [.. list.Select(value => FormatValue(value))] : [];
+
+    /// <summary>The field's known values, as the grid shows them.</summary>
+    public IReadOnlyList<string> Labels => PossibleValues;
 
     protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out BindingExpressionBase? binding)
     {

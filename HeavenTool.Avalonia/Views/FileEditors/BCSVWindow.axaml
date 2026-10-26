@@ -19,6 +19,7 @@
     <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
     <KeyBinding Gesture="Ctrl+N" Command="{Binding NewRowCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding NewEntryCommand}" />
     <KeyBinding Gesture="Ctrl+D" Command="{Binding DuplicateRowsCommand}" />
     <KeyBinding Gesture="Ctrl+F" Command="{Binding OpenSearchCommand}" />
     <KeyBinding Gesture="Ctrl+H" Command="{Binding OpenReplaceCommand}" />
@@ -145,6 +146,11 @@
           <MenuItem Header="_New Row" Command="{Binding NewRowCommand}" InputGesture="Ctrl+N">
             <MenuItem.Icon>
               <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="New _Entry..." Command="{Binding NewEntryCommand}" InputGesture="Ctrl+Shift+N">
+            <MenuItem.Icon>
+              <PathIcon Data="{StaticResource IconPenToSquare}" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="_Duplicate Rows" Command="{Binding DuplicateRowsCommand}" InputGesture="Ctrl+D">

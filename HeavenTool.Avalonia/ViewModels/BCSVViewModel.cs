@@ -106,6 +106,7 @@ public partial class BCSVViewModel : ObservableObject
         UndoCommand.NotifyCanExecuteChanged();
         RedoCommand.NotifyCanExecuteChanged();
         NewRowCommand.NotifyCanExecuteChanged();
+        NewEntryCommand.NotifyCanExecuteChanged();
         DuplicateRowsCommand.NotifyCanExecuteChanged();
         DeleteRowsCommand.NotifyCanExecuteChanged();
         OpenSearchCommand.NotifyCanExecuteChanged();
@@ -483,6 +484,33 @@ public partial class BCSVViewModel : ObservableObject
         var values = loadedFile!.Fields.Select(field => field.GetFieldDefaultValue()).ToArray();
         if (CreateUniqueIdSource(out int idField)?.Invoke() is { } id) values[idField] = id;
         AddRows([values], "Added a row");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    private Task NewEntry() => NewEntryAsync();
+
+    /// <summary>Fills in a row field by field, starting from the selected or last row, then adds it.</summary>
+    public async Task<bool> NewEntryAsync()
+    {
+        if (editorOpen || IsBusy || !CommitEdits()) return false;
+        var source = SelectedRows().Select(item => item.Row).FirstOrDefault() ?? (Rows.Count > 0 ? Rows[^1] : null);
+        var values = source?.Values.ToArray() ?? [.. loadedFile!.Fields.Select(field => field.GetFieldDefaultValue())];
+        var description = source == null ? "Starting from default values." : DataGrid.SelectedItems.Count > 0
+            ? "Starting from the selected row's values." : "Starting from the last row's values.";
+        if (CreateUniqueIdSource(out int idField)?.Invoke() is { } id)
+        {
+            values[idField] = id;
+            description += " The unique ID is the next free one.";
+        }
+        var dialog = new BCSVEntryDialog([.. DataGrid.Columns.OfType<HeavenDataGridColumn>()], ColorColumns, values, description);
+        editorOpen = true;
+        try
+        {
+            if (!await dialog.ShowDialog<bool>(window)) return false;
+            AddRows([dialog.Values], "Added a row");
+            return true;
+        }
+        finally { editorOpen = false; }
     }
 
     [RelayCommand(CanExecute = nameof(CanDuplicateRows))]
