@@ -151,9 +151,9 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     // The header control belongs to the grid, so the label styles it once it's placed inside.
     private sealed class FieldHeader(HeavenDataGridColumn column) : TextBlock
     {
-        private static readonly IBrush UniqueBrush = new SolidColorBrush(Color.FromRgb(0, 100, 0));
-        private static readonly IBrush UnknownNameBrush = new SolidColorBrush(Color.FromRgb(160, 82, 110));
-        private static readonly IBrush UnknownShortNameBrush = new SolidColorBrush(Color.FromRgb(176, 109, 0));
+        private static readonly IBrush UniqueBrush = App.Brush("UniqueIdHeaderBackground");
+        private static readonly IBrush UnknownNameBrush = App.Brush("UnknownNameHeaderBackground");
+        private static readonly IBrush UnknownShortNameBrush = App.Brush("UnknownShortNameHeaderBackground");
 
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
         {
@@ -176,9 +176,9 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     // DataGrid creates cells for every column; format text only as a cell enters the viewport.
     private sealed class FieldTextCell(HeavenDataGridColumn column, DataGridCell cell) : TextBlock
     {
-        private static readonly IBrush MatchBrush = new SolidColorBrush(Color.FromArgb(110, 180, 180, 10));
-        private static readonly IBrush CurrentBrush = new SolidColorBrush(Color.FromArgb(170, 154, 205, 50));
-        private static readonly IBrush UnknownBrush = new SolidColorBrush(Color.FromArgb(150, 139, 0, 0));
+        private static readonly IBrush MatchBrush = App.Brush("SearchMatchBackground");
+        private static readonly IBrush CurrentBrush = App.Brush("SearchCurrentBackground");
+        private static readonly IBrush UnknownBrush = App.Brush("UnknownHashBackground");
         private BCSVRow? row;
         private SearchHighlights? highlights;
         private bool attached;

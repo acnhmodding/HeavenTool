@@ -1,0 +1,31 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- The app's own colours; the Fluent theme supplies everything else. -->
+  <Color x:Key="ACNHGreenColor">#1aae5e</Color>
+  <SolidColorBrush x:Key="ACNHGreen" Color="{StaticResource ACNHGreenColor}" />
+  <SolidColorBrush x:Key="ACNHGreenDark">#149650</SolidColorBrush>
+
+  <SolidColorBrush x:Key="WindowBackground">#333333</SolidColorBrush>
+  <SolidColorBrush x:Key="ContentBackground">#2b2b2b</SolidColorBrush>
+  <SolidColorBrush x:Key="TitleBarBackground">#2D2D30</SolidColorBrush>
+  <SolidColorBrush x:Key="MenuBackground">#222222</SolidColorBrush>
+  <SolidColorBrush x:Key="PanelBackground">#2A2A2A</SolidColorBrush>
+  <SolidColorBrush x:Key="PanelBorder">#444444</SolidColorBrush>
+  <SolidColorBrush x:Key="SecondaryText">#CCCCCC</SolidColorBrush>
+  <SolidColorBrush x:Key="DimText">Gray</SolidColorBrush>
+  <SolidColorBrush x:Key="ErrorText">#ff9696</SolidColorBrush>
+  <SolidColorBrush x:Key="WarningText">#E8C170</SolidColorBrush>
+
+  <!-- BCSV grid -->
+  <SolidColorBrush x:Key="GridBackground">#3C3C3C</SolidColorBrush>
+  <SolidColorBrush x:Key="GridHeaderBackground">#505050</SolidColorBrush>
+  <SolidColorBrush x:Key="GridRowNumberText">#8C8C8C</SolidColorBrush>
+  <SolidColorBrush x:Key="GridRowBackground">#333333</SolidColorBrush>
+  <SolidColorBrush x:Key="GridAlternateRowBackground">#222222</SolidColorBrush>
+  <SolidColorBrush x:Key="UniqueIdHeaderBackground">#006400</SolidColorBrush>
+  <SolidColorBrush x:Key="UnknownNameHeaderBackground">#A0526E</SolidColorBrush>
+  <SolidColorBrush x:Key="UnknownShortNameHeaderBackground">#B06D00</SolidColorBrush>
+  <SolidColorBrush x:Key="SearchMatchBackground">#6EB4B40A</SolidColorBrush>
+  <SolidColorBrush x:Key="SearchCurrentBackground">#AA9ACD32</SolidColorBrush>
+  <SolidColorBrush x:Key="UnknownHashBackground">#968B0000</SolidColorBrush>
+</ResourceDictionary>

@@ -6,6 +6,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>True</AvaloniaUseCompiledBindingsByDefault>
     <StartupObject>HeavenTool.Avalonia.Program</StartupObject>
+    <Version>2.0.0</Version>
   </PropertyGroup>
   <PropertyGroup Label="Avalonia">
     <ApplicationIcon>leaf.ico</ApplicationIcon>

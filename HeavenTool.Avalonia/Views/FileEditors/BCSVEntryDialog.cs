@@ -21,7 +21,6 @@ public sealed class BCSVEntryDialog : Window
     private readonly string?[] warnings;
     private readonly List<(Control Row, string[] Names)> rows = [];
     private readonly Button add = new() { Content = "Add Row", IsDefault = true };
-    private static readonly IBrush WarningBrush = new SolidColorBrush(Color.FromRgb(0xE8, 0xC1, 0x70));
     private readonly TextBlock status = new() { VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
 
     /// <summary>Each field's editor, by field index.</summary>
@@ -199,7 +198,7 @@ public sealed class BCSVEntryDialog : Window
         int doubtful = warnings.Count(warning => warning != null);
         add.IsEnabled = invalid == 0;
         // Warnings don't block adding the row; they show once nothing is invalid.
-        status.Foreground = invalid > 0 ? Brushes.LightSalmon : WarningBrush;
+        status.Foreground = App.Brush(invalid > 0 ? "ErrorText" : "WarningText");
         status.Text = (invalid, doubtful) switch
         {
             (1, _) => $"{fields[Array.FindIndex(errors, error => error != null)].Header}: {errors.First(error => error != null)}",

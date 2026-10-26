@@ -4,11 +4,12 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:fa="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
   xmlns:vm="clr-namespace:HeavenTool.Avalonia.ViewModels;assembly=HeavenTool.Avalonia"
+  xmlns:app="clr-namespace:HeavenTool.Avalonia;assembly=HeavenTool.Avalonia"
   mc:Ignorable="d"
   Width="800" Height="600"
   x:Class="HeavenTool.Avalonia.Views.FileEditors.BCSVWindow"
   Title="Heaven Tool"
-  Background="#333333"
+  Background="{StaticResource WindowBackground}"
   x:DataType="vm:BCSVViewModel">
 
   <Window.KeyBindings>
@@ -28,14 +29,14 @@
   </Window.KeyBindings>
 
   <Grid RowDefinitions="Auto, *">
-    <DockPanel Grid.Row="0" Height="32" Background="#2D2D30"
+    <DockPanel Grid.Row="0" Height="32" Background="{StaticResource TitleBarBackground}"
       WindowDecorationProperties.ElementRole="TitleBar">
       <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16"/>
       <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Margin="0 0 0 0" Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
-      <TextBlock Text="v2.0" Margin="5 0 0 0" VerticalAlignment="Center" FontSize="11" Foreground="Gray"/>
+      <TextBlock Text="{x:Static app:App.DisplayVersion}" Margin="5 0 0 0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource DimText}"/>
     </DockPanel>
     <DockPanel Grid.Row="1">
-      <Menu DockPanel.Dock="Top" Padding="0" Background="#222" Height="30" Foreground="White" FontSize="11">
+      <Menu DockPanel.Dock="Top" Padding="0" Background="{StaticResource MenuBackground}" Height="30" Foreground="White" FontSize="11">
         <MenuItem Header="_File">
           <MenuItem Header="_Open..." Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O">
             <MenuItem.Icon>
@@ -191,8 +192,8 @@
       </Menu>
 
       <!-- One shared height keeps the boxes and buttons aligned; the boxes take the spare width. -->
-      <Border DockPanel.Dock="Top" IsVisible="{Binding IsSearchOpen}" Background="#2A2A2A"
-        BorderBrush="#444" BorderThickness="0,0,0,1" Padding="6,4"
+      <Border DockPanel.Dock="Top" IsVisible="{Binding IsSearchOpen}" Background="{StaticResource PanelBackground}"
+        BorderBrush="{StaticResource PanelBorder}" BorderThickness="0,0,0,1" Padding="6,4"
         Container.Name="SearchBar" Container.Sizing="Width">
         <Border.KeyBindings>
           <KeyBinding Gesture="Escape" Command="{Binding CloseSearchCommand}" />
@@ -293,7 +294,7 @@
             <!-- A fixed width stops the buttons shifting as the count changes. -->
             <TextBlock x:Name="SearchSummary" Text="{Binding SearchSummary}" Width="96"
               VerticalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis"
-              FontSize="12" Foreground="#CCC" />
+              FontSize="12" Foreground="{StaticResource SecondaryText}" />
             <Button Classes="icon" Command="{Binding FindPreviousCommand}" ToolTip.Tip="Previous match (Shift+F3)">
               <PathIcon Data="{StaticResource IconChevronUp}" Width="12" Height="12" />
             </Button>
@@ -325,12 +326,12 @@
         <ProgressBar Height="3" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
         <TextBlock Text="{Binding StatusText}" FontSize="11" />
         <TextBlock Text="{Binding WarningMessage}" IsVisible="{Binding HasWarning}"
-          Foreground="#E8C170" TextWrapping="Wrap" />
+          Foreground="{StaticResource WarningText}" TextWrapping="Wrap" />
         <TextBlock Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}"
-          Foreground="#ff9696" TextWrapping="Wrap" />
+          Foreground="{StaticResource ErrorText}" TextWrapping="Wrap" />
       </StackPanel>
       <DataGrid x:Name="MainDataGrid"
-        Background="#3C3C3C"
+        Background="{StaticResource GridBackground}"
         Foreground="White"
         GridLinesVisibility="Vertical"
         HeadersVisibility="All"
@@ -382,10 +383,10 @@
               </ControlTemplate>
             </Setter>
             <Style Selector="^:current">
-              <Setter Property="BorderBrush" Value="#1aae5e" />
+              <Setter Property="BorderBrush" Value="{StaticResource ACNHGreen}" />
             </Style>
             <Style Selector="^:invalid">
-              <Setter Property="BorderBrush" Value="#ff9696" />
+              <Setter Property="BorderBrush" Value="{StaticResource ErrorText}" />
             </Style>
           </ControlTheme>
         </DataGrid.Resources>
@@ -393,24 +394,24 @@
         <DataGrid.Styles>
 
           <Style Selector="DataGridColumnHeader">
-            <Setter Property="Background" Value="#505050" />
+            <Setter Property="Background" Value="{StaticResource GridHeaderBackground}" />
             <Setter Property="Foreground" Value="White" />
           </Style>
 
           <!-- Row numbers follow the view, as in the WinForms editor. -->
           <Style Selector="DataGridRowHeader">
-            <Setter Property="Foreground" Value="#8C8C8C" />
+            <Setter Property="Foreground" Value="{StaticResource GridRowNumberText}" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="HorizontalContentAlignment" Value="Right" />
             <Setter Property="Padding" Value="0,0,6,0" />
           </Style>
 
           <Style Selector="DataGridRow:nth-child(odd)">
-            <Setter Property="Background" Value="#222222"/>
+            <Setter Property="Background" Value="{StaticResource GridAlternateRowBackground}"/>
           </Style>
 
           <Style Selector="DataGridRow">
-            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Background" Value="{StaticResource GridRowBackground}"/>
             <Setter Property="Foreground" Value="White"/>
           </Style>
 

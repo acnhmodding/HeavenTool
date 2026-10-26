@@ -10,14 +10,14 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="/Assets/Icons/Icons.axaml" />
+        <ResourceInclude Source="/Assets/Styles/Colors.axaml" />
       </ResourceDictionary.MergedDictionaries>
-      <SolidColorBrush x:Key="ACNHGreen">#1aae5e</SolidColorBrush>
     </ResourceDictionary>
   </Application.Resources>
   
     <Application.Styles>
       <FluentTheme/>
-      <sty:FluentAvaloniaTheme CustomAccentColor="#1aae5e" PreferUserAccentColor="False" PreferSystemTheme="False" />
+      <sty:FluentAvaloniaTheme CustomAccentColor="{StaticResource ACNHGreenColor}" PreferUserAccentColor="False" PreferSystemTheme="False" />
       <StyleInclude Source="/Assets/Styles/Styles.axaml" />
       <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
       <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml"/>
