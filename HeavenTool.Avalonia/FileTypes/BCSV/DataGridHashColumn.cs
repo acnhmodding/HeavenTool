@@ -19,8 +19,8 @@ public class DataGridHashColumn(uint hash, bool isMurmur = false) : HeavenDataGr
 
     private string[]? possibleValues;
     private string[] PossibleValues => possibleValues ??=
-        hash != 0 && HashManager.EnumListCRC32.TryGetValue(hash, out var list)
-            ? [.. list.Select(value => value.GetHashTranslation())] : [];
+        hash != 0 && (isMurmur ? HashManager.EnumListMMH3 : HashManager.EnumListCRC32).TryGetValue(hash, out var list)
+            ? [.. list.Select(value => FormatValue(value))] : [];
 
     protected override Control GenerateEditingElement(DataGridCell cell, object dataItem, out BindingExpressionBase? binding)
     {

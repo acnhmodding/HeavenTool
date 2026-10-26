@@ -30,7 +30,8 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     public SearchHighlights? Highlights { get; set; }
 
     protected virtual IValueConverter? DisplayConverter => null;
-    protected virtual IValueConverter EditConverter => new FieldValueConverter(FieldType, FieldSize);
+    private FieldValueConverter? fieldConverter;
+    protected virtual IValueConverter EditConverter => fieldConverter ??= new FieldValueConverter(FieldType, FieldSize);
 
     protected HeavenDataGridColumn()
     {
@@ -105,7 +106,7 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // Hashes sort by their shown label; everything else by the stored value.
+    // Hashes sort by their shown label, and "-1" sorts before 0; everything else by the stored value.
     private sealed class FieldComparer(HeavenDataGridColumn column) : IComparer
     {
         public int Compare(object? x, object? y)
@@ -114,8 +115,12 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
             object a = left[column.FieldIndex], b = right[column.FieldIndex];
             if (column.FieldType is DataType.CRC32 or DataType.MMH3)
                 return StringComparer.OrdinalIgnoreCase.Compare(column.FormatValue(a), column.FormatValue(b));
+            if (column.FieldType is DataType.UInt16 or DataType.UInt32)
+                return Signed(a).CompareTo(Signed(b));
             return StructuralComparisons.StructuralComparer.Compare(a, b);
         }
+
+        private static long Signed(object value) => value is ushort.MaxValue or uint.MaxValue ? -1 : Convert.ToInt64(value);
     }
 
     // DataGrid creates cells for every column; format text only as a cell enters the viewport.

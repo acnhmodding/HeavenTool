@@ -15,7 +15,7 @@ public static class HashManager
     public static readonly Dictionary<uint, string> MMH3_Hashes = [];
 
     public static readonly Dictionary<uint, List<uint>> EnumListCRC32 = [];
-    //public static readonly Dictionary<uint, List<uint>> EnumListMMH3 = [];
+    public static readonly Dictionary<uint, List<uint>> EnumListMMH3 = [];
     public static Dictionary<uint, string[]> BitField { get; } = [];
 
     private static bool isInitialized;
@@ -57,9 +57,19 @@ public static class HashManager
             if (Path.GetExtension(file) != ".txt")
                 continue;
 
-            foreach (var hashStr in File.ReadAllLines(file))
-                MMH3_Hashes.TryAdd(hashStr.ToMurmur(), hashStr);
+            // A file named after a field's hash (0x85a0fa49.txt) also lists that field's values.
+            var fileName = Path.GetFileNameWithoutExtension(file);
+            List<uint>? values = null;
+            if (fileName.StartsWith("0x") && uint.TryParse(fileName[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var enumHash)
+                && !EnumListMMH3.TryGetValue(enumHash, out values))
+                EnumListMMH3.Add(enumHash, values = []);
 
+            foreach (var hashStr in File.ReadAllLines(file))
+            {
+                var hash = hashStr.ToMurmur();
+                MMH3_Hashes.TryAdd(hash, hashStr);
+                if (values != null && !values.Contains(hash)) values.Add(hash);
+            }
         }
 
         Console.WriteLine("[BCSV] Loaded {0} Murmur3 Hashes", MMH3_Hashes.Count);

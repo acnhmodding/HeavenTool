@@ -211,9 +211,10 @@ public partial class BCSVViewModel : ObservableObject
                 var field = fields[index];
                 HeavenDataGridColumn column = field.DataType switch
                 {
-                    DataType.UInt16 => new DataGridNumericColumn(ushort.MinValue, ushort.MaxValue),
+                    // -1 stands for the unsigned maximum, as the game writes it.
+                    DataType.UInt16 => new DataGridNumericColumn(-1, ushort.MaxValue),
                     DataType.Int16 => new DataGridNumericColumn(short.MinValue, short.MaxValue),
-                    DataType.UInt32 => new DataGridNumericColumn(uint.MinValue, uint.MaxValue),
+                    DataType.UInt32 => new DataGridNumericColumn(-1, uint.MaxValue),
                     DataType.Int32 => new DataGridNumericColumn(int.MinValue, int.MaxValue),
                     DataType.S8 => new DataGridNumericColumn(sbyte.MinValue, sbyte.MaxValue),
                     DataType.U8 => new DataGridNumericColumn(byte.MinValue, byte.MaxValue),

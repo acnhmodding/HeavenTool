@@ -1,6 +1,7 @@
 using Avalonia.Interactivity;
 using Avalonia.Controls;
 using Avalonia.Data;
+using Avalonia.Data.Converters;
 using System;
 
 namespace HeavenTool.Avalonia.FileTypes.BCSV;
@@ -10,6 +11,8 @@ public class DataGridNumericColumn(decimal minimum, decimal maximum) : HeavenDat
     public decimal Minimum { get; set; } = minimum;
     public decimal Maximum { get; set; } = maximum;
     public decimal Increment { get; set; } = 1;
+    // Shows an unsigned field's maximum as "-1", like the editor does.
+    protected override IValueConverter DisplayConverter => EditConverter;
 
     public override bool CommitPendingEdit()
     {

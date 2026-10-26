@@ -9,8 +9,14 @@ namespace HeavenTool.Avalonia.FileTypes.BCSV.Converters;
 /// <summary>Array indexers are object-typed; explicitly retain the binary field's CLR type on edit.</summary>
 public sealed class FieldValueConverter(DataType type, int size) : IValueConverter
 {
-    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is byte[] bits ? System.Convert.ToHexString(bits) : value;
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
+    {
+        byte[] bits => System.Convert.ToHexString(bits),
+        // Unsigned 16- and 32-bit fields use their maximum value as the game's "-1".
+        ushort.MaxValue when type == DataType.UInt16 => -1,
+        uint.MaxValue when type == DataType.UInt32 => -1,
+        _ => value
+    };
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
@@ -29,9 +35,8 @@ public sealed class FieldValueConverter(DataType type, int size) : IValueConvert
             default:
                 var integer = System.Convert.ToDecimal(value, culture);
                 if (integer != decimal.Truncate(integer)) throw new FormatException("Enter a whole number.");
-                // Unsigned fields store the game's "-1" as their maximum value.
-                if (integer == -1 && type is DataType.U8 or DataType.UInt16 or DataType.UInt32)
-                    return type switch { DataType.U8 => (object)byte.MaxValue, DataType.UInt16 => ushort.MaxValue, _ => uint.MaxValue };
+                if (integer == -1 && type is DataType.UInt16) return ushort.MaxValue;
+                if (integer == -1 && type is DataType.UInt32) return uint.MaxValue;
                 return type switch
                 {
                     DataType.S8 => checked((sbyte)integer),
