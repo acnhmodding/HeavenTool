@@ -325,6 +325,8 @@
         Background="#3C3C3C"
         Foreground="White"
         GridLinesVisibility="Vertical"
+        HeadersVisibility="All"
+        RowHeaderWidth="52"
         SelectionMode="Extended"
         IsVisible="{Binding IsFileLoaded}"
         CanUserSortColumns="True"
@@ -385,6 +387,14 @@
           <Style Selector="DataGridColumnHeader">
             <Setter Property="Background" Value="#505050" />
             <Setter Property="Foreground" Value="White" />
+          </Style>
+
+          <!-- Row numbers follow the view, as in the WinForms editor. -->
+          <Style Selector="DataGridRowHeader">
+            <Setter Property="Foreground" Value="#8C8C8C" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+            <Setter Property="Padding" Value="0,0,6,0" />
           </Style>
 
           <Style Selector="DataGridRow:nth-child(odd)">

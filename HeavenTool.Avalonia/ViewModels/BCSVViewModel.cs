@@ -1,6 +1,9 @@
 using Avalonia.Collections;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HeavenTool.Avalonia.FileTypes.BCSV;
@@ -57,6 +60,7 @@ public partial class BCSVViewModel : ObservableObject
         DataGrid.PreparingCellForEdit += (_, _) => SetEditing(true);
         DataGrid.CellEditEnded += (_, _) => SetEditing(false);
         DataGrid.SelectionChanged += (_, _) => RefreshCommands();
+        DataGrid.LoadingRow += (_, e) => NumberRow(e.Row);
         undoManager.Changed += (_, _) =>
         {
             HasUnsavedChanges = !undoManager.IsAtSavePoint;
@@ -188,6 +192,7 @@ public partial class BCSVViewModel : ObservableObject
             fileName = name;
             Rows = rows;
             DataGrid.ItemsSource = rowsView = new DataGridCollectionView(rows);
+            rowsView.CollectionChanged += (_, _) => RenumberRows();
             hiddenRows.Clear();
             filterKey = null;
             undoManager.Clear(atSavePoint: !unsaved);
@@ -262,6 +267,22 @@ public partial class BCSVViewModel : ObservableObject
             if (uniqueField != null) DataGrid.Columns[Array.IndexOf(fields, uniqueField)].DisplayIndex = 0;
         }
         finally { DataGrid.EndInit(); }
+    }
+
+    private static void NumberRow(DataGridRow row) => row.Header = row.Index >= 0 ? (row.Index + 1).ToString() : null;
+
+    // Rows already on screen aren't loaded again when others are added, removed, sorted or filtered.
+    private bool renumberPending;
+    private void RenumberRows()
+    {
+        if (renumberPending) return;
+        renumberPending = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            renumberPending = false;
+            if (DataGrid.FindDescendantOfType<DataGridRowsPresenter>() is { } presenter)
+                foreach (var row in presenter.Children.OfType<DataGridRow>()) NumberRow(row);
+        }, DispatcherPriority.Background);
     }
 
     private bool CommitEdits()
