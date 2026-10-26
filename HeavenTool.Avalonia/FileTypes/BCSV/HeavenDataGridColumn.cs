@@ -40,6 +40,9 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     /// <summary>Hash values without a known label stand out, as typos or missing names.</summary>
     public virtual bool IsUnknownValue(object? value) => false;
 
+    /// <summary>False when the field has its own editor, so typed text (replace, paste) can't set it.</summary>
+    public virtual bool EditsAsText => true;
+
     protected virtual IValueConverter? DisplayConverter => null;
     private FieldValueConverter? fieldConverter;
     protected virtual IValueConverter EditConverter => fieldConverter ??= new FieldValueConverter(FieldType, FieldSize);

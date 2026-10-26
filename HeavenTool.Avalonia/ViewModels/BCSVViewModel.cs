@@ -12,10 +12,12 @@ using HeavenTool.Avalonia.Views.FileEditors;
 using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace HeavenTool.Avalonia.ViewModels;
@@ -56,6 +58,13 @@ public partial class BCSVViewModel : ObservableObject
             }
             if (column.TryTakePendingEdit(out var row, out var value) && e.EditAction == DataGridEditAction.Commit)
                 ApplyEdit(row, column, value);
+        };
+        // Flags and colours open their own editor instead of an in-cell one.
+        DataGrid.BeginningEdit += (_, e) =>
+        {
+            if (e.Column is not (DataGridBitFieldColumn or DataGridColorColumn)) return;
+            e.Cancel = true;
+            if (e.Row.DataContext is BCSVRow row) _ = EditInDialogAsync(row, e.Column);
         };
         DataGrid.PreparingCellForEdit += (_, _) => SetEditing(true);
         DataGrid.CellEditEnded += (_, _) => SetEditing(false);
@@ -235,6 +244,7 @@ public partial class BCSVViewModel : ObservableObject
                     DataType.U8 => new DataGridNumericColumn(byte.MinValue, byte.MaxValue),
                     DataType.CRC32 or DataType.MMH3
                         => new DataGridHashColumn(field.Hash, field.DataType == DataType.MMH3),
+                    DataType.BitField => new DataGridBitFieldColumn(HashManager.BitField.GetValueOrDefault(field.Hash)),
                     _ => new DataGridStringColumn { MaxLength = field.DataType == DataType.String ? Math.Max(0, field.Size - 1) : 0 }
                 };
                 column.FieldIndex = index;
@@ -242,7 +252,6 @@ public partial class BCSVViewModel : ObservableObject
                 column.FieldSize = field.Size;
                 column.Header = field.DisplayName;
                 column.Tag = index;
-                column.IsReadOnly = field.DataType == DataType.BitField;
                 column.Highlights = highlights;
                 column.HeaderKind = field == uniqueField ? FieldHeaderKind.UniqueId
                     : !field.IsMissingHash ? FieldHeaderKind.Normal
@@ -256,6 +265,7 @@ public partial class BCSVViewModel : ObservableObject
                 {
                     if (e.PropertyName != nameof(ColumnVisibilityModel.IsVisible)) return;
                     column.IsVisible = model.IsVisible;
+                    UpdateColorColumns();
                     OnPropertyChanged(nameof(ToggleAll));
                     InvalidateSearch();
                 };
@@ -263,10 +273,87 @@ public partial class BCSVViewModel : ObservableObject
                 DataGrid.Columns.Add(column);
             }
             Columns.AddRange(visibility);
+            // Colour columns come after every field column, so a field's column index stays its field index.
+            foreach (var color in FindColorFields(fields)) DataGrid.Columns.Add(color);
+            PlaceColorColumns();
             // The unique ID leads, as in the WinForms editor.
             if (uniqueField != null) DataGrid.Columns[Array.IndexOf(fields, uniqueField)].DisplayIndex = 0;
         }
         finally { DataGrid.EndInit(); }
+    }
+
+    [GeneratedRegex(@"^(.*?)Color([RGB]) f32$")]
+    private static partial Regex ColorFieldRegex();
+
+    // "BaseColorR f32", "BaseColorG f32" and "BaseColorB f32" make one "Base Color" column.
+    private static IEnumerable<DataGridColorColumn> FindColorFields(Field[] fields)
+    {
+        var groups = new Dictionary<string, Dictionary<char, int>>();
+        for (int index = 0; index < fields.Length; index++)
+        {
+            if (fields[index].DataType != DataType.Float32
+                || ColorFieldRegex().Match(fields[index].GetTranslatedNameOrNull() ?? "") is not { Success: true } match) continue;
+            var prefix = match.Groups[1].Value;
+            if (!groups.TryGetValue(prefix, out var components)) groups[prefix] = components = [];
+            components.TryAdd(match.Groups[2].Value[0], index);
+        }
+        foreach (var (prefix, components) in groups)
+        {
+            if (components.Count < 3) continue;
+            yield return new DataGridColorColumn
+            {
+                Header = prefix.Length > 0 ? $"{prefix} Color" : "Color",
+                RedField = components['R'], GreenField = components['G'], BlueField = components['B']
+            };
+        }
+    }
+
+    private IEnumerable<DataGridColorColumn> ColorColumns => DataGrid.Columns.OfType<DataGridColorColumn>();
+
+    // Each colour sits just before the first of its fields, and shows while any of them does.
+    private void PlaceColorColumns()
+    {
+        foreach (var color in ColorColumns)
+            color.DisplayIndex = new[] { color.RedField, color.GreenField, color.BlueField }.Min(field => DataGrid.Columns[field].DisplayIndex);
+        UpdateColorColumns();
+    }
+
+    private void UpdateColorColumns()
+    {
+        foreach (var color in ColorColumns)
+            color.IsVisible = Columns[color.RedField].IsVisible || Columns[color.GreenField].IsVisible || Columns[color.BlueField].IsVisible;
+    }
+
+    private bool editorOpen;
+
+    /// <summary>Opens the flag checklist or colour picker for a cell; the result applies like a cell edit.</summary>
+    public async Task EditInDialogAsync(BCSVRow row, DataGridColumn column)
+    {
+        if (editorOpen || IsBusy || !CommitEdits()) return;
+        editorOpen = true;
+        try
+        {
+            if (column is DataGridBitFieldColumn flags)
+            {
+                var editor = new BitFieldEditor(flags, (byte[])row[flags.FieldIndex]);
+                if (await window.ShowEditorAsync($"Edit {flags.Header}", editor, 340, 460))
+                    ApplyValues(row, [(flags.FieldIndex, editor.Value)], flags.Header);
+            }
+            else if (column is DataGridColorColumn color)
+            {
+                var initial = color.GetColor(row);
+                var picker = new ColorView
+                {
+                    Color = initial, IsAlphaEnabled = false, IsAlphaVisible = false, IsAccentColorsVisible = false
+                };
+                // An unchanged colour keeps the exact stored floats.
+                if (await window.ShowEditorAsync($"Edit {color.Header}", picker, 360, 520) && picker.Color != initial)
+                    ApplyValues(row, [(color.RedField, picker.Color.R / 255f), (color.GreenField, picker.Color.G / 255f),
+                        (color.BlueField, picker.Color.B / 255f)], color.Header);
+            }
+        }
+        catch (Exception ex) { ErrorMessage = $"Could not edit: {ex.Message}"; }
+        finally { editorOpen = false; }
     }
 
     private static void NumberRow(DataGridRow row) => row.Header = row.Index >= 0 ? (row.Index + 1).ToString() : null;
@@ -294,18 +381,29 @@ public partial class BCSVViewModel : ObservableObject
 
     private static string RowCount(int count) => count == 1 ? "1 row" : $"{count:N0} rows";
 
-    private void ApplyEdit(BCSVRow row, HeavenDataGridColumn column, object value)
+    private void ApplyEdit(BCSVRow row, HeavenDataGridColumn column, object value) =>
+        ApplyValues(row, [(column.FieldIndex, value)], column.Header);
+
+    private void ApplyValues(BCSVRow row, IReadOnlyList<(int Field, object Value)> values, object? header)
     {
-        // Editing a cell inside a multi-row selection sets that field on every selected row.
+        // Editing a cell inside a multi-row selection sets those fields on every selected row.
         IEnumerable<BCSVRow> targets = DataGrid.SelectedItems.Count > 1 && DataGrid.SelectedItems.Contains(row)
             ? DataGrid.SelectedItems.OfType<BCSVRow>() : [row];
-        int field = column.FieldIndex;
-        var changes = targets.Where(target => !Equals(target[field], value))
-            .Select(target => new CellChange(target, field, target[field], value)).ToList();
+        var changes = new List<CellChange>();
+        int edited = 0;
+        foreach (var target in targets)
+        {
+            int before = changes.Count;
+            foreach (var (field, value) in values)
+                if (!StructuralComparisons.StructuralEqualityComparer.Equals(target[field], value))
+                    // Rows never share a byte array, so a later edit of one can't reach the others.
+                    changes.Add(new CellChange(target, field, target[field], value is byte[] bytes ? bytes.Clone() : value));
+            if (changes.Count > before) edited++;
+        }
         if (changes.Count == 0) return;
         ErrorMessage = null;
         undoManager.Execute(new SetCellsCommand(changes));
-        StatusText = changes.Count == 1 ? $"Edited {column.Header}" : $"Set {column.Header} on {RowCount(changes.Count)}";
+        StatusText = edited == 1 ? $"Edited {header}" : $"Set {header} on {RowCount(edited)}";
     }
 
     [RelayCommand(CanExecute = nameof(CanUndo))]

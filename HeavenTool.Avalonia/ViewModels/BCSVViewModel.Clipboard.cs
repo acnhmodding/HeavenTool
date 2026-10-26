@@ -98,7 +98,7 @@ public partial class BCSVViewModel
             && DataGridColumn.GetColumnContainingElement(header) is HeavenDataGridColumn headerColumn)
             (menu, target) = (CreateHeaderMenu(headerColumn), header);
         else if (source.FindAncestorOfType<DataGridCell>(includeSelf: true) is { DataContext: BCSVRow row } cell
-            && DataGridColumn.GetColumnContainingElement(cell) is HeavenDataGridColumn cellColumn)
+            && DataGridColumn.GetColumnContainingElement(cell) is { } cellColumn)
         {
             // Right-clicking outside the selection acts on the clicked row instead.
             if (!DataGrid.SelectedItems.Contains(row))
@@ -106,26 +106,34 @@ public partial class BCSVViewModel
                 DataGrid.SelectedItems.Clear();
                 DataGrid.SelectedItem = row;
             }
-            (menu, target) = (CreateCellMenu(cellColumn), cell);
+            (menu, target) = (CreateCellMenu(cellColumn, row), cell);
         }
         if (menu == null) return;
         e.Handled = true;
         menu.Open(target);
     }
 
-    private ContextMenu CreateCellMenu(HeavenDataGridColumn column) => new()
+    private ContextMenu CreateCellMenu(DataGridColumn column, BCSVRow row)
     {
-        Items =
+        var menu = new ContextMenu();
+        // Flags and colours have no in-cell editor, so their editor is offered first.
+        if (column is DataGridBitFieldColumn or DataGridColorColumn)
         {
-            MenuEntry("_Copy", CopyCommand, gesture: "Ctrl+C", icon: "IconClipboard"),
-            MenuEntry("Copy with _Headers", CopyWithHeadersCommand, icon: "IconTable"),
-            MenuEntry($"Copy {column.Header}", CopyCellCommand, column, "Ctrl+Shift+C", "IconTableCells"),
-            MenuEntry("_Export Selected Rows...", ExportSelectionCommand, icon: "IconTableList"),
-            new Separator(),
-            MenuEntry("_Duplicate Rows", DuplicateRowsCommand, gesture: "Ctrl+D", icon: "IconCopy"),
-            MenuEntry("De_lete Rows", DeleteRowsCommand, gesture: "Delete", icon: "IconTrash")
+            menu.Items.Add(MenuEntry(column is DataGridColorColumn ? "_Edit Color..." : "_Edit Flags...",
+                new AsyncRelayCommand(() => EditInDialogAsync(row, column)), gesture: "F2",
+                icon: column is DataGridColorColumn ? "IconPalette" : "IconListCheck"));
+            menu.Items.Add(new Separator());
         }
-    };
+        menu.Items.Add(MenuEntry("_Copy", CopyCommand, gesture: "Ctrl+C", icon: "IconClipboard"));
+        menu.Items.Add(MenuEntry("Copy with _Headers", CopyWithHeadersCommand, icon: "IconTable"));
+        if (column is HeavenDataGridColumn field)
+            menu.Items.Add(MenuEntry($"Copy {field.Header}", CopyCellCommand, field, "Ctrl+Shift+C", "IconTableCells"));
+        menu.Items.Add(MenuEntry("_Export Selected Rows...", ExportSelectionCommand, icon: "IconTableList"));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(MenuEntry("_Duplicate Rows", DuplicateRowsCommand, gesture: "Ctrl+D", icon: "IconCopy"));
+        menu.Items.Add(MenuEntry("De_lete Rows", DeleteRowsCommand, gesture: "Delete", icon: "IconTrash"));
+        return menu;
+    }
 
     private ContextMenu CreateHeaderMenu(HeavenDataGridColumn column)
     {
@@ -247,6 +255,7 @@ public partial class BCSVViewModel
             column.DisplayIndex = saved.DisplayIndex;
         }
         for (int i = 0; i < columns.Length; i++) Columns[i].IsVisible = layout[i].IsVisible;
+        PlaceColorColumns();
         SelectRows([.. selection.Select(index => Rows[index])]);
         StatusText = $"Showing {name} as {type} · the undo history was cleared";
     }

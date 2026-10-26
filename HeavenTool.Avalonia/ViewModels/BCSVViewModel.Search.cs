@@ -320,7 +320,7 @@ public partial class BCSVViewModel
         int readOnly = 0;
         for (int i = 0; i < matches.Count; i++)
         {
-            if (matches[i].Column.IsReadOnly)
+            if (!CanReplace(matches[i].Column))
             {
                 readOnly++;
                 continue;
@@ -340,13 +340,15 @@ public partial class BCSVViewModel
         StatusText = $"Replaced {CellCount(changes.Count)}{(readOnly > 0 ? $" · skipped {CellCount(readOnly)} that can't be edited" : "")}";
     }
 
+    private static bool CanReplace(HeavenDataGridColumn column) => !column.IsReadOnly && column.EditsAsText;
+
     private bool TryReplace(SearchMatch match, out CellChange? change, [NotNullWhen(false)] out string? error)
     {
         change = null;
         var column = match.Column;
-        if (column.IsReadOnly)
+        if (!CanReplace(column))
         {
-            error = $"{column.Header} can't be edited.";
+            error = $"{column.Header} can't be replaced as text.";
             return false;
         }
         var original = match.Row[column.FieldIndex];

@@ -79,6 +79,41 @@ public partial class BCSVWindow : FAAppWindow
         return dialog.ShowDialog<bool?>(this);
     }
 
+    /// <summary>Shows an editor with OK and Cancel; true when the user chose OK.</summary>
+    public async Task<bool> ShowEditorAsync(string title, Control editor, double width, double height)
+    {
+        var dialog = new Window
+        {
+            Title = title, Width = width, Height = height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+        var ok = new Button { Content = "OK", IsDefault = true };
+        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        ok.Click += (_, _) => dialog.Close(true);
+        cancel.Click += (_, _) => dialog.Close(false);
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 8, Children = { ok, cancel }
+        };
+        var grid = new Grid
+        {
+            Margin = new Thickness(16),
+            RowSpacing = 12,
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto)
+            },
+            Children = { editor, buttons }
+        };
+
+        Grid.SetRow(buttons, 1);
+
+        dialog.Content = grid;
+        return await dialog.ShowDialog<bool?>(this) == true;
+    }
+
     public Task ShowMessageAsync(string title, string message)
     {
         var dialog = new Window
