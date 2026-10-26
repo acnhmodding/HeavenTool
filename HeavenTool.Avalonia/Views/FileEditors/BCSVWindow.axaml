@@ -138,58 +138,125 @@
 
       </Menu>
 
+      <!-- One shared height keeps the boxes and buttons aligned; the boxes take the spare width. -->
       <Border DockPanel.Dock="Top" IsVisible="{Binding IsSearchOpen}" Background="#2A2A2A"
-        BorderBrush="#444" BorderThickness="0,0,0,1" Padding="6,4">
+        BorderBrush="#444" BorderThickness="0,0,0,1" Padding="6,4"
+        Container.Name="SearchBar" Container.Sizing="Width">
         <Border.KeyBindings>
           <KeyBinding Gesture="Escape" Command="{Binding CloseSearchCommand}" />
         </Border.KeyBindings>
         <Border.Styles>
-          <Style Selector="Button, ToggleButton">
-            <Setter Property="Padding" Value="8,4" />
-            <Setter Property="MinHeight" Value="28" />
+          <Style Selector="TextBox, Button, ToggleButton">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="MinHeight" Value="0" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="VerticalAlignment" Value="Center" />
+          </Style>
+          <Style Selector="TextBox">
+            <Setter Property="Padding" Value="8,0,4,0" />
+            <Setter Property="MinWidth" Value="120" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+          </Style>
+          <Style Selector="Button, ToggleButton">
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+          </Style>
+          <Style Selector="Button.icon, ToggleButton.icon">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+          </Style>
+          <!-- Option toggles sit inside the find box, like a code editor's. -->
+          <Style Selector="ToggleButton.option">
+            <Setter Property="Height" Value="22" />
+            <Setter Property="MinWidth" Value="26" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+          </Style>
+          <Style Selector="ToggleButton#ReplaceToggle">
+            <Setter Property="Height" Value="NaN" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
           </Style>
           <Style Selector="ToggleButton#ReplaceToggle:unchecked PathIcon">
             <Setter Property="RenderTransform" Value="rotate(-90deg)" />
           </Style>
+          <ContainerQuery Name="SearchBar" Query="max-width:460">
+            <Style Selector="TextBlock#SearchSummary">
+              <Setter Property="IsVisible" Value="False" />
+            </Style>
+          </ContainerQuery>
         </Border.Styles>
-        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
-          <ToggleButton x:Name="ReplaceToggle" Grid.RowSpan="2" Margin="0,0,4,0" Padding="6,4"
+        <!-- The boxes stop growing at a readable width; the buttons stay next to them. -->
+        <Grid RowDefinitions="Auto,Auto" ColumnSpacing="4">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" MaxWidth="480" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <ToggleButton x:Name="ReplaceToggle" Grid.RowSpan="2" Classes="icon"
             IsChecked="{Binding IsReplaceOpen}" ToolTip.Tip="Toggle replace (Ctrl+H)">
+            <!-- It's an expander, so the chevron shows the state rather than an accent fill. -->
+            <ToggleButton.Resources>
+              <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ButtonBackground" />
+              <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
+              <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ButtonBackgroundPressed" />
+              <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="ButtonForeground" />
+              <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="ButtonForegroundPointerOver" />
+              <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="ButtonForegroundPressed" />
+              <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="ButtonBorderBrush" />
+              <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="ButtonBorderBrushPointerOver" />
+              <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="ButtonBorderBrushPressed" />
+            </ToggleButton.Resources>
             <PathIcon Data="{StaticResource IconChevronDown}" Width="10" Height="10" />
           </ToggleButton>
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-            <TextBox x:Name="SearchBox" Width="260" PlaceholderText="Find in visible columns"
-              Text="{Binding SearchText}" FontSize="12" VerticalAlignment="Center">
-              <TextBox.KeyBindings>
-                <KeyBinding Gesture="Enter" Command="{Binding FindNextCommand}" />
-                <KeyBinding Gesture="Shift+Enter" Command="{Binding FindPreviousCommand}" />
-              </TextBox.KeyBindings>
-            </TextBox>
-            <ToggleButton Content="Aa" IsChecked="{Binding MatchCase}" ToolTip.Tip="Match case" />
-            <ToggleButton Content="Whole cell" IsChecked="{Binding MatchWholeCell}"
-              ToolTip.Tip="Match the entire cell text" />
-            <Button Command="{Binding FindPreviousCommand}" ToolTip.Tip="Previous match (Shift+F3)">
+
+          <TextBox x:Name="SearchBox" Grid.Column="1" PlaceholderText="Find in visible columns"
+            Text="{Binding SearchText}">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding FindNextCommand}" />
+              <KeyBinding Gesture="Shift+Enter" Command="{Binding FindPreviousCommand}" />
+            </TextBox.KeyBindings>
+            <TextBox.InnerRightContent>
+              <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,3,0">
+                <ToggleButton Classes="option" Content="Aa" IsChecked="{Binding MatchCase}"
+                  ToolTip.Tip="Match case" />
+                <ToggleButton Classes="option" IsChecked="{Binding MatchWholeCell}"
+                  ToolTip.Tip="Match whole cell">
+                  <Border BorderThickness="1" CornerRadius="2" Padding="2,0"
+                    BorderBrush="{Binding $parent[ToggleButton].Foreground}">
+                    <TextBlock Text="ab" FontSize="10" />
+                  </Border>
+                </ToggleButton>
+              </StackPanel>
+            </TextBox.InnerRightContent>
+          </TextBox>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+            <!-- A fixed width stops the buttons shifting as the count changes. -->
+            <TextBlock x:Name="SearchSummary" Text="{Binding SearchSummary}" Width="96"
+              VerticalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis"
+              FontSize="12" Foreground="#CCC" />
+            <Button Classes="icon" Command="{Binding FindPreviousCommand}" ToolTip.Tip="Previous match (Shift+F3)">
               <PathIcon Data="{StaticResource IconChevronUp}" Width="12" Height="12" />
             </Button>
-            <Button Command="{Binding FindNextCommand}" ToolTip.Tip="Next match (F3)">
+            <Button Classes="icon" Command="{Binding FindNextCommand}" ToolTip.Tip="Next match (F3)">
               <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" />
             </Button>
-            <TextBlock Text="{Binding SearchSummary}" MinWidth="90" Margin="6,0"
-              VerticalAlignment="Center" FontSize="12" Foreground="#CCC" />
-            <Button Command="{Binding CloseSearchCommand}" ToolTip.Tip="Close (Esc)">
+            <Button Classes="icon" Command="{Binding CloseSearchCommand}" ToolTip.Tip="Close (Esc)">
               <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
             </Button>
           </StackPanel>
-          <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="0,4,0,0"
+
+          <TextBox x:Name="ReplaceBox" Grid.Row="1" Grid.Column="1" Margin="0,4,0,0" PlaceholderText="Replace with"
+            Text="{Binding ReplaceText}" IsVisible="{Binding IsReplaceOpen}">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding ReplaceNextCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+          <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,4,0,0" Orientation="Horizontal" Spacing="4"
             IsVisible="{Binding IsReplaceOpen}">
-            <TextBox x:Name="ReplaceBox" Width="260" PlaceholderText="Replace with"
-              Text="{Binding ReplaceText}" FontSize="12" VerticalAlignment="Center">
-              <TextBox.KeyBindings>
-                <KeyBinding Gesture="Enter" Command="{Binding ReplaceNextCommand}" />
-              </TextBox.KeyBindings>
-            </TextBox>
             <Button Content="Replace" Command="{Binding ReplaceNextCommand}"
               ToolTip.Tip="Replace this match and go to the next (Enter)" />
             <Button Content="Replace All" Command="{Binding ReplaceAllCommand}"
