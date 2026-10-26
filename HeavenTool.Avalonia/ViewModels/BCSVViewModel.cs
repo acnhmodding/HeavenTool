@@ -65,11 +65,17 @@ public partial class BCSVViewModel : ObservableObject
     }
 
     partial void OnIsBusyChanged(bool value) => RefreshCommands();
-    partial void OnHasUnsavedChangesChanged(bool value) => UpdateTitle();
+    partial void OnHasUnsavedChangesChanged(bool value)
+    {
+        UpdateTitle();
+        SaveFileCommand.NotifyCanExecuteChanged();
+    }
     partial void OnErrorMessageChanged(string? value) => OnPropertyChanged(nameof(HasError));
     private void UpdateTitle() => window.Title = $"{fileName}{(HasUnsavedChanges ? " *" : "")} — Heaven Tool";
     private bool CanOpen() => !IsBusy;
     private bool CanSave() => IsFileLoaded && !IsBusy;
+    // An open cell edit counts: saving commits it first.
+    private bool CanSaveFile() => CanSave() && (HasUnsavedChanges || isEditing);
     private bool CanUndo() => CanSave() && !isEditing && undoManager.CanUndo;
     private bool CanRedo() => CanSave() && !isEditing && undoManager.CanRedo;
     private bool CanDuplicateRows() => CanSave() && DataGrid.SelectedItems.Count > 0;
@@ -356,7 +362,7 @@ public partial class BCSVViewModel : ObservableObject
         StatusText = $"Deleted {RowCount(items.Count)} · Ctrl+Z to undo";
     }
 
-    [RelayCommand(CanExecute = nameof(CanSave))]
+    [RelayCommand(CanExecute = nameof(CanSaveFile))]
     private async Task SaveFile()
     {
         if (localPath == null && sourceFile == null) await SaveAs();
