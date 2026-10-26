@@ -286,7 +286,7 @@ public partial class BCSVViewModel
         }
 
         var replaced = matches[index];
-        if (!TryReplace(replaced, out var change, out var error))
+        if (!TryReplace(replaced, out var change, out var error, out var warning))
         {
             ErrorMessage = error;
             return;
@@ -295,6 +295,7 @@ public partial class BCSVViewModel
         if (change is { } cell)
         {
             undoManager.Execute(new SetCellsCommand([cell]));
+            WarningMessage = warning;
             // Recheck only the replaced cell so stepping on needs no full rescan.
             searchTimer.Stop();
             searchDirty = false;
@@ -317,6 +318,7 @@ public partial class BCSVViewModel
         FlushSearch();
         if (matches.Count == 0 || !CommitEdits()) return;
         var changes = new List<CellChange>();
+        var warnings = new List<string>();
         int readOnly = 0;
         for (int i = 0; i < matches.Count; i++)
         {
@@ -326,25 +328,33 @@ public partial class BCSVViewModel
                 continue;
             }
             // Nothing is applied unless every replacement is valid; show the first one that isn't.
-            if (!TryReplace(matches[i], out var change, out var error))
+            if (!TryReplace(matches[i], out var change, out var error, out var warning))
             {
                 GoToMatch(i);
                 ErrorMessage = error;
                 return;
             }
             if (change is { } cell) changes.Add(cell);
+            if (warning != null) warnings.Add(warning);
         }
         ErrorMessage = null;
         if (changes.Count > 0) undoManager.Execute(new SetCellsCommand(changes));
+        WarningMessage = warnings.Count switch
+        {
+            0 => null,
+            1 => warnings[0],
+            _ => $"{CellCount(warnings.Count)} now hold text that isn't a known label, stored as new hashes. First: {warnings[0]}"
+        };
         RunSearch();
         StatusText = $"Replaced {CellCount(changes.Count)}{(readOnly > 0 ? $" · skipped {CellCount(readOnly)} that can't be edited" : "")}";
     }
 
     private static bool CanReplace(HeavenDataGridColumn column) => !column.IsReadOnly && column.EditsAsText;
 
-    private bool TryReplace(SearchMatch match, out CellChange? change, [NotNullWhen(false)] out string? error)
+    private bool TryReplace(SearchMatch match, out CellChange? change, [NotNullWhen(false)] out string? error, out string? warning)
     {
         change = null;
+        warning = null;
         var column = match.Column;
         if (!CanReplace(column))
         {
@@ -359,7 +369,11 @@ public partial class BCSVViewModel
             error = $"Can't replace \"{text}\" with \"{replaced}\" in {column.Header}: {reason}";
             return false;
         }
-        if (!Equals(value, original)) change = new CellChange(match.Row, column.FieldIndex, original, value);
+        if (!Equals(value, original))
+        {
+            change = new CellChange(match.Row, column.FieldIndex, original, value);
+            warning = column.Warning(replaced, value);
+        }
         error = null;
         return true;
     }

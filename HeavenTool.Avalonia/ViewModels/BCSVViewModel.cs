@@ -43,6 +43,9 @@ public partial class BCSVViewModel : ObservableObject
     [ObservableProperty] private string statusText = "Open a BCSV file to begin.";
     [ObservableProperty] private string? errorMessage;
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+    /// <summary>Notes on the last change that went through but may be a mistake; any later change clears it.</summary>
+    [ObservableProperty] private string? warningMessage;
+    public bool HasWarning => !string.IsNullOrEmpty(WarningMessage);
 
     public BCSVViewModel(BCSVWindow window)
     {
@@ -56,8 +59,11 @@ public partial class BCSVViewModel : ObservableObject
                 e.Cancel = true;
                 return;
             }
-            if (column.TryTakePendingEdit(out var row, out var value) && e.EditAction == DataGridEditAction.Commit)
+            if (column.TryTakePendingEdit(out var row, out var value, out var warning) && e.EditAction == DataGridEditAction.Commit)
+            {
                 ApplyEdit(row, column, value);
+                WarningMessage = warning;
+            }
         };
         // Flags and colours open their own editor instead of an in-cell one.
         DataGrid.BeginningEdit += (_, e) =>
@@ -73,6 +79,7 @@ public partial class BCSVViewModel : ObservableObject
         undoManager.Changed += (_, _) =>
         {
             HasUnsavedChanges = !undoManager.IsAtSavePoint;
+            WarningMessage = null;
             RefreshCommands();
         };
         InitializeSearch();
@@ -86,6 +93,7 @@ public partial class BCSVViewModel : ObservableObject
         SaveFileCommand.NotifyCanExecuteChanged();
     }
     partial void OnErrorMessageChanged(string? value) => OnPropertyChanged(nameof(HasError));
+    partial void OnWarningMessageChanged(string? value) => OnPropertyChanged(nameof(HasWarning));
     private void UpdateTitle() => window.Title = $"{fileName}{(HasUnsavedChanges ? " *" : "")} — Heaven Tool";
     private bool CanOpen() => !IsBusy;
     private bool CanSave() => IsFileLoaded && !IsBusy;

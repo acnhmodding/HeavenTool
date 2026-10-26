@@ -18,9 +18,11 @@ public sealed class BCSVEntryDialog : Window
     private readonly IReadOnlyList<HeavenDataGridColumn> fields;
     private readonly object[] values;
     private readonly string?[] errors;
+    private readonly string?[] warnings;
     private readonly List<(Control Row, string[] Names)> rows = [];
     private readonly Button add = new() { Content = "Add Row", IsDefault = true };
-    private readonly TextBlock status = new() { VerticalAlignment = VerticalAlignment.Center, Foreground = Brushes.LightSalmon };
+    private static readonly IBrush WarningBrush = new SolidColorBrush(Color.FromRgb(0xE8, 0xC1, 0x70));
+    private readonly TextBlock status = new() { VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
 
     /// <summary>Each field's editor, by field index.</summary>
     public Control[] Editors { get; }
@@ -35,6 +37,7 @@ public sealed class BCSVEntryDialog : Window
         this.fields = fields;
         values = [.. start.Select(value => value is byte[] bytes ? bytes.Clone() : value)];
         errors = new string?[fields.Count];
+        warnings = new string?[fields.Count];
         Title = "New Entry";
         Width = 560;
         Height = 640;
@@ -141,8 +144,10 @@ public sealed class BCSVEntryDialog : Window
         void Parse()
         {
             var typed = box?.Text ?? labels?.Text ?? "";
-            if (column.TryParseText(typed, original, out var value, out var error)) values[field] = value;
+            bool parsed = column.TryParseText(typed, original, out var value, out var error);
+            if (parsed) values[field] = value;
             errors[field] = error;
+            warnings[field] = parsed && !Equals(value, original) ? column.Warning(typed, value!) : null;
             DataValidationErrors.SetError(control, error == null ? null : new FormatException(error));
             UpdateStatus();
         }
@@ -191,12 +196,17 @@ public sealed class BCSVEntryDialog : Window
     private void UpdateStatus()
     {
         int invalid = errors.Count(error => error != null);
+        int doubtful = warnings.Count(warning => warning != null);
         add.IsEnabled = invalid == 0;
-        status.Text = invalid switch
+        // Warnings don't block adding the row; they show once nothing is invalid.
+        status.Foreground = invalid > 0 ? Brushes.LightSalmon : WarningBrush;
+        status.Text = (invalid, doubtful) switch
         {
-            0 => "",
-            1 => $"{fields[Array.FindIndex(errors, error => error != null)].Header}: {errors.First(error => error != null)}",
-            _ => $"{invalid} fields need a valid value."
+            (1, _) => $"{fields[Array.FindIndex(errors, error => error != null)].Header}: {errors.First(error => error != null)}",
+            ( > 1, _) => $"{invalid} fields need a valid value.",
+            (_, 1) => warnings.First(warning => warning != null),
+            (_, > 1) => $"{doubtful} fields hold text that isn't a known label and will be stored as new hashes.",
+            _ => ""
         };
     }
 

@@ -5,6 +5,7 @@ using HeavenTool.Avalonia.FileTypes.BCSV.Converters;
 using HeavenTool.IO;
 using Avalonia.Layout;
 using Avalonia.Data.Converters;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -20,6 +21,11 @@ public class DataGridHashColumn(uint hash, bool isMurmur = false) : HeavenDataGr
 
     public override bool IsUnknownValue(object? value) =>
         value is uint key && !(isMurmur ? HashManager.MMH3_Hashes : HashManager.CRC32_Hashes).ContainsKey(key);
+
+    // A label is hashed as typed, so a typo quietly becomes a new hash; hex input is deliberate.
+    public override string? Warning(string text, object value) =>
+        text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) || !IsUnknownValue(value) ? null
+            : $"\"{text}\" isn't a known {Header} label, so it is stored as the new hash {FormatValue(value)}.";
 
     private string[]? possibleValues;
     private string[] PossibleValues => possibleValues ??=

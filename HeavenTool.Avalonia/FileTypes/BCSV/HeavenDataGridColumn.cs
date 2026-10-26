@@ -40,6 +40,9 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     /// <summary>Hash values without a known label stand out, as typos or missing names.</summary>
     public virtual bool IsUnknownValue(object? value) => false;
 
+    /// <summary>Why a value parsed from <paramref name="text"/> is valid but may not be what was meant, or null.</summary>
+    public virtual string? Warning(string text, object value) => null;
+
     /// <summary>False when the field has its own editor, so typed text (replace, paste) can't set it.</summary>
     public virtual bool EditsAsText => true;
 
@@ -103,10 +106,12 @@ public abstract class HeavenDataGridColumn : DataGridColumn, IDisposable
     }
 
     /// <summary>Hands over the committed editor value once, so a stale buffer can never reach another row.</summary>
-    public bool TryTakePendingEdit([NotNullWhen(true)] out BCSVRow? row, [NotNullWhen(true)] out object? value)
+    public bool TryTakePendingEdit([NotNullWhen(true)] out BCSVRow? row, [NotNullWhen(true)] out object? value, out string? warning)
     {
         row = editRow;
         value = editBuffer?[0];
+        var text = activeEditor switch { TextBox box => box.Text, ComboBox combo => combo.SelectedItem as string, _ => null };
+        warning = text != null && value != null ? Warning(text, value) : null;
         editRow = null;
         editBuffer = null;
         return row != null && value != null;
