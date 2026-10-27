@@ -1,5 +1,6 @@
 <fluent:FAAppWindow xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:HeavenTool.Avalonia.ViewModels;assembly=HeavenTool.Avalonia"
@@ -36,28 +37,28 @@
           <ListBox Grid.Row="0" VerticalAlignment="Stretch">
             <ListBoxItem IsSelected="true">
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconFire}" Width="20" Height="20" />
+                <icons:PackIconFontAwesome6 Kind="FireSolid" Width="20" Height="20" />
                 <TextBlock Text="Trending" Margin="10 0"/>
               </StackPanel>
             </ListBoxItem>
 
             <ListBoxItem>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconClock}" Width="20" Height="20" />
+                <icons:PackIconFontAwesome6 Kind="ClockSolid" Width="20" Height="20" />
                 <TextBlock Text="Recent" Margin="10 0"/>
               </StackPanel>
             </ListBoxItem>
 
             <ListBoxItem>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconStar}" Width="20" Height="20" />
+                <icons:PackIconFontAwesome6 Kind="StarSolid" Width="20" Height="20" />
                 <TextBlock Text="Favorites" Margin="10 0"/>
               </StackPanel>
             </ListBoxItem>
 
             <ListBoxItem>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconDownload}" Width="20" Height="20" />
+                <icons:PackIconFontAwesome6 Kind="DownloadSolid" Width="20" Height="20" />
                 <TextBlock Text="Installed" Margin="10 0"/>
               </StackPanel>
               
@@ -125,7 +126,7 @@
                               Spacing="3">
                     <Button Height="50" Width="70">
                       <StackPanel Orientation="Horizontal" Spacing="4">
-                        <PathIcon Data="{StaticResource IconDownload}" Width="12" Height="12" />
+                        <icons:PackIconFontAwesome6 Kind="DownloadSolid" Width="12" Height="12" />
                         <TextBlock Text="Install" />
                       </StackPanel>
                     </Button>

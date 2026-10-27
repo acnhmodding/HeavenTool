@@ -29,6 +29,7 @@
     <!-- Keep developer tools support out of Release builds. -->
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="IconPacks.Avalonia.FontAwesome6" Version="2.0.0" />
     <PackageReference Include="FluentAvaloniaUI" Version="3.1.0" />
     <PackageReference Include="ReactiveUI.Avalonia" Version="12.1.6" />
     <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
@@ -40,6 +41,9 @@
 
   <ItemGroup>
     <Content Include="leaf.ico" />
+    <None Update="Assets\Icons\FontAwesome-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\ThirdParty\Ryujinx\LICENSE.md" Link="Ryujinx-LICENSE.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\HeavenTool.WinForms\extra\**\*.txt" Exclude="..\HeavenTool.WinForms\extra\romfs-files.txt">
       <Link>extra\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

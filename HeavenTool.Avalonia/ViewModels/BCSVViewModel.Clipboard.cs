@@ -2,7 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
-using Avalonia.Media;
+using IconPacks.Avalonia.FontAwesome6;
+using IconKind = IconPacks.Avalonia.FontAwesome6.PackIconFontAwesome6Kind;
 using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.Input;
 using HeavenTool.Avalonia.FileTypes.BCSV;
@@ -102,7 +103,7 @@ public partial class BCSVViewModel
         else if (header != null && DataGridColumn.GetColumnContainingElement(header) is DataGridColorColumn colorColumn)
             (menu, target) = (new ContextMenu
             {
-                Items = { MenuEntry("_Hide Column", new RelayCommand(() => Columns[colorColumn.RedField].IsVisible = false), icon: "IconEyeSlash") }
+                Items = { MenuEntry("_Hide Column", new RelayCommand(() => Columns[colorColumn.RedField].IsVisible = false), icon: IconKind.EyeSlashSolid) }
             }, header);
         else if (source.FindAncestorOfType<DataGridCell>(includeSelf: true) is { DataContext: BCSVRow row } cell
             && DataGridColumn.GetColumnContainingElement(cell) is { } cellColumn)
@@ -128,24 +129,24 @@ public partial class BCSVViewModel
         {
             menu.Items.Add(MenuEntry(column is DataGridColorColumn ? "_Edit Color..." : "_Edit Flags...",
                 new AsyncRelayCommand(() => EditInDialogAsync(row, column)), gesture: "F2",
-                icon: column is DataGridColorColumn ? "IconPalette" : "IconListCheck"));
+                icon: column is DataGridColorColumn ? IconKind.PaletteSolid : IconKind.ListCheckSolid));
             menu.Items.Add(new Separator());
         }
-        menu.Items.Add(MenuEntry("_Copy", CopyCommand, gesture: "Ctrl+C", icon: "IconClipboard"));
-        menu.Items.Add(MenuEntry("Copy with _Headers", CopyWithHeadersCommand, icon: "IconTable"));
+        menu.Items.Add(MenuEntry("_Copy", CopyCommand, gesture: "Ctrl+C", icon: IconKind.ClipboardSolid));
+        menu.Items.Add(MenuEntry("Copy with _Headers", CopyWithHeadersCommand, icon: IconKind.TableSolid));
         if (column is HeavenDataGridColumn field)
-            menu.Items.Add(MenuEntry($"Copy {field.Header}", CopyCellCommand, field, "Ctrl+Shift+C", "IconTableCells"));
-        menu.Items.Add(MenuEntry("_Export Selected Rows...", ExportSelectionCommand, icon: "IconTableList"));
+            menu.Items.Add(MenuEntry($"Copy {field.Header}", CopyCellCommand, field, "Ctrl+Shift+C", IconKind.TableCellsSolid));
+        menu.Items.Add(MenuEntry("_Export Selected Rows...", ExportSelectionCommand, icon: IconKind.TableListSolid));
         menu.Items.Add(new Separator());
-        menu.Items.Add(MenuEntry("_Duplicate Rows", DuplicateRowsCommand, gesture: "Ctrl+D", icon: "IconCopy"));
-        menu.Items.Add(MenuEntry("De_lete Rows", DeleteRowsCommand, gesture: "Delete", icon: "IconTrash"));
+        menu.Items.Add(MenuEntry("_Duplicate Rows", DuplicateRowsCommand, gesture: "Ctrl+D", icon: IconKind.CopySolid));
+        menu.Items.Add(MenuEntry("De_lete Rows", DeleteRowsCommand, gesture: "Delete", icon: IconKind.TrashSolid));
         return menu;
     }
 
     private ContextMenu CreateHeaderMenu(HeavenDataGridColumn column)
     {
         var field = loadedFile!.Fields[column.FieldIndex];
-        var viewAs = new MenuItem { Header = "_View as", Icon = Icon("IconCode") };
+        var viewAs = new MenuItem { Header = "_View as", Icon = Icon(IconKind.CodeSolid) };
         foreach (var type in ViewableTypes(field.Size))
         {
             var item = MenuEntry(type.ToString(), new AsyncRelayCommand(() => ViewColumnAsAsync(column.FieldIndex, type)));
@@ -160,34 +161,34 @@ public partial class BCSVViewModel
                 new MenuItem
                 {
                     Header = "_Copy",
-                    Icon = Icon("IconClipboard"),
+                    Icon = Icon(IconKind.ClipboardSolid),
                     Items =
                     {
                         MenuEntry("Header _Name", new AsyncRelayCommand(() =>
-                            SetClipboardTextAsync(field.GetTranslatedNameOrHash(), $"Copied the name of {column.Header}")), icon: "IconFont"),
+                            SetClipboardTextAsync(field.GetTranslatedNameOrHash(), $"Copied the name of {column.Header}")), icon: IconKind.FontSolid),
                         MenuEntry("Header _Hash", new AsyncRelayCommand(() =>
-                            SetClipboardTextAsync($"0x{field.Hash:x}", $"Copied the hash of {column.Header}")), icon: "IconHashtag")
+                            SetClipboardTextAsync($"0x{field.Hash:x}", $"Copied the hash of {column.Header}")), icon: IconKind.HashtagSolid)
                     }
                 },
                 viewAs,
-                MenuEntry("_Export Values...", ExportColumnValuesCommand, column, icon: "IconList"),
+                MenuEntry("_Export Values...", ExportColumnValuesCommand, column, icon: IconKind.ListSolid),
                 new Separator(),
-                MenuEntry("_Hide Column", new RelayCommand(() => Columns[column.FieldIndex].IsVisible = false), icon: "IconEyeSlash")
+                MenuEntry("_Hide Column", new RelayCommand(() => Columns[column.FieldIndex].IsVisible = false), icon: IconKind.EyeSlashSolid)
             }
         };
     }
 
-    private MenuItem MenuEntry(string header, ICommand command, object? parameter = null, string? gesture = null, string? icon = null) => new()
+    private MenuItem MenuEntry(string header, ICommand command, object? parameter = null, string? gesture = null, IconKind? icon = null) => new()
     {
         Header = header,
         Command = command,
         CommandParameter = parameter,
         InputGesture = gesture == null ? null : KeyGesture.Parse(gesture),
-        Icon = icon == null ? null : Icon(icon)
+        Icon = icon is { } kind ? Icon(kind) : null
     };
 
-    private static PathIcon? Icon(string key) => Application.Current?.TryGetResource(key, null, out var data) == true && data is Geometry geometry
-        ? new PathIcon { Data = geometry, Width = 14, Height = 14 } : null;
+    private static PackIconFontAwesome6 Icon(IconKind kind) =>
+        new() { Kind = kind, Width = 14, Height = 14 };
 
     // Saving writes each value as its type, so only types that fill the field exactly keep every byte.
     private static IEnumerable<DataType> ViewableTypes(int size)

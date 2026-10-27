@@ -1,5 +1,6 @@
 <fa:FAAppWindow  xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:fa="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
@@ -41,18 +42,18 @@
         <MenuItem Header="_File">
           <MenuItem Header="_Open..." Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconFile}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="FileSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
 
           <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" InputGesture="Ctrl+S">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconSave}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="FloppyDiskSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="Save _as..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconFileExport}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="FileExportSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
 
@@ -60,26 +61,26 @@
 
           <MenuItem Header="_Import Rows..." Command="{Binding ImportRowsCommand}">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconFileImport}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="FileImportSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="_Export" IsEnabled="{Binding IsFileLoaded}">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconExport}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="ArrowUpFromBracketSolid" Width="14" Height="14" />
             </MenuItem.Icon>
             <MenuItem Header="As _CSV..." Command="{Binding ExportCsvCommand}">
               <MenuItem.Icon>
-                <PathIcon Data="{StaticResource IconFileCsv}" Width="14" Height="14" />
+                <icons:PackIconFontAwesome6 Kind="FileCsvSolid" Width="14" Height="14" />
               </MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="_Selected Rows..." Command="{Binding ExportSelectionCommand}">
               <MenuItem.Icon>
-                <PathIcon Data="{StaticResource IconTableList}" Width="14" Height="14" />
+                <icons:PackIconFontAwesome6 Kind="TableListSolid" Width="14" Height="14" />
               </MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="Current Column _Values..." Command="{Binding ExportColumnValuesCommand}">
               <MenuItem.Icon>
-                <PathIcon Data="{StaticResource IconList}" Width="14" Height="14" />
+                <icons:PackIconFontAwesome6 Kind="ListSolid" Width="14" Height="14" />
               </MenuItem.Icon>
             </MenuItem>
           </MenuItem>
@@ -88,7 +89,7 @@
 
           <MenuItem Header="Column _Visibility" IsEnabled="{Binding IsFileLoaded}">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconEye}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="EyeSolid" Width="14" Height="14" />
             </MenuItem.Icon>
             <MenuItem.Items>
               <CheckBox Content="Toggle All" IsThreeState="True" IsChecked="{Binding ToggleAll, Mode=TwoWay}" />
@@ -107,7 +108,7 @@
 
           <MenuItem Header="Unload" Command="{Binding CloseFileCommand}">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconClose}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="XmarkSolid" Width="14" Height="14" />
             </MenuItem.Icon>
 
           </MenuItem>
@@ -116,12 +117,12 @@
         <MenuItem Header="_Edit" IsEnabled="{Binding IsFileLoaded}">
           <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconUndo}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="ArrowRotateLeftSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconRedo}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="ArrowRotateRightSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
 
@@ -129,17 +130,17 @@
 
           <MenuItem Header="_Copy" Command="{Binding CopyCommand}" InputGesture="Ctrl+C">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconClipboard}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="ClipboardSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="Copy with _Headers" Command="{Binding CopyWithHeadersCommand}">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconTable}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="TableSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="Copy Ce_ll" Command="{Binding CopyCellCommand}" InputGesture="Ctrl+Shift+C">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconTableCells}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="TableCellsSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
 
@@ -147,22 +148,22 @@
 
           <MenuItem Header="_New Row" Command="{Binding NewRowCommand}" InputGesture="Ctrl+N">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="PlusSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="New _Entry..." Command="{Binding NewEntryCommand}" InputGesture="Ctrl+Shift+N">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconPenToSquare}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="PenToSquareSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="_Duplicate Rows" Command="{Binding DuplicateRowsCommand}" InputGesture="Ctrl+D">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconCopy}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="CopySolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="De_lete Rows" Command="{Binding DeleteRowsCommand}" InputGesture="Delete">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconTrash}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="TrashSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
 
@@ -170,22 +171,22 @@
 
           <MenuItem Header="_Find..." Command="{Binding OpenSearchCommand}" InputGesture="Ctrl+F">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="MagnifyingGlassSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="Find Ne_xt" Command="{Binding FindNextCommand}" InputGesture="F3">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconChevronDown}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="ChevronDownSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="Find Pre_vious" Command="{Binding FindPreviousCommand}" InputGesture="Shift+F3">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconChevronUp}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="ChevronUpSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
           <MenuItem Header="R_eplace..." Command="{Binding OpenReplaceCommand}" InputGesture="Ctrl+H">
             <MenuItem.Icon>
-              <PathIcon Data="{StaticResource IconReplace}" Width="14" Height="14" />
+              <icons:PackIconFontAwesome6 Kind="ArrowRightArrowLeftSolid" Width="14" Height="14" />
             </MenuItem.Icon>
           </MenuItem>
         </MenuItem>
@@ -234,7 +235,7 @@
             <Setter Property="Height" Value="NaN" />
             <Setter Property="VerticalAlignment" Value="Stretch" />
           </Style>
-          <Style Selector="ToggleButton#ReplaceToggle:unchecked PathIcon">
+          <Style Selector="ToggleButton#ReplaceToggle:unchecked icons|PackIconFontAwesome6">
             <Setter Property="RenderTransform" Value="rotate(-90deg)" />
           </Style>
           <ContainerQuery Name="SearchBar" Query="max-width:460">
@@ -264,7 +265,7 @@
               <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="ButtonBorderBrushPointerOver" />
               <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="ButtonBorderBrushPressed" />
             </ToggleButton.Resources>
-            <PathIcon Data="{StaticResource IconChevronDown}" Width="10" Height="10" />
+            <icons:PackIconFontAwesome6 Kind="ChevronDownSolid" Width="10" Height="10" />
           </ToggleButton>
 
           <TextBox x:Name="SearchBox" Grid.Column="1" PlaceholderText="Find in visible columns"
@@ -286,7 +287,7 @@
                 </ToggleButton>
                 <ToggleButton Classes="option" IsChecked="{Binding FilterMatches}"
                   ToolTip.Tip="Show only rows with a match">
-                  <PathIcon Data="{StaticResource IconFilter}" Width="11" Height="11" />
+                  <icons:PackIconFontAwesome6 Kind="FilterSolid" Width="11" Height="11" />
                 </ToggleButton>
               </StackPanel>
             </TextBox.InnerRightContent>
@@ -297,13 +298,13 @@
               VerticalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis"
               FontSize="12" Foreground="{StaticResource SecondaryText}" />
             <Button Classes="icon" Command="{Binding FindPreviousCommand}" ToolTip.Tip="Previous match (Shift+F3)">
-              <PathIcon Data="{StaticResource IconChevronUp}" Width="12" Height="12" />
+              <icons:PackIconFontAwesome6 Kind="ChevronUpSolid" Width="12" Height="12" />
             </Button>
             <Button Classes="icon" Command="{Binding FindNextCommand}" ToolTip.Tip="Next match (F3)">
-              <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" />
+              <icons:PackIconFontAwesome6 Kind="ChevronDownSolid" Width="12" Height="12" />
             </Button>
             <Button Classes="icon" Command="{Binding CloseSearchCommand}" ToolTip.Tip="Close (Esc)">
-              <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
+              <icons:PackIconFontAwesome6 Kind="XmarkSolid" Width="10" Height="10" />
             </Button>
           </StackPanel>
 

@@ -1,11 +1,6 @@
-The vector artwork in Icons.axaml is from Font Awesome Free by Fonticons, Inc.
+Font Awesome Free icons by Fonticons, Inc. are included via IconPacks.Avalonia.FontAwesome6.
 https://fontawesome.com/
 https://github.com/FortAwesome/Font-Awesome
 
-These paths are preserved from the Font Awesome Free artwork distributed with
-Projektanker.Icons.Avalonia.FontAwesome 9.6.2. They have not been modified.
-
-Font Awesome Free icons are licensed under the Creative Commons Attribution 4.0
-International license (CC BY 4.0):
-https://creativecommons.org/licenses/by/4.0/
-https://creativecommons.org/licenses/by/4.0/legalcode
+The icons are licensed under the Creative Commons Attribution 4.0 International
+license (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
