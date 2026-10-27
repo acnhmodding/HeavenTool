@@ -2,13 +2,10 @@ using HeavenTool.IO.FileFormats.BFRES;
 using HeavenTool.Shaders;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace HeavenTool.Forms.BFRES;
+namespace HeavenTool.Rendering.BFRES;
 
-internal sealed partial class BfresViewport
+public sealed partial class BfresRenderer
 {
     private sealed class MaterialGpu(ParkMaterialProfile profile, int[] textures, int[] samplers)
     {
@@ -43,7 +40,7 @@ internal sealed partial class BfresViewport
         string[] names = ["albedo", "normalMap", "mixMap", "opacityMap", "emissionMap", "mapPresent", "materialTint", "cameraPosition",
             "normalEnabled", "normalSigned", "normalBc1", "roughnessEnabled", "metalnessEnabled", "occlusionEnabled", "emissionEnabled",
             "roughnessChannel", "metalnessChannel", "occlusionChannel", "roughness", "metalness", "occlusion", "emissionIntensity",
-            "alphaSource", "alphaChannel", "forceAlpha", "alphaFunction", "alphaReference", "diffuseEnabled", "specularEnabled", "doubleSided", "constantColor", "unlitMode",
+            "alphaSource", "alphaChannel", "forceAlpha", "alphaFunction", "alphaReference", "diffuseEnabled", "specularEnabled", "doubleSided", "constantColor",
             "lightDirection", "lightColor", "skyColor", "groundColor"];
         foreach (string name in names) uniforms[name] = GL.GetUniformLocation(program, name);
         for (int i = 0; i < 5; i++) GL.Uniform1(U(names[i]), i);
@@ -114,8 +111,6 @@ internal sealed partial class BfresViewport
         GL.UseProgram(program);
         GL.UniformMatrix4(matrixUniform, false, ref viewProjection);
         GL.Uniform3(U("cameraPosition"), cameraPosition);
-        GL.Uniform1(U("unlitMode"), lighting == null ? 1 : 0);
-        if (lighting == null) return;
         // Same light inputs the native programs receive through gsys_environment.
         var fill = lighting.PreviewIndirectLight;
         var direct = lighting.DirectColor * lighting.DirectIntensity;
@@ -220,7 +215,7 @@ internal sealed partial class BfresViewport
         uniform int mapPresent, alphaSource, alphaChannel, alphaFunction;
         uniform int roughnessChannel, metalnessChannel, occlusionChannel;
         uniform bool normalEnabled, normalSigned, normalBc1, roughnessEnabled, metalnessEnabled, occlusionEnabled, emissionEnabled;
-        uniform bool diffuseEnabled, specularEnabled, doubleSided, constantColor, unlitMode;
+        uniform bool diffuseEnabled, specularEnabled, doubleSided, constantColor;
         uniform float roughness, metalness, occlusion, emissionIntensity, forceAlpha, alphaReference;
         uniform vec4 materialTint;
         uniform vec3 cameraPosition, lightDirection, lightColor, skyColor, groundColor;
@@ -241,10 +236,6 @@ internal sealed partial class BfresViewport
                 || (alphaFunction == 4 && alpha > alphaReference) || (alphaFunction == 5 && alpha != alphaReference)
                 || (alphaFunction == 6 && alpha >= alphaReference);
             if (!pass) discard;
-            if (unlitMode) {
-                color = vec4(pow(max(base.rgb,vec3(0.0)),vec3(1.0/2.2)),alpha);
-                return;
-            }
             vec3 n = normalize(surfaceNormal);
             if (doubleSided && !gl_FrontFacing) n = -n;
             if (normalEnabled && hasMap(2)) {
@@ -281,8 +272,8 @@ internal sealed partial class BfresViewport
     // Parameters that affect the current preview, so the material pane can tell active and inactive properties apart.
     public IReadOnlySet<(string Name, int Component)> GetMaterialVisibility(BfresMesh mesh)
     {
-        bool native = lighting != null && nativeMeshes.ContainsKey(mesh);
-        string mode = native ? nativeMeshes[mesh].Program.Source.Key : lighting == null ? "Unlit" : "Material fallback";
+        bool native = nativeMeshes.ContainsKey(mesh);
+        string mode = native ? nativeMeshes[mesh].Program.Source.Key : "Material fallback";
         if (materialVisibility.TryGetValue((mesh, mode), out var cached)) return cached;
         if (native)
             cached = NativeMaterialUsage.FindComponents(mesh.Material, nativeMeshes[mesh].Program.Source);
@@ -295,14 +286,11 @@ internal sealed partial class BfresViewport
             if (diffuse is >= 100 and <= 105) Add($"const_color{diffuse - 100}", 4);
             Add("material_force_alpha");
             if (p.AlphaFunction != 7) Add("gsys_alpha_test_ref_value");
-            if (lighting != null)
-            {
-                bool mix = p.Mix?.Texture != null && mesh.TexCoords.Length > 0;
-                if (!p.RoughnessMap || !mix) Add("material_roughness");
-                if (!p.MetalnessMap || !mix) Add("material_metalness");
-                if (!p.OcclusionMap || !mix) Add("material_occlusion");
-                if (p.EmissionMap && p.Emission?.Texture != null && mesh.TexCoords.Length > 0) Add("material_emission_intensity");
-            }
+            bool mix = p.Mix?.Texture != null && mesh.TexCoords.Length > 0;
+            if (!p.RoughnessMap || !mix) Add("material_roughness");
+            if (!p.MetalnessMap || !mix) Add("material_metalness");
+            if (!p.OcclusionMap || !mix) Add("material_occlusion");
+            if (p.EmissionMap && p.Emission?.Texture != null && mesh.TexCoords.Length > 0) Add("material_emission_intensity");
             cached = components;
         }
         materialVisibility[(mesh, mode)] = cached;

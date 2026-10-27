@@ -63,7 +63,7 @@ SOFTWARE.
 
 ## Cafe-Shader-Studio rendering reference
 
-The embedded `HeavenTool.WinForms/Resources/BFRES/StudioEnvironment.dds` is
+The embedded `HeavenTool.Rendering/Resources/StudioEnvironment.dds` is
 `BfresEditor/Resources/CubemapEquat.dds` from Cafe-Shader-Studio commit
 `bc3834c16055a8d52ba3f9457fc10976c6ef67de`, under the license below.
 

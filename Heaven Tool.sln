@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamebananaAPI", "Gamebanana
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeavenTool.Shaders", "HeavenTool.Shaders\HeavenTool.Shaders.csproj", "{3A5C2614-5CFF-4719-A93D-E4A4F0C8B77B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeavenTool.Rendering", "HeavenTool.Rendering\HeavenTool.Rendering.csproj", "{DBFC89EC-BB54-46AF-9231-E28381D9F842}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 		{3A5C2614-5CFF-4719-A93D-E4A4F0C8B77B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A5C2614-5CFF-4719-A93D-E4A4F0C8B77B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A5C2614-5CFF-4719-A93D-E4A4F0C8B77B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBFC89EC-BB54-46AF-9231-E28381D9F842}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBFC89EC-BB54-46AF-9231-E28381D9F842}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBFC89EC-BB54-46AF-9231-E28381D9F842}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBFC89EC-BB54-46AF-9231-E28381D9F842}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

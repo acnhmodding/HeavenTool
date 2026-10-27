@@ -29,13 +29,11 @@ partial class BFRESViewer
         wireframeItem = new System.Windows.Forms.ToolStripMenuItem();
         viewSeparator = new System.Windows.Forms.ToolStripSeparator();
         showBonesItem = new System.Windows.Forms.ToolStripMenuItem();
-        bonesInFrontItem = new System.Windows.Forms.ToolStripMenuItem();
         frameBoneItem = new System.Windows.Forms.ToolStripMenuItem();
         windowSeparator = new System.Windows.Forms.ToolStripSeparator();
         scenePaneItem = new System.Windows.Forms.ToolStripMenuItem();
         materialPaneItem = new System.Windows.Forms.ToolStripMenuItem();
         restoreLayoutItem = new System.Windows.Forms.ToolStripMenuItem();
-        studioLightingItem = new System.Windows.Forms.ToolStripMenuItem();
         dayLightingItem = new System.Windows.Forms.ToolStripMenuItem();
         nightLightingItem = new System.Windows.Forms.ToolStripMenuItem();
         lightingSeparator = new System.Windows.Forms.ToolStripSeparator();
@@ -59,11 +57,11 @@ partial class BFRESViewer
         // viewMenuItem
         viewMenuItem.Name = "viewMenuItem";
         viewMenuItem.Text = "View";
-        viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { frameAllItem, wireframeItem, viewSeparator, showBonesItem, bonesInFrontItem, frameBoneItem, windowSeparator, scenePaneItem, materialPaneItem, restoreLayoutItem });
+        viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { frameAllItem, wireframeItem, viewSeparator, showBonesItem, frameBoneItem, windowSeparator, scenePaneItem, materialPaneItem, restoreLayoutItem });
         // lightingMenuItem
         lightingMenuItem.Name = "lightingMenuItem";
         lightingMenuItem.Text = "Lighting";
-        lightingMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { studioLightingItem, dayLightingItem, nightLightingItem, lightingSeparator, skyFillItem, exposureItem, restoreLightingItem });
+        lightingMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { dayLightingItem, nightLightingItem, lightingSeparator, skyFillItem, exposureItem, restoreLightingItem });
         // exposureItem
         exposureItem.Name = "exposureItem";
         exposureItem.Text = "Exposure: 0 EV";
@@ -89,11 +87,6 @@ partial class BFRESViewer
         showBonesItem.Name = "showBonesItem";
         showBonesItem.Text = "Show bones";
         showBonesItem.CheckOnClick = true;
-        // bonesInFrontItem
-        bonesInFrontItem.Name = "bonesInFrontItem";
-        bonesInFrontItem.Text = "Bones in front";
-        bonesInFrontItem.CheckOnClick = true;
-        bonesInFrontItem.Checked = true;
         // frameBoneItem
         frameBoneItem.Name = "frameBoneItem";
         frameBoneItem.Text = "Frame selected bone";
@@ -108,9 +101,6 @@ partial class BFRESViewer
         // restoreLayoutItem
         restoreLayoutItem.Name = "restoreLayoutItem";
         restoreLayoutItem.Text = "Restore default layout";
-        // studioLightingItem
-        studioLightingItem.Name = "studioLightingItem";
-        studioLightingItem.Text = "Unlit";
         // dayLightingItem
         dayLightingItem.Name = "dayLightingItem";
         dayLightingItem.Text = "Day";
@@ -194,13 +184,11 @@ partial class BFRESViewer
     private System.Windows.Forms.ToolStripMenuItem wireframeItem;
     private System.Windows.Forms.ToolStripSeparator viewSeparator;
     private System.Windows.Forms.ToolStripMenuItem showBonesItem;
-    private System.Windows.Forms.ToolStripMenuItem bonesInFrontItem;
     private System.Windows.Forms.ToolStripMenuItem frameBoneItem;
     private System.Windows.Forms.ToolStripSeparator windowSeparator;
     private System.Windows.Forms.ToolStripMenuItem scenePaneItem;
     private System.Windows.Forms.ToolStripMenuItem materialPaneItem;
     private System.Windows.Forms.ToolStripMenuItem restoreLayoutItem;
-    private System.Windows.Forms.ToolStripMenuItem studioLightingItem;
     private System.Windows.Forms.ToolStripMenuItem dayLightingItem;
     private System.Windows.Forms.ToolStripMenuItem nightLightingItem;
     private System.Windows.Forms.ToolStripSeparator lightingSeparator;

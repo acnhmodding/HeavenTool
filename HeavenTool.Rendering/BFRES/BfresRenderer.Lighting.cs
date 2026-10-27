@@ -1,13 +1,12 @@
 using OpenTK.Graphics.OpenGL4;
-using System;
 
-namespace HeavenTool.Forms.BFRES;
+namespace HeavenTool.Rendering.BFRES;
 
-internal sealed partial class BfresViewport
+public sealed partial class BfresRenderer
 {
     private const int Samples = 4;
     // Lit frames render into a multisampled HDR target, resolved into hdrColor before tone mapping.
-    private int hdrFramebuffer, hdrSamples, hdrDepth, resolveFramebuffer, hdrColor, toneProgram, toneVao, toneExposure;
+    private int hdrFramebuffer, hdrSamples, hdrDepth, resolveFramebuffer, resolveDepth, hdrColor, toneProgram, toneVao, toneExposure;
     private int hdrWidth, hdrHeight;
     private float previewExposure = .06f;
     public void SetExposure(float value)
@@ -17,12 +16,11 @@ internal sealed partial class BfresViewport
     }
     private void BeginLightingFrame()
     {
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-        if (lighting == null) return;
-        if (hdrFramebuffer == 0 || hdrWidth != ClientSize.Width || hdrHeight != ClientSize.Height)
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, outputFramebuffer);
+        if (hdrFramebuffer == 0 || hdrWidth != width || hdrHeight != height)
         {
             ReleaseLightingTarget();
-            hdrWidth = ClientSize.Width; hdrHeight = ClientSize.Height;
+            hdrWidth = width; hdrHeight = height;
             GL.GetInteger(GetPName.MaxTextureSize, out int maxSize);
             if (hdrWidth > maxSize || hdrHeight > maxSize) throw new NotSupportedException("Viewport exceeds the GPU's HDR texture size limit.");
             int samples = Math.Min(Samples, GL.GetInteger(GetPName.MaxSamples));
@@ -35,11 +33,15 @@ internal sealed partial class BfresViewport
             GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, hdrDepth);
             if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
                 throw new InvalidOperationException("HDR lighting framebuffer is incomplete.");
+            resolveDepth = GL.GenRenderbuffer();
+            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, resolveDepth);
+            GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.DepthComponent24, hdrWidth, hdrHeight);
             resolveFramebuffer = GL.GenFramebuffer(); GL.BindFramebuffer(FramebufferTarget.Framebuffer, resolveFramebuffer);
             hdrColor = GL.GenTexture(); GL.BindTexture(TextureTarget.Texture2D, hdrColor);
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f, hdrWidth, hdrHeight, 0, PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
             TextureParameters(TextureMinFilter.Nearest);
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, hdrColor, 0);
+            GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, resolveDepth);
             if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
                 throw new InvalidOperationException("HDR resolve framebuffer is incomplete.");
         }
@@ -47,11 +49,10 @@ internal sealed partial class BfresViewport
     }
     private void EndLightingFrame()
     {
-        if (lighting == null) return;
         GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, hdrFramebuffer);
         GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, resolveFramebuffer);
-        GL.BlitFramebuffer(0, 0, hdrWidth, hdrHeight, 0, 0, hdrWidth, hdrHeight, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Nearest);
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        GL.BlitFramebuffer(0, 0, hdrWidth, hdrHeight, 0, 0, hdrWidth, hdrHeight, ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit, BlitFramebufferFilter.Nearest);
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, outputFramebuffer);
         GL.Disable(EnableCap.DepthTest); GL.Disable(EnableCap.Blend); GL.Disable(EnableCap.CullFace); GL.Disable(EnableCap.FramebufferSrgb);
         GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
         if (toneProgram == 0)
@@ -87,8 +88,9 @@ internal sealed partial class BfresViewport
         if (resolveFramebuffer != 0) GL.DeleteFramebuffer(resolveFramebuffer);
         if (hdrSamples != 0) GL.DeleteRenderbuffer(hdrSamples);
         if (hdrDepth != 0) GL.DeleteRenderbuffer(hdrDepth);
+        if (resolveDepth != 0) GL.DeleteRenderbuffer(resolveDepth);
         if (hdrColor != 0) GL.DeleteTexture(hdrColor);
-        hdrFramebuffer = resolveFramebuffer = hdrSamples = hdrDepth = hdrColor = 0;
+        hdrFramebuffer = resolveFramebuffer = hdrSamples = hdrDepth = resolveDepth = hdrColor = 0;
     }
     private void ReleaseLighting()
     {

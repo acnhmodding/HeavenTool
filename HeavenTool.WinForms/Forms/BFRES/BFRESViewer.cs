@@ -1,5 +1,6 @@
 using HeavenTool.IO.FileFormats.BFRES;
 using HeavenTool.Shaders;
+using HeavenTool.Rendering.BFRES;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -46,8 +47,8 @@ public partial class BFRESViewer : Form
             using var dialog = new OpenFileDialog { Title = "Load game materials", Filter = "Game material files|*.bfsha;*.szs;*.sarc|All files|*.*" };
             if (dialog.ShowDialog(this) == DialogResult.OK) await LoadShaderArchiveAsync(dialog.FileName);
         };
-        frameAllItem.Click += (_, _) => viewport.FrameScene();
-        wireframeItem.CheckedChanged += (_, _) => viewport.Wireframe = wireframeItem.Checked;
+        frameAllItem.Click += (_, _) => viewport.Renderer.FrameScene();
+        wireframeItem.CheckedChanged += (_, _) => viewport.Renderer.Wireframe = wireframeItem.Checked;
         InitializeLightingMenu();
         InitializeBonesMenu();
         materialPaneItem.Click += (_, _) => { if (materialPaneItem.Checked) materialWindow.Hide(); else ShowMaterialEditor(); };
@@ -62,13 +63,13 @@ public partial class BFRESViewer : Form
         {
             if (e.Node?.Tag is BfresMesh mesh)
             {
-                viewport.SelectBone(null);
+                viewport.Renderer.SelectBone(null);
                 UpdateMaterialEditor(mesh);
                 return;
             }
             SetMaterial(null);
             if (e.Node?.Tag is BfresBone bone) SelectPreviewBone(bone);
-            else viewport.SelectBone(null);
+            else viewport.Renderer.SelectBone(null);
         };
         viewport.RenderFailed += ex =>
         {
@@ -76,7 +77,7 @@ public partial class BFRESViewer : Form
             System.Diagnostics.Debug.WriteLine(ex);
             MessageBox.Show(this, "The 3D view could not be opened. Check that your graphics driver supports OpenGL 4.4.", "3D view unavailable", MessageBoxButtons.OK, MessageBoxIcon.Error);
         };
-        viewport.DrawStatusChanged += () =>
+        viewport.Renderer.DrawStatusChanged += () =>
         {
             UpdateViewerStatus();
             if (hierarchy.SelectedNode?.Tag is BfresMesh mesh) UpdateMaterialEditor(mesh);
@@ -96,10 +97,8 @@ public partial class BFRESViewer : Form
         int version = ++assetRequestVersion;
         await LoadAsync(() => File.OpenRead(path), Path.GetFileName(path));
         if (IsDisposed || assets.Count == 0 || version != assetRequestVersion) return;
-        string? parent = Directory.GetParent(Path.GetDirectoryName(Path.GetFullPath(path))!)?.FullName;
-        if (parent == null) return;
-        string shader = Path.Combine(parent, "Shader", "Park_UBER_All.Nin_NX_NVN.szs");
-        if (shaderArchive == null && File.Exists(shader)) await LoadShaderArchiveAsync(shader);
+        if (shaderArchive == null && BfresScene.FindShaderArchive(path) is { } shader)
+            await LoadShaderArchiveAsync(shader);
     }
 
     public Task LoadBytesAsync(byte[] bytes, string name)
@@ -119,17 +118,16 @@ public partial class BFRESViewer : Form
             var (loadedAssets, scene) = await Task.Run(() =>
             {
                 using var stream = open();
-                var loaded = BfresFileReader.Load(stream, request.Token);
-                var meshes = loaded.SelectMany(x => x.Document.Models).SelectMany(x => x.Meshes).ToArray();
-                return (Assets: loaded, Scene: BfresViewport.PrepareScene(meshes, request.Token));
+                var scene = BfresScene.Load(stream, request.Token);
+                return (scene.Assets, scene.Geometry);
             }, request.Token);
 
             if (IsDisposed || request.IsCancellationRequested) return;
             assets = loadedAssets;
             SetMaterial(null);
             sourceName = name;
-            viewport.SetScene(scene);
-            viewport.SetSkeletons(assets.SelectMany(a => a.Document.Models).Select(m => m.Bones));
+            viewport.Renderer.SetScene(scene);
+            viewport.Renderer.SetSkeletons(assets.SelectMany(a => a.Document.Models).Select(m => m.Bones));
             populating = true;
             hierarchy.BeginUpdate();
             try
@@ -180,9 +178,9 @@ public partial class BFRESViewer : Form
     private void UpdateViewerStatus()
     {
         if (assets.Count == 0) { status.Text = "Open a model to begin."; return; }
-        int meshes = viewport.NativeDrawCount + viewport.FallbackDrawCount + viewport.UnlitDrawCount;
+        int meshes = viewport.Renderer.NativeDrawCount + viewport.Renderer.FallbackDrawCount;
         string text = $"{meshes:N0} meshes · {CurrentLighting}";
-        if (CurrentLighting != "Unlit" && viewport.FallbackDrawCount > 0) text += " · Some materials use simplified shading";
+        if (viewport.Renderer.FallbackDrawCount > 0) text += " · Some materials use simplified shading";
         if (assets.Any(a => a.Document.Warnings.Count > 0)) text += " · Some model features are unavailable";
         status.Text = text;
     }
@@ -219,29 +217,10 @@ public partial class BFRESViewer : Form
     {
         var snapshot = assets;
         status.Text = "Preparing materials...";
-        var prepared = await Task.Run(() =>
-        {
-            var result = new Dictionary<BfresMesh, TranslatedShader>();
-            var errors = new Dictionary<BfresMesh, string>();
-            foreach (var mesh in snapshot.SelectMany(x => x.Document.Models).SelectMany(x => x.Meshes))
-            {
-                cancellation.ThrowIfCancellationRequested();
-                try
-                {
-                    var model = archive.Models.FirstOrDefault(x => x.Name == mesh.Material.ShadingModel);
-                    if (model == null || archive.Name != mesh.Material.ShaderArchive) continue;
-                    int index = model.FindMaterialProgram(mesh);
-                    if (index < 0) continue;
-                    result.Add(mesh, NativeShaderTranslator.Translate(model, model.ReadProgram(index), cancellation));
-                }
-                catch (OperationCanceledException) { throw; }
-                catch (Exception ex) { errors[mesh] = ex.Message; }
-            }
-            return (Programs: result, Errors: errors);
-        }, cancellation);
+        var prepared = await Task.Run(() => BfresScene.PrepareShaders(snapshot, archive, cancellation), cancellation);
         if (IsDisposed || cancellation.IsCancellationRequested || !ReferenceEquals(snapshot, assets)) return;
         foreach (var error in prepared.Errors) System.Diagnostics.Debug.WriteLine($"Material shader: {error.Key.Name}: {error.Value}");
-        viewport.SetNativeShaders(prepared.Programs);
+        viewport.Renderer.SetNativeShaders(prepared.Programs);
         status.Text = "Materials loaded.";
     }
 
@@ -257,14 +236,13 @@ public partial class BFRESViewer : Form
         {
             if (e.Modifiers != Keys.None) return;
             if (e.KeyCode == Keys.B) { showBonesItem.Checked = !showBonesItem.Checked; e.SuppressKeyPress = true; }
-            if (e.KeyCode == Keys.F) { viewport.FrameSelection(); e.SuppressKeyPress = true; }
+            if (e.KeyCode == Keys.F) { viewport.Renderer.FrameSelection(); e.SuppressKeyPress = true; }
         }
         viewport.KeyDown += shortcuts;
         hierarchy.KeyDown += shortcuts;
-        showBonesItem.CheckedChanged += (_, _) => viewport.ShowBones = showBonesItem.Checked;
-        bonesInFrontItem.CheckedChanged += (_, _) => viewport.BonesInFront = bonesInFrontItem.Checked;
-        frameBoneItem.Click += (_, _) => viewport.FrameSelectedBone();
-        viewport.BonePicked += bone =>
+        showBonesItem.CheckedChanged += (_, _) => viewport.Renderer.ShowBones = showBonesItem.Checked;
+        frameBoneItem.Click += (_, _) => viewport.Renderer.FrameSelectedBone();
+        viewport.Renderer.BonePicked += bone =>
         {
             if (boneNodes.TryGetValue(bone, out var node)) { hierarchy.SelectedNode = node; node.EnsureVisible(); }
         };
@@ -286,7 +264,7 @@ public partial class BFRESViewer : Form
     private void SelectPreviewBone(BfresBone bone)
     {
         showBonesItem.Checked = true;
-        viewport.SelectBone(bone);
+        viewport.Renderer.SelectBone(bone);
     }
 
     private void SetNodeVisibility(TreeNode? node)
@@ -296,8 +274,8 @@ public partial class BFRESViewer : Form
         populating = true;
         try
         {
-            if (node.Tag is BfresMesh mesh) viewport.SetVisible(mesh, node.Checked);
-            if (node.Tag is BfresBone bone) viewport.SetBoneVisible(bone, node.Checked);
+            if (node.Tag is BfresMesh mesh) viewport.Renderer.SetVisible(mesh, node.Checked);
+            if (node.Tag is BfresBone bone) viewport.Renderer.SetBoneVisible(bone, node.Checked);
             foreach (TreeNode child in node.Nodes)
             {
                 child.Checked = node.Checked;
@@ -405,13 +383,13 @@ public partial class BFRESViewer : Form
 
     private void OnMaterialEdited(BfresMaterial edited)
     {
-        viewport.RefreshMaterial(edited);
+        viewport.Renderer.RefreshMaterial(edited);
         if (hierarchy.SelectedNode?.Tag is BfresMesh mesh) UpdateMaterialEditor(mesh);
         UpdateDocumentTitle();
         status.Text = edited.HasChanges ? $"Material edited: {edited.Name}" : $"Material reset: {edited.Name}";
     }
 
-    private void UpdateMaterialEditor(BfresMesh mesh) => SetMaterial(mesh.Material, viewport.GetMaterialVisibility(mesh));
+    private void UpdateMaterialEditor(BfresMesh mesh) => SetMaterial(mesh.Material, viewport.Renderer.GetMaterialVisibility(mesh));
 
     private void ShowMaterialEditor()
     {
@@ -437,24 +415,13 @@ public partial class BFRESViewer : Form
             grid.Enabled = resetValue.Enabled = resetMaterial.Enabled = material != null;
             usageSummary.Text = "";
             if (material == null) return;
-            string filter = search.Text.Trim();
-            foreach (var pair in material.Parameters.OrderBy(p => p.Key, StringComparer.Ordinal))
+            foreach (var property in BfresMaterialProperty.Enumerate(material, visibility, showAllProperties.Checked, search.Text))
             {
-                int count = pair.Value.Type is >= 12 and <= 15 ? pair.Value.Type - 11 : 0;
-                if (pair.Value.Data.Length < count * 4) continue;
-                string label = PropertyName(pair.Key);
-                if (!pair.Key.Contains(filter, StringComparison.OrdinalIgnoreCase) && !label.Contains(filter, StringComparison.OrdinalIgnoreCase)) continue;
-                string axes = pair.Key.Contains("color", StringComparison.OrdinalIgnoreCase) ? "RGBA" : "XYZW";
-                for (int component = 0; component < count; component++)
-                {
-                    bool used = visibility == null || visibility.Contains((pair.Key, component));
-                    if (!showAllProperties.Checked && !used) continue;
-                    var row = grid.Rows[grid.Rows.Add(label + (count == 1 ? "" : $" [{axes[component]}]"), "")];
-                    row.Tag = (pair.Key, component);
-                    UpdateRow(row, pair.Key, component);
-                    row.Cells[0].ToolTipText = used ? "Active in this preview." : "Inactive in this preview.";
-                    if (!used) row.Cells[0].Style.ForeColor = Color.Gray;
-                }
+                var row = grid.Rows[grid.Rows.Add(property.Label, "")];
+                row.Tag = (property.Name, property.Component);
+                UpdateRow(row, property.Name, property.Component);
+                row.Cells[0].ToolTipText = property.IsActive ? "Active in this preview." : "Inactive in this preview.";
+                if (!property.IsActive) row.Cells[0].Style.ForeColor = Color.Gray;
             }
             usageSummary.Text = grid.Rows.Count == 0 ? "No matching properties." : $"{grid.Rows.Count} properties";
         }
@@ -469,33 +436,7 @@ public partial class BFRESViewer : Form
         row.Cells[1].ErrorText = "";
     }
 
-    private static string PropertyName(string name)
-    {
-        string? known = name switch
-        {
-            "material_force_alpha" => "Opacity",
-            "material_emission_intensity" => "Emission Strength",
-            "material_metalness" => "Metallic",
-            "material_roughness" => "Roughness",
-            "material_occlusion" => "Ambient Occlusion",
-            "gsys_alpha_test_ref_value" => "Alpha Cutoff",
-            "gsys_xlu_zprepass_alpha" => "Depth Pass Opacity",
-            "model_env_instance_intensity" => "Environment Intensity",
-            _ => null
-        };
-        if (known != null) return known;
-
-        foreach (string prefix in new[] { "material_", "model_", "gsys_" })
-            if (name.StartsWith(prefix, StringComparison.Ordinal)) { name = name[prefix.Length..]; break; }
-
-        name = name.Replace("const_color", "Color ").Replace("const_float", "Custom Value ").Replace("_", " ")
-            .Replace("lgiht", "light").Replace("instensity", "intensity");
-        return name.Length == 0 ? name : char.ToUpperInvariant(name[0]) + name[1..];
-    }
-
-    private static bool TryValue(object? text, out float value)
-        => (float.TryParse(Convert.ToString(text), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
-            || float.TryParse(Convert.ToString(text), NumberStyles.Float, CultureInfo.CurrentCulture, out value)) && float.IsFinite(value);
+    private static bool TryValue(object? text, out float value) => BfresMaterialProperty.TryParse(text, out value);
 
     #endregion
 
@@ -506,7 +447,6 @@ public partial class BFRESViewer : Form
 
     private void InitializeLightingMenu()
     {
-        studioLightingItem.Click += (_, _) => SelectLighting("Unlit");
         dayLightingItem.Click += (_, _) => SelectLighting("Day");
         nightLightingItem.Click += (_, _) => SelectLighting("Night");
         skyFillItem.CheckedChanged += (_, _) => ApplyLighting();
@@ -519,18 +459,17 @@ public partial class BFRESViewer : Form
 
     public void SelectLighting(string name)
     {
-        if (name is not ("Unlit" or "Day" or "Night")) throw new ArgumentException("Unknown lighting preset.", nameof(name));
+        if (name is not ("Day" or "Night")) throw new ArgumentException("Unknown lighting preset.", nameof(name));
         CurrentLighting = name;
-        studioLightingItem.Checked = name == "Unlit"; dayLightingItem.Checked = name == "Day"; nightLightingItem.Checked = name == "Night";
+        dayLightingItem.Checked = name == "Day"; nightLightingItem.Checked = name == "Night";
         ApplyLighting();
     }
 
     private void ApplyLighting()
     {
-        skyFillItem.Enabled = exposureItem.Enabled = CurrentLighting != "Unlit";
-        AcnhLightingPreset? preset = CurrentLighting switch { "Day" => AcnhLightingPreset.Day, "Night" => AcnhLightingPreset.Night, _ => null };
-        if (preset != null && !skyFillItem.Checked) preset = preset with { PreviewIndirectLight = System.Numerics.Vector3.Zero };
-        viewport.SetLighting(preset);
+        var preset = CurrentLighting == "Night" ? AcnhLightingPreset.Night : AcnhLightingPreset.Day;
+        if (!skyFillItem.Checked) preset = preset with { PreviewIndirectLight = System.Numerics.Vector3.Zero };
+        viewport.Renderer.SetLighting(preset);
         UpdateViewerStatus();
         if (hierarchy.SelectedNode?.Tag is BfresMesh mesh) UpdateMaterialEditor(mesh);
     }
@@ -538,7 +477,7 @@ public partial class BFRESViewer : Form
     private void ChangeExposure(int step)
     {
         exposureHalfStops = Math.Clamp(exposureHalfStops + step, -8, 8);
-        viewport.SetExposure(.06f * MathF.Pow(2, exposureHalfStops * .5f));
+        viewport.Renderer.SetExposure(.06f * MathF.Pow(2, exposureHalfStops * .5f));
         exposureItem.Text = $"Exposure: {exposureHalfStops * .5f:+0.0;-0.0;0} EV";
     }
 

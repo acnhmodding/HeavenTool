@@ -1,29 +1,22 @@
 using HeavenTool.IO.FileFormats.BFRES;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
 using NVector3 = System.Numerics.Vector3;
 
-namespace HeavenTool.Forms.BFRES;
+namespace HeavenTool.Rendering.BFRES;
 
-internal sealed partial class BfresViewport
+public sealed partial class BfresRenderer
 {
     private sealed record BoneVisual(BfresBone Bone, Vector3 Head, Vector3 Tail, Vector3? Parent);
     private readonly List<BoneVisual> boneVisuals = [];
-    private readonly HashSet<BfresBone> hiddenBones = [];
+    private readonly HashSet<BfresBone> hiddenBones = new(ReferenceEqualityComparer.Instance);
     private BfresBone? selectedBone;
-    private bool showBones, bonesInFront = true, boneDirty = true;
+    private bool showBones, boneDirty = true;
     private int boneProgram, boneVao, boneVbo, boneMatrix, boneLineCount, bonePointCount;
     private Matrix4 boneViewProjection;
-    private Point boneMouseDown;
     public event Action<BfresBone>? BonePicked;
     [System.ComponentModel.DefaultValue(false)]
     public bool ShowBones { get => showBones; set { showBones = value; Invalidate(); } }
-    [System.ComponentModel.DefaultValue(true)]
-    public bool BonesInFront { get => bonesInFront; set { bonesInFront = value; Invalidate(); } }
 
     public void SetSkeletons(IEnumerable<IReadOnlyList<BfresBone>> skeletons)
     {
@@ -84,12 +77,13 @@ internal sealed partial class BfresViewport
         var bone = boneVisuals.FirstOrDefault(b => ReferenceEquals(b.Bone, selectedBone));
         if (bone == null) return;
         center = (bone.Head + bone.Tail) * .5f;
-        distance = Math.Max((bone.Tail - bone.Head).Length * 5, radius * .2f);
+        FrameBounds((bone.Tail - bone.Head).Length * .5f, Math.Max((bone.Tail - bone.Head).Length * 5, radius * .2f));
         Invalidate();
     }
     public void FrameSelection()
     {
-        if (selectedBone != null && showBones) FrameSelectedBone(); else FrameScene();
+        if (selectedBone != null && showBones) FrameSelectedBone();
+        else FrameSelectedMesh();
     }
     private void UploadBones()
     {
@@ -145,50 +139,34 @@ internal sealed partial class BfresViewport
             GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 24, 12);
         }
         if (boneDirty) UploadBones();
-        // HDR rendering keeps scene depth in another target. Copy it for occluded bone display.
-        if (!bonesInFront && lighting != null && nativeMeshes.Count > 0)
-        {
-            GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, hdrFramebuffer);
-            GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
-            GL.BlitFramebuffer(0, 0, hdrWidth, hdrHeight, 0, 0, ClientSize.Width, ClientSize.Height, ClearBufferMask.DepthBufferBit, BlitFramebufferFilter.Nearest);
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-        }
+
         GL.Disable(EnableCap.FramebufferSrgb); GL.Disable(EnableCap.Blend); GL.Disable(EnableCap.CullFace);
-        if (bonesInFront) GL.Disable(EnableCap.DepthTest); else { GL.Enable(EnableCap.DepthTest); GL.DepthFunc(DepthFunction.Lequal); }
+        GL.Disable(EnableCap.DepthTest);
         GL.DepthMask(false); GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
         GL.UseProgram(boneProgram); GL.UniformMatrix4(boneMatrix, false, ref matrix);
         GL.BindVertexArray(boneVao);
         GL.LineWidth(1); GL.DrawArrays(PrimitiveType.Lines, 0, boneLineCount);
-        GL.PointSize(5); GL.DrawArrays(PrimitiveType.Points, boneLineCount, bonePointCount); GL.PointSize(1);
+        GL.PointSize(5 * renderScale); GL.DrawArrays(PrimitiveType.Points, boneLineCount, bonePointCount); GL.PointSize(1);
         GL.DepthMask(true);
     }
-    private bool PickBone(Point point)
+    private bool PickBone(Vector2 point)
     {
         if (!showBones) return false;
         bool Project(Vector3 p, out Vector2 screen, out float depth)
         {
             var clip = Vector4.TransformRow(new Vector4(p, 1), boneViewProjection);
-            screen = new((clip.X / clip.W + 1) * ClientSize.Width * .5f, (1 - clip.Y / clip.W) * ClientSize.Height * .5f);
+            screen = new((clip.X / clip.W + 1) * width * .5f, (1 - clip.Y / clip.W) * height * .5f);
             depth = (clip.Z / clip.W + 1) * .5f;
             return clip.W > 0 && clip.Z >= -clip.W && clip.Z <= clip.W;
         }
-        BfresBone? picked = null; float best = 100;
+        BfresBone? picked = null; float best = 100 * renderScale * renderScale;
         var cursor = new Vector2(point.X, point.Y);
-        float sceneDepth = 1;
-        if (!bonesInFront && point.X >= 0 && point.X < ClientSize.Width && point.Y >= 0 && point.Y < ClientSize.Height)
-        {
-            MakeCurrent(); GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            var pixel = new float[1];
-            GL.ReadPixels(point.X, ClientSize.Height - 1 - point.Y, 1, 1, PixelFormat.DepthComponent, PixelType.Float, pixel);
-            sceneDepth = pixel[0];
-        }
         foreach (var bone in boneVisuals)
         {
             if (hiddenBones.Contains(bone.Bone) || !Project(bone.Head, out var a, out float depthA) || !Project(bone.Tail, out var b, out float depthB)) continue;
             var segment = b - a;
             float t = segment.LengthSquared > 0 ? Math.Clamp(Vector2.Dot(cursor - a, segment) / segment.LengthSquared, 0, 1) : 0;
             float distanceSquared = (cursor - (a + segment * t)).LengthSquared;
-            if (!bonesInFront && depthA + (depthB - depthA) * t > sceneDepth + .0001f) continue;
             if (distanceSquared < best) { best = distanceSquared; picked = bone.Bone; }
         }
         if (picked == null) return false;

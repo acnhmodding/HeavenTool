@@ -2,16 +2,12 @@ using HeavenTool.IO.FileFormats.BFRES;
 using HeavenTool.Shaders;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Buffers.Binary;
 using NMatrix = System.Numerics.Matrix4x4;
 
-namespace HeavenTool.Forms.BFRES;
+namespace HeavenTool.Rendering.BFRES;
 
-internal sealed partial class BfresViewport
+public sealed partial class BfresRenderer
 {
     private sealed record NativeProgramGpu(int Program, TranslatedShader Source, int VertexConstants, int FragmentConstants, List<(int Binding, string Name)> Blocks);
     // Buffers holds the blocks this mesh owns; Bindings resolves every block binding, shared ones included.
@@ -24,29 +20,51 @@ internal sealed partial class BfresViewport
     private IReadOnlyDictionary<BfresMesh, TranslatedShader> nativePending = new Dictionary<BfresMesh, TranslatedShader>();
     private bool nativeDirty;
     private int nativeContext, whiteTexture, blackTexture, shadowTexture, environmentTexture;
-    private AcnhLightingPreset? lighting;
+    private AcnhLightingPreset lighting = AcnhLightingPreset.Day;
     private bool lightingDirty;
-    public void SetLighting(AcnhLightingPreset? value) { lighting = value; lightingDirty = shadowDirty = true; Invalidate(); }
+    public void SetLighting(AcnhLightingPreset value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        lighting = value;
+        lightingDirty = shadowDirty = true;
+        Invalidate();
+    }
     public int NativeDrawCount { get; private set; }
     public int FallbackDrawCount { get; private set; }
-    public int UnlitDrawCount { get; private set; }
     public event Action? DrawStatusChanged;
+    public IReadOnlyList<string> NativeShaderWarnings { get; private set; } = [];
+    public event Action? NativeShaderWarningsChanged;
+
+    private void SetNativeShaderWarnings(IReadOnlyList<string> warnings)
+    {
+        if (NativeShaderWarnings.SequenceEqual(warnings)) return;
+        NativeShaderWarnings = warnings;
+        NativeShaderWarningsChanged?.Invoke();
+    }
     public void SetNativeShaders(IReadOnlyDictionary<BfresMesh, TranslatedShader> shaders)
     {
-        nativePending = shaders; nativeDirty = true; Invalidate();
+        nativePending = shaders; nativeDirty = true;
+        SetNativeShaderWarnings([]);
+        Invalidate();
     }
 
     private void UploadNativeScene()
     {
         ReleaseNativeScene();
+        var warnings = new List<string>();
         nativeContext = CreateBuffer(new byte[ParkUniforms.BufferSize]);
         foreach (var mesh in meshes)
         {
             if (!nativePending.TryGetValue(mesh.Source, out var translated)) continue;
             try { nativeMeshes.Add(mesh.Source, CreateNativeMesh(mesh, translated)); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"{mesh.Source.Name}: {ex}"); }
+            catch (Exception ex)
+            {
+                warnings.Add($"{mesh.Source.Name}: Game shader could not be uploaded; using simplified shading. {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"{mesh.Source.Name}: {ex}");
+            }
         }
         nativeDirty = false;
+        SetNativeShaderWarnings(warnings);
     }
 
     private NativeProgramGpu CreateNativeProgram(TranslatedShader translated)
@@ -199,7 +217,7 @@ internal sealed partial class BfresViewport
     private void UpdateNativeContext(Matrix4 view, Matrix4 projection, float near, float far)
     {
         if (nativeContext == 0) return;
-        byte[] bytes = ParkUniforms.Context(Numerics(view), Numerics(projection), near, far, ClientSize.Width / (float)ClientSize.Height,
+        byte[] bytes = ParkUniforms.Context(Numerics(view), Numerics(projection), near, far, width / (float)height,
             Numerics(shadowMatrix), 1f / ShadowSize);
         GL.BindBuffer(BufferTarget.UniformBuffer, nativeContext);
         GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, bytes.Length, bytes);
@@ -207,12 +225,12 @@ internal sealed partial class BfresViewport
 
     private void DrawSceneMesh(GpuMesh mesh)
     {
-        if (lighting == null || !nativeMeshes.TryGetValue(mesh.Source, out var native))
+        if (!nativeMeshes.TryGetValue(mesh.Source, out var native))
         {
             GL.Disable(EnableCap.FramebufferSrgb);
             GL.UseProgram(program);
             DrawMaterialMesh(mesh);
-            if (lighting == null) UnlitDrawCount++; else FallbackDrawCount++;
+            FallbackDrawCount++;
             return;
         }
         ApplyRasterState(mesh.Material.Profile);
@@ -282,7 +300,7 @@ internal sealed partial class BfresViewport
 
     private static int LoadStudioEnvironment()
     {
-        using var stream = typeof(BfresViewport).Assembly.GetManifestResourceStream("HeavenTool.Resources.BFRES.StudioEnvironment.dds") ?? throw new InvalidOperationException("Studio environment texture is missing.");
+        using var stream = typeof(BfresRenderer).Assembly.GetManifestResourceStream("HeavenTool.Rendering.Resources.StudioEnvironment.dds") ?? throw new InvalidOperationException("Studio environment texture is missing.");
         using var data = new MemoryStream(); stream.CopyTo(data); var bytes = data.ToArray();
         int width = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(16)), height = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(12)), mips = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(28));
         if (!bytes.AsSpan(0, 4).SequenceEqual("DDS "u8) || width != 512 || height != 256 || mips != 5) throw new InvalidDataException("Unsupported studio DDS.");

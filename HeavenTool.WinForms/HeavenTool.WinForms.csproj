@@ -142,7 +142,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\BFRES\StudioEnvironment.dds" />
     <None Include="..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\ThirdParty\Ryujinx\LICENSE.md" Link="Ryujinx-LICENSE.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
@@ -155,7 +154,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AltUI\AltUI.csproj" />
     <ProjectReference Include="..\HeavenTool.IO\HeavenTool.IO.csproj" />
-    <ProjectReference Include="..\HeavenTool.Shaders\HeavenTool.Shaders.csproj" />
+    <ProjectReference Include="..\HeavenTool.Rendering\HeavenTool.Rendering.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Forms\PBC\PBCEditor.resx">

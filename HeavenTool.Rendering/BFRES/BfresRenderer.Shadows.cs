@@ -3,9 +3,9 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using System;
 
-namespace HeavenTool.Forms.BFRES;
+namespace HeavenTool.Rendering.BFRES;
 
-internal sealed partial class BfresViewport
+public sealed partial class BfresRenderer
 {
     private const int ShadowSize = 2048;
     // The light is fixed to the scene, so the map is redrawn only when the scene, lighting or visibility changes.
@@ -32,14 +32,14 @@ internal sealed partial class BfresViewport
         GL.DrawBuffer(DrawBufferMode.None); GL.ReadBuffer(ReadBufferMode.None);
         if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
             throw new InvalidOperationException("Shadow map framebuffer is incomplete.");
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, outputFramebuffer);
         shadowContext = CreateBuffer(new byte[ParkUniforms.BufferSize]);
         return shadowMap;
     }
 
     private void RenderShadowMap()
     {
-        if (!shadowDirty || lighting == null || shadowMap == 0) return;
+        if (!shadowDirty || shadowMap == 0) return;
         shadowDirty = false;
         // Fit an orthographic light frustum around the scene's bounding sphere.
         var direction = new Vector3(lighting.DirectDirection.X, lighting.DirectDirection.Y, lighting.DirectDirection.Z).Normalized();
@@ -68,7 +68,7 @@ internal sealed partial class BfresViewport
         }
         GL.Disable(EnableCap.PolygonOffsetFill);
         GL.ColorMask(true, true, true, true);
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, outputFramebuffer);
     }
 
     private void ReleaseShadows()
