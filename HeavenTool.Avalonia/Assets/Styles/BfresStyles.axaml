@@ -1,0 +1,29 @@
+  <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia">
+    <!-- Compact controls shared by the toolbar and the panels. -->
+    <Style Selector="Button.tool, ToggleButton.tool">
+      <Setter Property="Height" Value="28" />
+      <Setter Property="MinWidth" Value="28" />
+      <Setter Property="Padding" Value="7,0" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.tool.selected">
+      <Setter Property="Background" Value="{DynamicResource AccentButtonBackground}" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentButtonForeground}" />
+    </Style>
+    <Style Selector="Button.tool icons|PackIconFontAwesome6, ToggleButton.tool icons|PackIconFontAwesome6">
+      <Setter Property="Width" Value="14" />
+      <Setter Property="Height" Value="14" />
+    </Style>
+    <Style Selector="Rectangle.divider">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Height" Value="18" />
+      <Setter Property="Margin" Value="6,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Fill" Value="{StaticResource PanelBorder}" />
+    </Style>
+  </Styles>

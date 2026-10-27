@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:vm="using:HeavenTool.Avalonia.ViewModels"
+  xmlns:controls="using:HeavenTool.Avalonia.Controls"
+  xmlns:views="using:HeavenTool.Avalonia.Views.FileEditors"
+  x:Class="HeavenTool.Avalonia.Views.FileEditors.BfresMaterialPane"
+  x:DataType="vm:BfresViewModel">
+  <DockPanel Background="{StaticResource ContentBackground}">
+    <TextBlock DockPanel.Dock="Top" Text="{Binding MaterialName}" Margin="10,8,10,0" FontSize="12"
+      IsVisible="{Binding HasMaterial}" TextTrimming="CharacterEllipsis"
+      Foreground="{StaticResource SecondaryText}" ToolTip.Tip="{Binding MaterialName}" />
+
+    <Grid>
+      <StackPanel IsVisible="{Binding !HasMaterial}" Spacing="10" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <icons:PackIconFontAwesome6 Kind="ShapesSolid" Width="28" Height="28" Foreground="{StaticResource DimText}" />
+        <TextBlock Text="Select a mesh in the scene to preview and edit its material." TextWrapping="Wrap"
+          TextAlignment="Center" FontSize="12" Foreground="{StaticResource DimText}" />
+      </StackPanel>
+
+      <Grid IsVisible="{Binding HasMaterial}" Margin="8" RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" RowSpacing="6">
+        <TextBox Text="{Binding PropertyFilter}" PlaceholderText="Search properties" FontSize="12">
+          <TextBox.InnerLeftContent>
+            <icons:PackIconFontAwesome6 Kind="MagnifyingGlassSolid" Width="12" Height="12" Margin="8,0,0,0" Foreground="{StaticResource DimText}" />
+          </TextBox.InnerLeftContent>
+        </TextBox>
+        <DockPanel Grid.Row="1">
+          <TextBlock DockPanel.Dock="Right" Text="{Binding PropertySummary}" FontSize="12" VerticalAlignment="Center"
+            Foreground="{StaticResource DimText}" />
+          <CheckBox Content="Show inactive" IsChecked="{Binding ShowAllProperties}" FontSize="12" MinHeight="28"
+            ToolTip.Tip="Include properties the current preview does not use" />
+        </DockPanel>
+        <DataGrid x:Name="MaterialGrid" Grid.Row="2" ItemsSource="{Binding Properties}" SelectedItem="{Binding SelectedProperty}"
+          AutoGenerateColumns="False" CanUserSortColumns="False" CanUserResizeColumns="True" SelectionMode="Single"
+          GridLinesVisibility="Horizontal" HeadersVisibility="Column" RowHeight="30" ColumnHeaderHeight="30" FontSize="12"
+          BorderBrush="{StaticResource PanelBorder}" BorderThickness="1" HorizontalGridLinesBrush="#33FFFFFF">
+          <DataGrid.Styles>
+            <Style Selector="DataGridColumnHeader">
+              <Setter Property="FontSize" Value="12" />
+            </Style>
+            <Style Selector="TextBlock.inactive">
+              <Setter Property="Foreground" Value="{StaticResource DimText}" />
+            </Style>
+            <Style Selector="DataGridCell.value" x:DataType="vm:BfresMaterialValue">
+              <Setter Property="Background" Value="{Binding IsChanged, Converter={x:Static views:BFRESWindow.ChangedBackground}}" />
+            </Style>
+          </DataGrid.Styles>
+          <DataGrid.Columns>
+            <DataGridTemplateColumn Header="Property" IsReadOnly="True" Width="2*">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate DataType="vm:BfresMaterialValue">
+                  <TextBlock Text="{Binding Label}" Classes.inactive="{Binding !IsActive}" ToolTip.Tip="{Binding Activity}"
+                    VerticalAlignment="Center" Margin="10,0" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Value" Binding="{Binding Value, Mode=TwoWay}" Width="*" />
+          </DataGrid.Columns>
+        </DataGrid>
+        <TextBlock Grid.Row="3" Text="{Binding MaterialError}" IsVisible="{Binding MaterialError, Converter={x:Static ObjectConverters.IsNotNull}}"
+          Foreground="{StaticResource ErrorText}" TextWrapping="Wrap" FontSize="12" />
+        <WrapPanel Grid.Row="4" Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+          <Button Command="{Binding ResetValueCommand}" FontSize="12" ToolTip.Tip="Restore the selected value from the file">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <icons:PackIconFontAwesome6 Kind="RotateLeftSolid" Width="12" Height="12" />
+              <TextBlock Text="Reset value" />
+            </StackPanel>
+          </Button>
+          <Button Command="{Binding ResetMaterialCommand}" FontSize="12" ToolTip.Tip="Restore every value of this material">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <icons:PackIconFontAwesome6 Kind="ArrowRotateLeftSolid" Width="12" Height="12" />
+              <TextBlock Text="Reset material" />
+            </StackPanel>
+          </Button>
+        </WrapPanel>
+        <TextBlock Grid.Row="5" Text="Edits are a preview: they affect every mesh using this material and are not saved to the file."
+          TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource DimText}" />
+      </Grid>
+    </Grid>
+  </DockPanel>
+</UserControl>

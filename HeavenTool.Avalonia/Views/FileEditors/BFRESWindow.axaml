@@ -1,0 +1,81 @@
+<fa:FAAppWindow xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:fa="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
+  xmlns:vm="using:HeavenTool.Avalonia.ViewModels"
+  xmlns:controls="using:HeavenTool.Avalonia.Controls"
+  xmlns:views="using:HeavenTool.Avalonia.Views.FileEditors"
+  xmlns:app="clr-namespace:HeavenTool.Avalonia;assembly=HeavenTool.Avalonia"
+  x:Class="HeavenTool.Avalonia.Views.FileEditors.BFRESWindow"
+  x:DataType="vm:BfresViewModel"
+  Title="{Binding Title}" Width="1280" Height="800" MinWidth="640" MinHeight="420"
+  Background="{StaticResource WindowBackground}" DragDrop.AllowDrop="True">
+
+
+
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <DockPanel Grid.Row="0" Height="32" Background="{StaticResource TitleBarBackground}"
+      WindowDecorationProperties.ElementRole="TitleBar">
+      <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16"/>
+      <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+      <TextBlock Text="{x:Static app:App.DisplayVersion}" Margin="5 0 0 0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource DimText}"/>
+    </DockPanel>
+
+    <Menu Grid.Row="1" Padding="0" Background="{StaticResource MenuBackground}" Height="30" Foreground="White" FontSize="11">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open model..." Command="{Binding OpenCommand}" InputGesture="Ctrl+O">
+          <MenuItem.Icon>
+            <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="14" Height="14" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Load game _materials..." Command="{Binding LoadShadersCommand}">
+          <MenuItem.Icon>
+            <icons:PackIconFontAwesome6 Kind="PaletteSolid" Width="14" Height="14" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <Separator />
+        <MenuItem Header="_Close" Click="CloseClicked">
+          <MenuItem.Icon>
+            <icons:PackIconFontAwesome6 Kind="XmarkSolid" Width="14" Height="14" />
+          </MenuItem.Icon>
+        </MenuItem>
+      </MenuItem>
+
+      <MenuItem Header="_View">
+        <MenuItem Header="S_cene panel" ToggleType="CheckBox" IsChecked="{Binding ShowScenePanel, Mode=TwoWay}" />
+        <MenuItem Header="_Material panel" ToggleType="CheckBox" IsChecked="{Binding ShowMaterialPanel, Mode=TwoWay}" />
+        <Separator />
+        <MenuItem Header="_Dock 3D view" Click="DockViewportClicked" />
+        <MenuItem Header="_Restore default layout" Click="RestoreLayoutClicked" />
+      </MenuItem>
+    </Menu>
+
+    <DockControl x:Name="Workspace" Grid.Row="2" InitializeFactory="True" InitializeLayout="True" />
+
+    <!-- Status bar -->
+    <Border Grid.Row="3" Background="{StaticResource MenuBackground}" BorderBrush="{StaticResource PanelBorder}"
+      BorderThickness="0,1,0,0" Height="26" Padding="8,0,2,0">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="tool" Height="22" FontSize="11" IsVisible="{Binding HasWarnings}"
+          Foreground="{StaticResource WarningText}" ToolTip.Tip="Show warnings">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="11" Height="11" />
+            <TextBlock Text="{Binding WarningSummary}" />
+          </StackPanel>
+          <Button.Flyout>
+            <Flyout Placement="TopEdgeAlignedRight">
+              <ScrollViewer MaxHeight="320" MaxWidth="620">
+                <SelectableTextBlock Text="{Binding Warning}" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource WarningText}" />
+              </ScrollViewer>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+        <ProgressBar DockPanel.Dock="Left" IsVisible="{Binding IsBusy}" IsIndeterminate="True" Width="70" MinWidth="0"
+          Height="3" Margin="0,0,10,0" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding Status}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+          Foreground="{StaticResource SecondaryText}" ToolTip.Tip="{Binding Status}" />
+      </DockPanel>
+    </Border>
+  </Grid>
+</fa:FAAppWindow>

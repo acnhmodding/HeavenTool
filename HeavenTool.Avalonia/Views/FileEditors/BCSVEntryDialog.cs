@@ -74,12 +74,12 @@ public sealed class BCSVEntryDialog : Window
         };
         var bottom = new DockPanel { Margin = new Thickness(0, 12, 0, 0) };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { add, cancel } };
-        DockPanel.SetDock(buttons, Dock.Right);
+        DockPanel.SetDock(buttons, global::Avalonia.Controls.Dock.Right);
         bottom.Children.Add(buttons);
         bottom.Children.Add(status);
         var layout = new DockPanel { Margin = new Thickness(16) };
-        DockPanel.SetDock(top, Dock.Top);
-        DockPanel.SetDock(bottom, Dock.Bottom);
+        DockPanel.SetDock(top, global::Avalonia.Controls.Dock.Top);
+        DockPanel.SetDock(bottom, global::Avalonia.Controls.Dock.Bottom);
         layout.Children.Add(top);
         layout.Children.Add(bottom);
         layout.Children.Add(new ScrollViewer { Content = list });

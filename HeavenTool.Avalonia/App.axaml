@@ -22,6 +22,8 @@
           <ControlTheme x:Key="{x:Type icons:PackIconFontAwesome6}" TargetType="icons:PackIconFontAwesome6" BasedOn="{StaticResource {x:Type PathIcon}}" />
         </Styles.Resources>
       </Styles>
+      <DockFluentTheme />
+      <StyleInclude Source="/Assets/Styles/BfresStyles.axaml" />
       <sty:FluentAvaloniaTheme CustomAccentColor="{StaticResource ACNHGreenColor}" PreferUserAccentColor="False" PreferSystemTheme="False" />
       <StyleInclude Source="/Assets/Styles/Styles.axaml" />
       <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>

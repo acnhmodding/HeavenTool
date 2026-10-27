@@ -70,5 +70,7 @@ namespace HeavenTool.Avalonia.ViewModels
             dialog.Show();
         }
 
+        public void OpenBFRES() => new BFRESWindow().Show();
+
     }
 }

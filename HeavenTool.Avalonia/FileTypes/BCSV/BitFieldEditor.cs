@@ -26,7 +26,7 @@ public sealed class BitFieldEditor : UserControl
         var list = new StackPanel();
         list.Children.AddRange(flags);
         var layout = new DockPanel { LastChildFill = true };
-        DockPanel.SetDock(clear, Dock.Bottom);
+        DockPanel.SetDock(clear, global::Avalonia.Controls.Dock.Bottom);
         clear.Margin = new(0, 8, 0, 0);
         layout.Children.Add(clear);
         layout.Children.Add(new ScrollViewer { Content = list });

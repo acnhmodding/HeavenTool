@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:HeavenTool.Avalonia.ViewModels"
+  xmlns:controls="using:HeavenTool.Avalonia.Controls"
+  xmlns:views="using:HeavenTool.Avalonia.Views.FileEditors"
+  x:Class="HeavenTool.Avalonia.Views.FileEditors.BfresScenePane"
+  x:DataType="vm:BfresViewModel">
+  <DockPanel Background="{StaticResource ContentBackground}">
+    <Grid>
+      <TreeView x:Name="SceneTree" ItemsSource="{Binding Roots}" SelectedItem="{Binding SelectedNode, Mode=TwoWay}"
+        AutoScrollToSelectedItem="True" Padding="0,4">
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate DataType="vm:BfresNode" ItemsSource="{Binding Children}">
+            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+        <TreeView.Styles>
+          <Style Selector="TreeViewItem" x:DataType="vm:BfresNode">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+            <Setter Property="MinHeight" Value="28" />
+          </Style>
+        </TreeView.Styles>
+      </TreeView>
+      <TextBlock Text="Nothing loaded" IsVisible="{Binding !IsLoaded}" IsHitTestVisible="False"
+        HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource DimText}" />
+    </Grid>
+  </DockPanel>
+</UserControl>
