@@ -29,6 +29,9 @@
   <SolidColorBrush x:Key="SearchCurrentBackground">#AA9ACD32</SolidColorBrush>
   <SolidColorBrush x:Key="UnknownHashBackground">#968B0000</SolidColorBrush>
 
+  <!-- Settings -->
+  <SolidColorBrush x:Key="CardBackground">#3A3A3A</SolidColorBrush>
+
   <!-- BFRES material grid -->
   <SolidColorBrush x:Key="ChangedValueBackground">#4B401C</SolidColorBrush>
 </ResourceDictionary>

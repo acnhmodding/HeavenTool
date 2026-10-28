@@ -1,0 +1,257 @@
+<fa:FAAppWindow xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:fa="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
+  xmlns:vm="using:HeavenTool.Avalonia.ViewModels"
+  xmlns:views="using:HeavenTool.Avalonia.Views"
+  xmlns:settings="using:HeavenTool.Avalonia.Settings"
+  xmlns:app="clr-namespace:HeavenTool.Avalonia;assembly=HeavenTool.Avalonia"
+  x:Class="HeavenTool.Avalonia.Views.SettingsWindow"
+  x:DataType="vm:SettingsViewModel"
+  Title="Settings" Width="980" Height="660" MinWidth="680" MinHeight="420"
+  Background="{StaticResource WindowBackground}">
+
+  <fa:FAAppWindow.Resources>
+    <DataTemplate x:Key="StatusTemplate" x:DataType="vm:SettingStatus">
+      <DockPanel>
+        <icons:PackIconFontAwesome6 Kind="{Binding Kind, Converter={x:Static views:SettingsWindow.StatusIcon}}"
+          Foreground="{Binding Kind, Converter={x:Static views:SettingsWindow.StatusBrush}}"
+          Width="14" Height="14" Margin="0,2,10,0" VerticalAlignment="Top" />
+        <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource SecondaryText}" />
+      </DockPanel>
+    </DataTemplate>
+  </fa:FAAppWindow.Resources>
+
+  <fa:FAAppWindow.Styles>
+    <Style Selector="TextBlock.page">
+      <Setter Property="FontSize" Value="24" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <!-- A section title: an icon and a name above its card. -->
+    <Style Selector="StackPanel.section">
+      <Setter Property="Orientation" Value="Horizontal" />
+      <Setter Property="Spacing" Value="10" />
+      <Setter Property="Margin" Value="2,22,0,8" />
+    </Style>
+    <Style Selector="StackPanel.section > icons|PackIconFontAwesome6">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="StackPanel.section > TextBlock">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- A card of rows, split by lines. -->
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{StaticResource CardBackground}" />
+      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="Border.card > StackPanel > Border">
+      <Setter Property="Padding" Value="16,12" />
+      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="Border.card > StackPanel > Border:nth-child(1)">
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.card > StackPanel > Border:disabled">
+      <Setter Property="Opacity" Value="0.5" />
+    </Style>
+    <Style Selector="TextBlock.title">
+      <Setter Property="FontSize" Value="14" />
+    </Style>
+    <Style Selector="TextBlock.description">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+      <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
+    <Style Selector="ListBox.categories ListBoxItem">
+      <Setter Property="Padding" Value="12,9" />
+      <Setter Property="Margin" Value="0,1" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+  </fa:FAAppWindow.Styles>
+
+  <Grid RowDefinitions="32,*">
+    <DockPanel Grid.Row="0" Background="{StaticResource TitleBarBackground}" WindowDecorationProperties.ElementRole="TitleBar">
+      <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16" />
+      <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" />
+      <TextBlock Text="{x:Static app:App.DisplayVersion}" Margin="5 0 0 0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource DimText}" />
+    </DockPanel>
+
+    <Grid Grid.Row="1" ColumnDefinitions="210,*">
+      <Border Background="{StaticResource MenuBackground}" BorderBrush="{StaticResource PanelBorder}" BorderThickness="0,0,1,0">
+        <ListBox Classes="categories" SelectionMode="AlwaysSelected" Background="Transparent" Margin="8">
+          <ListBoxItem x:Name="ModManagerCategory" IsSelected="True">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <icons:PackIconFontAwesome6 Kind="CubesSolid" Width="16" Height="16" />
+              <TextBlock Text="Mod Manager" VerticalAlignment="Center" />
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem x:Name="GameCategory">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <icons:PackIconFontAwesome6 Kind="GamepadSolid" Width="16" Height="16" />
+              <TextBlock Text="Game Settings" VerticalAlignment="Center" />
+            </StackPanel>
+          </ListBoxItem>
+        </ListBox>
+      </Border>
+
+      <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="28,20,28,28">
+          <Border IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" Margin="0,0,0,12" Padding="12,8"
+            CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource ErrorText}">
+            <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{StaticResource ErrorText}" />
+          </Border>
+
+          <!-- Mod Manager -->
+          <StackPanel IsVisible="{Binding #ModManagerCategory.IsSelected}">
+            <StackPanel Classes="section">
+              <icons:PackIconFontAwesome6 Kind="DisplaySolid" />
+              <TextBlock Text="Emulator" />
+            </StackPanel>
+            <Border Classes="card">
+              <StackPanel>
+                <Border>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Classes="title" Text="Deploy to" />
+                      <TextBlock Classes="description" Text="Mods deploy as one &quot;Heaven Tool&quot; mod in the emulator's mod folder, so you can turn them all off from the emulator." />
+                    </StackPanel>
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding EmulatorOptions}" SelectedItem="{Binding SelectedEmulator}" MinWidth="170" VerticalAlignment="Center">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="settings:EmulatorInstall">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Name}" />
+                            <TextBlock Text="not found" IsVisible="{Binding !Found}" FontSize="11" VerticalAlignment="Center" Foreground="{StaticResource DimText}" />
+                          </StackPanel>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </Grid>
+                </Border>
+                <Border>
+                  <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                      <TextBox Text="{Binding ModFolder}" PlaceholderText="Mod folder for title 01006F8002326000" />
+                      <Button Grid.Column="1" Command="{Binding BrowseModFolderCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="12" Height="12" />
+                          <TextBlock Text="Browse" />
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding ModFolder}" ToolTip.Tip="Open in file manager">
+                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
+                      </Button>
+                    </Grid>
+                    <ContentControl Content="{Binding ModFolderStatus}" ContentTemplate="{StaticResource StatusTemplate}" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Border>
+
+            <StackPanel Classes="section">
+              <icons:PackIconFontAwesome6 Kind="BoxArchiveSolid" />
+              <TextBlock Text="Library" />
+            </StackPanel>
+            <Border Classes="card">
+              <StackPanel>
+                <Border>
+                  <StackPanel Spacing="10">
+                    <StackPanel>
+                      <TextBlock Classes="title" Text="Mod library" />
+                      <TextBlock Classes="description" Text="Installed mods are kept here, unpacked, and merged from here when you deploy." />
+                    </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                      <TextBox Text="{Binding LibraryFolder}" />
+                      <Button Grid.Column="1" Command="{Binding BrowseLibraryFolderCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="12" Height="12" />
+                          <TextBlock Text="Browse" />
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding LibraryFolder}" ToolTip.Tip="Open in file manager">
+                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
+                      </Button>
+                      <Button Grid.Column="3" Command="{Binding ResetLibraryFolderCommand}" ToolTip.Tip="Use the default folder">
+                        <icons:PackIconFontAwesome6 Kind="RotateLeftSolid" Width="12" Height="12" />
+                      </Button>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Border>
+
+            <StackPanel Classes="section">
+              <icons:PackIconFontAwesome6 Kind="PlugSolid" />
+              <TextBlock Text="Skyline" />
+            </StackPanel>
+            <Border Classes="card">
+              <StackPanel>
+                <Border>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Classes="title" Text="Install Skyline" />
+                      <TextBlock Classes="description" Text="Deploys skyline-acnh from the acnhmodding GitHub with your mods. Skyline loads code plugins into the game." />
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding InstallSkyline}" OnContent="On" OffContent="Off" VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+                <Border x:Name="AutoRstbRow" IsEnabled="{Binding InstallSkyline}">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Classes="title" Text="auto-rstb" />
+                      <TextBlock Classes="description" Text="Fixes the resource size table as the game runs, so mods can make game files larger. Works for mods installed without Heaven Tool too." />
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding InstallAutoRstb}" OnContent="On" OffContent="Off" VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+              </StackPanel>
+            </Border>
+            <ContentControl IsVisible="{Binding RstbFixOff}" Margin="16,8,16,0"
+              Content="{x:Static vm:SettingsViewModel.RstbFixOffWarning}" ContentTemplate="{StaticResource StatusTemplate}" />
+          </StackPanel>
+
+          <!-- Game Settings -->
+          <StackPanel IsVisible="{Binding #GameCategory.IsSelected}">
+            <StackPanel Classes="section">
+              <icons:PackIconFontAwesome6 Kind="HardDriveSolid" />
+              <TextBlock Text="Game files" />
+            </StackPanel>
+            <Border Classes="card">
+              <StackPanel>
+                <Border>
+                  <StackPanel Spacing="10">
+                    <StackPanel>
+                      <TextBlock Classes="title" Text="Extracted romfs" />
+                      <TextBlock Classes="description" Text="Mod tools open files from here, and the Mod Manager compares mods against it. Heaven Tool never changes these files." />
+                    </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                      <TextBox Text="{Binding RomfsFolder}" PlaceholderText="Folder with the extracted romfs" />
+                      <Button Grid.Column="1" Command="{Binding BrowseRomfsFolderCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="12" Height="12" />
+                          <TextBlock Text="Browse" />
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding RomfsFolder}" ToolTip.Tip="Open in file manager">
+                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
+                      </Button>
+                    </Grid>
+                    <ContentControl Content="{Binding RomfsStatus}" ContentTemplate="{StaticResource StatusTemplate}" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</fa:FAAppWindow>

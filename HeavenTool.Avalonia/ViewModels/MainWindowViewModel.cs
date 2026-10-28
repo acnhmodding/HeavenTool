@@ -1,5 +1,6 @@
 ﻿using Avalonia.Controls;
 using GamebananaAPI;
+using HeavenTool.Avalonia.Views;
 using HeavenTool.Avalonia.Views.FileEditors;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -71,6 +72,8 @@ namespace HeavenTool.Avalonia.ViewModels
         }
 
         public void OpenBFRES() => new BFRESWindow().Show();
+
+        public void OpenSettings() => SettingsWindow.ShowSingle();
 
     }
 }
