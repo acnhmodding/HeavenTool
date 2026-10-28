@@ -1,3 +1,6 @@
+using AsyncImageLoader;
+using AsyncImageLoader.Core.Caching;
+using AsyncImageLoader.Core.Pipeline;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -18,6 +21,8 @@ public partial class App : Application
 
     public override void Initialize()
     {
+        // The default cache keeps every thumbnail and preview it ever loaded; keep only the most recent ones not on screen.
+        ImageLoader.AsyncImageLoader = ImageLoaderPipelineBuilder.RamCached(new MemoryImageCacheOptions { MaxItems = 50 }).Build();
         AvaloniaXamlLoader.Load(this);
 #if DEBUG
         this.AttachDeveloperTools();

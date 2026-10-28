@@ -132,6 +132,12 @@
           <ScrollViewer Grid.Row="2" x:Name="ModScroller">
             <StackPanel Margin="10">
               <ItemsControl ItemsSource="{Binding Mods}">
+                <!-- Only the cards in view are built, so a long feed doesn't keep every card and thumbnail alive. -->
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <VirtualizingStackPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:ModCardViewModel">
                     <Border Classes="modCard">
