@@ -9,6 +9,9 @@ public sealed class SARC : ModFile
 
     public Dictionary<string, object> Files { get; set; } = [];
 
+    // The data of the files that can't be merged, as loaded, so a mod that ships them unchanged doesn't undo another mod's change.
+    private readonly Dictionary<string, byte[]> originalData = [];
+
     public SARC(Stream stream, string name) : base(stream, name)
     {
         if (Content != null && SarcFileReader.CanReadStatic(Content))
@@ -37,7 +40,10 @@ public sealed class SARC : ModFile
                     Files.TryAdd(fileName, new MSBT(fileData, file.Name));
 
                 else // if its not a mod-manager compatible, just add as SarcContent
+                {
                     Files.Add(fileName, file);
+                    originalData[fileName] = file.Data;
+                }
             }
         }
     }
@@ -53,6 +59,9 @@ public sealed class SARC : ModFile
         {
             if (file is SarcContent sarcContent)
             {
+                if (originalData.TryGetValue(fileName, out var original) && original.AsSpan().SequenceEqual(sarcContent.Data))
+                    continue;
+
                 // if its a SarcContent means that we don't support merging, so lets just replace or add as new
                 if (Files.ContainsKey(fileName))
                     Files[fileName] = sarcContent;
