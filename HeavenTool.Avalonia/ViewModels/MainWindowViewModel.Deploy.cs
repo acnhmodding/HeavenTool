@@ -33,13 +33,12 @@ public partial class MainWindowViewModel
 
         IsDeploying = true;
         BusyText = "Deploying...";
-        var enabled = installed.Where(mod => mod.Enabled).ToList();
         string title, message;
         try
         {
             var warnings = new List<string>();
             string? skyline = null;
-            if (settings.InstallSkyline && enabled.Count > 0)
+            if (settings.InstallSkyline && installed.Any(mod => mod.Enabled))
             {
                 BusyText = "Getting Skyline...";
                 try { skyline = await Skyline.GetExefsAsync(Path.Combine(AppSettings.Folder, "Skyline"), Http); }
@@ -57,13 +56,18 @@ public partial class MainWindowViewModel
                 SkylineExefs = skyline,
             };
             var progress = new Progress<string>(text => { if (IsDeploying) BusyText = text; });
-            // Installs move library folders, so they wait for the deploy to finish reading them.
+            // Installs and removals change library folders, so they wait for the deploy to finish reading them,
+            // and the mods are picked once those before it are done.
             await installLock.WaitAsync();
             DeployResult result;
-            try { result = await Task.Run(() => deployer.Deploy(enabled, progress)); }
+            try
+            {
+                var enabled = installed.Where(mod => mod.Enabled).ToList();
+                result = await Task.Run(() => deployer.Deploy(enabled, progress));
+            }
             finally { installLock.Release(); }
             result.Warnings.InsertRange(0, warnings);
-            title = enabled.Count > 0 ? "Mods deployed" : "Nothing deployed";
+            title = result.ModCount > 0 ? "Mods deployed" : "Nothing deployed";
             message = DescribeDeploy(result, Emulators.NameFor(settings.ModFolder) ?? "your mod folder");
         }
         catch (Exception ex)

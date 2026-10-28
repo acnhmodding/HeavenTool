@@ -24,7 +24,7 @@ public partial class MainWindowViewModel : ObservableObject
     private const int GameId = 7923;
 
     private readonly GamebananaClient client = new();
-    // Library installs run one at a time so two never pick the same folder.
+    // Library installs, removals and deploys run one at a time, so none sees another's folders half moved.
     private readonly SemaphoreSlim installLock = new(1, 1);
     private IMainView? view;
     private CancellationTokenSource? feedCancellation;
@@ -280,7 +280,10 @@ public partial class MainWindowViewModel : ObservableObject
         if (!await view.ConfirmAsync($"Remove {mod.Name}?", "Its files are deleted from the mod library.", "Remove")) return;
         try
         {
-            await Task.Run(() => ModLibrary.Remove(mod));
+            // A deploy reads the library and an install swaps folders in it, so the removal waits for them.
+            await installLock.WaitAsync();
+            try { await Task.Run(() => ModLibrary.Remove(mod)); }
+            finally { installLock.Release(); }
             Mods.Remove(card);
             UpdateMoveState();
         }
