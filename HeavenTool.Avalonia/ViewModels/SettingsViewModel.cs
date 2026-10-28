@@ -64,7 +64,7 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnSelectedEmulatorChanged(EmulatorInstall value)
     {
         // A typed path that already points at the emulator keeps the user's spelling.
-        if (value != CustomFolder && !SamePath(value.ModFolder, ModFolder)) ModFolder = value.ModFolder;
+        if (value != CustomFolder && !Emulators.SamePath(value.ModFolder, ModFolder)) ModFolder = value.ModFolder;
     }
 
     partial void OnModFolderChanged(string value)
@@ -108,7 +108,7 @@ public partial class SettingsViewModel : ObservableObject
     private void UpdateModFolder()
     {
         var folder = settings.ModFolder;
-        SelectedEmulator = emulators.FirstOrDefault(emulator => folder != null && SamePath(emulator.ModFolder, folder)) ?? CustomFolder;
+        SelectedEmulator = emulators.FirstOrDefault(emulator => folder != null && Emulators.SamePath(emulator.ModFolder, folder)) ?? CustomFolder;
         if (folder == null)
         {
             ModFolderStatus = new(StatusKind.Error, "Choose an emulator or the folder it loads Animal Crossing mods from.");
@@ -200,14 +200,4 @@ public partial class SettingsViewModel : ObservableObject
 
     // Explorer's "Copy as path" wraps paths in quotes.
     private static string? NullIfEmpty(string? path) => path?.Trim().Trim('"') is { Length: > 0 } trimmed ? trimmed : null;
-
-    private static bool SamePath(string a, string b)
-    {
-        try
-        {
-            return string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)), Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)),
-                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException) { return false; }
-    }
 }

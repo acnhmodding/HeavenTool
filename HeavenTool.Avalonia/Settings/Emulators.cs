@@ -40,6 +40,25 @@ public static class Emulators
         return [.. emulators.OrderByDescending(emulator => emulator.Found)];
     }
 
+    /// <summary>The name of the emulator that loads mods from <paramref name="modFolder"/>, or null for a folder none of them uses.</summary>
+    public static string? NameFor(string modFolder)
+    {
+        if (Detect().FirstOrDefault(emulator => SamePath(emulator.ModFolder, modFolder)) is { } emulator) return emulator.Name;
+        // A portable install keeps its data beside the emulator, in a folder named after it.
+        var parts = modFolder.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+        return Known.FirstOrDefault(known => parts.Contains(known.Folder, StringComparer.OrdinalIgnoreCase)).Name;
+    }
+
+    public static bool SamePath(string a, string b)
+    {
+        try
+        {
+            return string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)), Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)),
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException) { return false; }
+    }
+
     private static string? FindRoot(string name) =>
         DataFolders().Select(folder => Path.Combine(folder, name)).FirstOrDefault(Directory.Exists);
 

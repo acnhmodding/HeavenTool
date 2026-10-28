@@ -496,7 +496,7 @@ public partial class MainWindowViewModel : ObservableObject
             IsDeploying = false;
             BusyText = null;
             UpdateDeployStatus();
-            await view.ShowMessageAsync(enabled.Count > 0 ? "Mods deployed" : "Nothing deployed", DescribeDeploy(result));
+            await view.ShowMessageAsync(enabled.Count > 0 ? "Mods deployed" : "Nothing deployed", DescribeDeploy(result, Emulators.NameFor(settings.ModFolder) ?? "your mod folder"));
         }
         catch (Exception ex)
         {
@@ -514,15 +514,15 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private static string DescribeDeploy(DeployResult result)
+    private static string DescribeDeploy(DeployResult result, string place)
     {
         const int listed = 12;
         var text = new StringBuilder();
         if (result.ModCount == 0)
-            text.Append($"No mods are turned on, so nothing is deployed to {result.Target} now.");
+            text.Append($"No mods are turned on, so nothing is deployed to {place} now.");
         else
         {
-            text.Append($"{result.ModCount} mod{(result.ModCount == 1 ? "" : "s")} ({result.FileCount:N0} files) deployed to {result.Target}.");
+            text.Append($"{result.ModCount} mod{(result.ModCount == 1 ? "" : "s")} ({result.FileCount:N0} files) deployed to {place}.");
             if (result.SkylineInstalled) text.Append(" Skyline is included.");
             if (result.ResourceSizeTableUpdated) text.Append(" The resource size table was updated to fit them.");
         }
