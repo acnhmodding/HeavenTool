@@ -68,7 +68,8 @@ namespace HeavenTool.ModManager.Library
         {
             var mods = new List<InstalledMod>();
             if (!Directory.Exists(Folder)) return mods;
-            foreach (var directory in Directory.EnumerateDirectories(Folder))
+            // Dot folders are installs in progress, or copies a reinstall couldn't delete.
+            foreach (var directory in Directory.EnumerateDirectories(Folder).Where(directory => !Path.GetFileName(directory).StartsWith('.')))
             {
                 var metadata = Path.Combine(directory, MetadataFile);
                 if (!File.Exists(metadata)) continue;
