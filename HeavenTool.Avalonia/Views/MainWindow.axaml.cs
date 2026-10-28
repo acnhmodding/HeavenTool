@@ -81,6 +81,10 @@ namespace HeavenTool.Avalonia.Views
             };
         }
 
+        // The categories load the first time the filters open, and an edited author applies when they close.
+        private void FilterFlyout_Opened(object? sender, System.EventArgs e) => _ = viewModel.LoadCategoriesAsync();
+
+        private void FilterFlyout_Closed(object? sender, System.EventArgs e) => viewModel.ApplyFiltersCommand.Execute(null);
 
         private void InitializeComponent()
         {

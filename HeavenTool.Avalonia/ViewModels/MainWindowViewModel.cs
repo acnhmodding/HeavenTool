@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamebananaAPI;
 using GamebananaFile = GamebananaAPI.Data.GamebananaFile;
+using ModProfile = GamebananaAPI.Data.ModProfile;
 using HeavenTool.Avalonia.Settings;
 using HeavenTool.Avalonia.Views;
 using HeavenTool.Avalonia.Views.FileEditors;
@@ -41,7 +42,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     public ObservableCollection<ModCardViewModel> Mods { get; } = [];
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(PageIndex), nameof(IsOnlinePage), nameof(IsInstalledPage), nameof(SearchPlaceholder))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(PageIndex), nameof(IsOnlinePage), nameof(IsInstalledPage), nameof(SearchPlaceholder), nameof(SortHint))]
     private ModPage page;
     [ObservableProperty] private string searchText = "";
     [ObservableProperty] private bool isLoading;
@@ -104,6 +105,7 @@ public partial class MainWindowViewModel : ObservableObject
         HasMore = false;
         IsLoading = false;
         nextFeedPage = 1;
+        AppliedAuthor = AuthorFilter.Trim();
 
         var filter = SearchText.Trim();
         bool Matches(string? text) => filter.Length == 0 || text?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
@@ -119,7 +121,7 @@ public partial class MainWindowViewModel : ObservableObject
                     Message = filter.Length > 0 ? "No favorites match." : "No favorites yet. Star a mod to keep it here.";
                 return;
             case ModPage.Installed:
-                foreach (var mod in installed.Where(mod => Matches(mod.Name) || Matches(mod.Author)))
+                foreach (var mod in installed.Where(mod => Matches(mod.Name) || Matches(mod.Author) || Matches(mod.Category) || Matches(mod.Subcategory) || mod.Tags.Any(Matches)))
                     Mods.Add(WithState(new ModCardViewModel(this, mod)));
                 UpdateMoveState();
                 if (Mods.Count == 0)
@@ -140,7 +142,10 @@ public partial class MainWindowViewModel : ObservableObject
         Message = null;
         try
         {
-            var feed = await client.GetSubfeed(GameId, nextFeedPage, sort, Category.Mod, query, cancellation.Token);
+            var filter = await BuildFilterAsync(query, cancellation.Token);
+            var feed = filter != null
+                ? await client.GetModIndex(GameId, filter, nextFeedPage, cancellation: cancellation.Token)
+                : await client.GetSubfeed(GameId, nextFeedPage, sort, Category.Mod, query, cancellation.Token);
             if (cancellation.IsCancellationRequested) return;
             nextFeedPage++;
             foreach (var record in feed?.Records ?? [])
@@ -151,9 +156,14 @@ public partial class MainWindowViewModel : ObservableObject
             }
             HasMore = feed?.Metadata is { IsComplete: false };
             if (Mods.Count == 0 && !HasMore)
-                Message = query.Length > 0 ? $"No mods match \"{query}\"." : "No mods found.";
+                Message = query.Length > 0 ? $"No mods match \"{query}\"{(filter != null ? " with these filters" : "")}."
+                    : filter != null ? "No mods match these filters." : "No mods found.";
         }
         catch (OperationCanceledException) { }
+        catch (AuthorNotFoundException ex)
+        {
+            if (!cancellation.IsCancellationRequested) Message = ex.Message;
+        }
         catch (Exception ex)
         {
             if (!cancellation.IsCancellationRequested) Message = $"Couldn't reach GameBanana: {ex.Message}";
@@ -211,6 +221,7 @@ public partial class MainWindowViewModel : ObservableObject
         card.Status = "Getting the file list...";
         try
         {
+            var profile = GetProfileAsync(modId, cancellation.Token);
             var files = (await client.GetDownloadPage(modId, cancellation.Token))?.Files ?? [];
             if (files.Length == 0)
             {
@@ -249,6 +260,13 @@ public partial class MainWindowViewModel : ObservableObject
                 ProfileUrl = card.ProfileUrl,
                 ImageUrl = card.PreviewUrl,
             };
+            if (await profile is { } details)
+            {
+                // A mod in a root category has no super category, and its own category is the root.
+                metadata.Category = (details.SuperCategory ?? details.Category)?.Name;
+                metadata.Subcategory = details.SuperCategory != null ? details.Category?.Name : null;
+                metadata.Tags = [.. details.Tags.Select(tag => tag.ToString()).Where(tag => tag.Length > 0)];
+            }
             await InstallArchiveAsync(archive, temporary, metadata, card, cancellation.Token);
         }
         catch (OperationCanceledException) { }
@@ -263,6 +281,14 @@ public partial class MainWindowViewModel : ObservableObject
             card.Cancellation = null;
             DeleteTemporaryFolder(temporary);
         }
+    }
+
+    /// <summary>A mod's category and tags for its metadata, or null when GameBanana can't give them, which doesn't stop the install.</summary>
+    private async Task<ModProfile?> GetProfileAsync(int modId, CancellationToken cancellation)
+    {
+        try { return await client.GetProfilePage(modId, cancellation); }
+        // Started before the file is picked, so it's never awaited when the install stops early, and must not throw.
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or Newtonsoft.Json.JsonException) { return null; }
     }
 
     /// <summary>The paths inside a GameBanana file, or null when GameBanana can't list them, in which case the archive is checked once extracted.</summary>

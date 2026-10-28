@@ -73,6 +73,51 @@
     <Style Selector="Border.modCard.off :is(Control).fade">
       <Setter Property="Opacity" Value="0.45" />
     </Style>
+    <!-- The search filters' flyout. -->
+    <Style Selector="TextBlock.filterLabel">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+    </Style>
+    <Style Selector="TextBlock.filterHint">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Foreground" Value="{StaticResource DimText}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.sub">
+      <Setter Property="Margin" Value="16 0 0 0" />
+    </Style>
+    <Style Selector="Border.filterBadge">
+      <Setter Property="Background" Value="{StaticResource WarningText}" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="MinWidth" Value="16" />
+      <Setter Property="Height" Value="16" />
+      <Setter Property="Padding" Value="4 0" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Margin" Value="0 -6 -6 0" />
+    </Style>
+    <Style Selector="Border.filterBadge TextBlock">
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="#2b2b2b" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- A card's author, which lists the author's mods when clicked. -->
+    <Style Selector="Button.author">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Button.author:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.author:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.author:pointerover TextBlock">
+      <Setter Property="TextDecorations" Value="Underline" />
+    </Style>
   </fluent:FAAppWindow.Styles>
 
   <Grid RowDefinitions="32, *">
@@ -151,16 +196,74 @@
 
         <Grid Background="{StaticResource ContentBackground}" RowDefinitions="Auto,Auto,*">
 
-          <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Background="{StaticResource ACNHGreen}">
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" Background="{StaticResource ACNHGreen}">
             <TextBox x:Name="SearchBox" Grid.Column="0" Background="{StaticResource ACNHGreenDark}" Margin="10"
                      Text="{Binding SearchText}" PlaceholderText="{Binding SearchPlaceholder}">
               <TextBox.KeyBindings>
                 <KeyBinding Gesture="Enter" Command="{Binding SearchCommand}" />
               </TextBox.KeyBindings>
             </TextBox>
-            <Button Grid.Column="1" Background="{StaticResource ACNHGreenDark}" Content="Search" Margin="0 10 10 10"
+            <!-- The badge sits outside the button so it can hang over its corner. -->
+            <Panel Grid.Column="1" Margin="0 10 10 10" IsVisible="{Binding IsOnlinePage}">
+              <Button x:Name="FilterButton" Classes="icon" Height="{Binding Bounds.Height, ElementName=SearchBox}" Background="{StaticResource ACNHGreenDark}"
+                      ToolTip.Tip="Filters">
+                <icons:PackIconFontAwesome6 Kind="FilterSolid" />
+                <Button.Flyout>
+                  <Flyout Placement="BottomEdgeAlignedRight" Opened="FilterFlyout_Opened" Closed="FilterFlyout_Closed">
+                    <StackPanel Width="280" Spacing="12">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Filters" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="Clear" Padding="10 3" Command="{Binding ClearFiltersCommand}" IsEnabled="{Binding HasActiveFilters}" />
+                      </Grid>
+
+                      <StackPanel Spacing="4">
+                        <TextBlock Classes="filterLabel" Text="Category" />
+                        <ComboBox HorizontalAlignment="Stretch" MaxDropDownHeight="360"
+                                  ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CategoryOption">
+                              <TextBlock Text="{Binding Name}" Classes.sub="{Binding IsSubcategory}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Classes="filterHint" Text="Loading categories..." IsVisible="{Binding IsLoadingCategories}" />
+                      </StackPanel>
+
+                      <StackPanel Spacing="4">
+                        <TextBlock Classes="filterLabel" Text="Author" />
+                        <TextBox Text="{Binding AuthorFilter}" PlaceholderText="Any author">
+                          <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding ApplyFiltersCommand}" />
+                          </TextBox.KeyBindings>
+                        </TextBox>
+                        <TextBlock Classes="filterHint" Text="A GameBanana member's name. Press Enter to apply." />
+                      </StackPanel>
+
+                      <StackPanel Spacing="4">
+                        <TextBlock Classes="filterLabel" Text="Sort by" />
+                        <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding Sorts}" SelectedItem="{Binding SelectedSort}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SortOption">
+                              <TextBlock Text="{Binding Name}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Classes="filterHint" Text="{Binding SortHint}"
+                                   IsVisible="{Binding SortHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      </StackPanel>
+
+                      <CheckBox Content="Featured mods only" IsChecked="{Binding FeaturedOnly}" />
+                    </StackPanel>
+                  </Flyout>
+                </Button.Flyout>
+              </Button>
+              <Border Classes="filterBadge" IsVisible="{Binding HasActiveFilters}" IsHitTestVisible="False">
+                <TextBlock Text="{Binding ActiveFilterCount}" />
+              </Border>
+            </Panel>
+            <Button Grid.Column="2" Background="{StaticResource ACNHGreenDark}" Content="Search" Margin="0 10 10 10"
                     Command="{Binding SearchCommand}" IsVisible="{Binding IsOnlinePage}"/>
-            <Button Grid.Column="2" Background="{StaticResource ACNHGreenDark}" Margin="0 10 10 10"
+            <Button Grid.Column="3" Background="{StaticResource ACNHGreenDark}" Margin="0 10 10 10"
                     Command="{Binding InstallFromFileCommand}" IsVisible="{Binding IsInstalledPage}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <icons:PackIconFontAwesome6 Kind="FileZipperSolid" Width="12" Height="12" />
@@ -233,8 +336,13 @@
                         <StackPanel Grid.Column="1" Classes="fade" VerticalAlignment="Center" Spacing="2">
                           <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Bold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}"/>
                           <TextBlock Text="{Binding Author, StringFormat='by {0}'}" FontSize="12" Foreground="{StaticResource SecondaryText}"
-                                     IsVisible="{Binding Author, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                     IsVisible="{Binding HasPlainAuthor}"/>
+                          <Button Classes="author" Command="{Binding FilterByAuthorCommand}" IsVisible="{Binding CanFilterByAuthor}"
+                                  ToolTip.Tip="{Binding Author, StringFormat='Show mods by {0}'}">
+                            <TextBlock Text="{Binding Author, StringFormat='by {0}'}" FontSize="12" Foreground="{StaticResource SecondaryText}"/>
+                          </Button>
                           <TextBlock Text="{Binding Details}" FontSize="12" Foreground="{StaticResource DimText}" TextTrimming="CharacterEllipsis"
+                                     ToolTip.Tip="{Binding TagsTip}"
                                      IsVisible="{Binding Details, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                           <StackPanel IsVisible="{Binding IsBusy}" Spacing="2" Margin="0 4 0 0">
                             <ProgressBar Value="{Binding Progress}" Maximum="1" IsIndeterminate="{Binding !IsProgressKnown}" />
