@@ -1,5 +1,6 @@
 ﻿using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
+using System.Collections;
 
 namespace HeavenTool.ModManager.FileTypes;
 
@@ -62,7 +63,8 @@ public sealed class BCSV : ModFile
                         ConsoleUtilities.WriteLine($"[BCSV] Conflict! Two mods tried to add a entry with same Unique Key in {Name} (UniqueHeader: {UniqueHeader:x} | Value {uniqueValue})", ConsoleColor.Red);
                     Additions[uniqueValue] = otherValues;
                 }
-                else if (!otherValues.SequenceEqual(currentValues))
+                // Bit fields are byte arrays, so compare by content rather than by reference.
+                else if (!StructuralComparisons.StructuralEqualityComparer.Equals(otherValues, currentValues))
                 {
                     if (Changes.ContainsKey(uniqueValue))
                         ConsoleUtilities.WriteLine($"[BCSV] Conflict in file {Name} (UniqueHeader: {UniqueHeader:x} | Value {uniqueValue})", ConsoleColor.Yellow);
