@@ -53,6 +53,16 @@ public partial class ModCardViewModel : ObservableObject
     public partial string? Status { get; set; }
     internal CancellationTokenSource? Cancellation { get; set; }
 
+    /// <summary>Whether a library mod is deployed.</summary>
+    [ObservableProperty]
+    public partial bool IsModEnabled { get; set; }
+
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(MoveUpCommand))]
+    public partial bool CanMoveUp { get; set; }
+
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(MoveDownCommand))]
+    public partial bool CanMoveDown { get; set; }
+
     public ModCardViewModel(MainWindowViewModel owner, SubfeedRecord record)
     {
         this.owner = owner;
@@ -95,6 +105,7 @@ public partial class ModCardViewModel : ObservableObject
         ImageUrl = PreviewUrl = mod.ImageUrl;
         ProfileUrl = mod.ProfileUrl;
         IsInstalled = true;
+        IsModEnabled = mod.Enabled;
 
         var details = new List<string>();
         if (!string.IsNullOrEmpty(mod.Variant)) details.Add(mod.Variant);
@@ -112,6 +123,10 @@ public partial class ModCardViewModel : ObservableObject
     [RelayCommand] private Task OpenPage() => owner.OpenPageAsync(this);
     [RelayCommand] private Task OpenFolder() => owner.OpenFolderAsync(this);
     [RelayCommand] private Task Remove() => owner.RemoveAsync(this);
+    [RelayCommand(CanExecute = nameof(CanMoveUp))] private void MoveUp() => owner.Move(this, -1);
+    [RelayCommand(CanExecute = nameof(CanMoveDown))] private void MoveDown() => owner.Move(this, 1);
+
+    partial void OnIsModEnabledChanged(bool value) => owner.SetEnabled(this);
 
     private static string Plural(long count, string noun) =>
         $"{FormatCount(count)} {noun}{(count == 1 ? "" : "s")}";

@@ -7,6 +7,7 @@ using GamebananaFile = GamebananaAPI.Data.GamebananaFile;
 using HeavenTool.Avalonia.Settings;
 using HeavenTool.Avalonia.Views;
 using HeavenTool.Avalonia.Views.FileEditors;
+using HeavenTool.ModManager.Deploy;
 using HeavenTool.ModManager.Library;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,6 +29,7 @@ public partial class MainWindowViewModel : ObservableObject
     private const int GameId = 7923;
 
     private readonly GamebananaClient client = new();
+    private static readonly HttpClient Http = CreateHttpClient();
     // Library installs run one at a time so two never pick the same folder.
     private readonly SemaphoreSlim installLock = new(1, 1);
     private IMainView? view;
@@ -45,6 +48,8 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] private bool hasMore;
     [ObservableProperty] private string? message;
     [ObservableProperty] private string? busyText;
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(DeployCommand))] private bool isDeploying;
+    [ObservableProperty] private string? deployStatus;
 
     public bool IsOnlinePage => Page is ModPage.Trending or ModPage.Recent;
     public bool IsInstalledPage => Page == ModPage.Installed;
@@ -116,6 +121,7 @@ public partial class MainWindowViewModel : ObservableObject
             case ModPage.Installed:
                 foreach (var mod in installed.Where(mod => Matches(mod.Name) || Matches(mod.Author)))
                     Mods.Add(WithState(new ModCardViewModel(this, mod)));
+                UpdateMoveState();
                 if (Mods.Count == 0)
                     Message = filter.Length > 0 ? "No installed mods match." : "No mods installed yet. Install one from Trending or Recent, or from a file.";
                 return;
@@ -175,6 +181,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         foreach (var card in Mods.Where(card => !card.IsLibraryCard))
             card.IsInstalled = card.ModId is { } modId && installed.Any(mod => mod.ModId == modId);
+        UpdateDeployStatus();
     }
 
     private void OnSettingsSaved()
@@ -191,6 +198,7 @@ public partial class MainWindowViewModel : ObservableObject
             showRatedMods = settings.ShowRatedMods;
             if (IsOnlinePage) _ = ReloadAsync();
         }
+        UpdateDeployStatus();
     }
 
     internal async Task InstallAsync(ModCardViewModel card)
@@ -394,6 +402,171 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Message = $"Couldn't save favorites: {ex.Message}"; }
     }
 
+    internal void SetEnabled(ModCardViewModel card)
+    {
+        if (card.Installed is not { } mod) return;
+        var index = IndexOfInstalled(mod);
+        if (index < 0 || installed[index].Enabled == card.IsModEnabled) return;
+        mod.Enabled = installed[index].Enabled = card.IsModEnabled;
+        SaveLoadOrder();
+    }
+
+    /// <summary>Moves a library mod past its neighbour on the page, so a filtered list still moves by one visible card.</summary>
+    internal void Move(ModCardViewModel card, int offset)
+    {
+        var index = Mods.IndexOf(card);
+        var target = index + offset;
+        if (card.Installed is not { } mod || index < 0 || target < 0 || target >= Mods.Count || Mods[target].Installed is not { } neighbour) return;
+        var from = IndexOfInstalled(mod);
+        if (from < 0) return;
+        var moved = installed[from];
+        installed.RemoveAt(from);
+        var at = IndexOfInstalled(neighbour);
+        installed.Insert(offset < 0 ? at : at + 1, moved);
+        Mods.Move(index, target);
+        UpdateMoveState();
+        SaveLoadOrder();
+    }
+
+    // Cards can outlive a reload of the library, so mods are matched by folder rather than by instance.
+    private int IndexOfInstalled(InstalledMod mod) =>
+        installed.FindIndex(other => string.Equals(other.Folder, mod.Folder, StringComparison.OrdinalIgnoreCase));
+
+    private void UpdateMoveState()
+    {
+        for (var i = 0; i < Mods.Count; i++)
+        {
+            Mods[i].CanMoveUp = Mods[i].IsLibraryCard && i > 0;
+            Mods[i].CanMoveDown = Mods[i].IsLibraryCard && i < Mods.Count - 1;
+        }
+    }
+
+    private void SaveLoadOrder()
+    {
+        try { Library.SaveLoadOrder(installed); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Message = $"Couldn't save the load order: {ex.Message}"; }
+        UpdateDeployStatus();
+    }
+
+    private bool CanDeploy() => !IsDeploying;
+
+    [RelayCommand(CanExecute = nameof(CanDeploy))]
+    private async Task Deploy()
+    {
+        if (view == null) return;
+        var settings = AppSettings.Current;
+        if (string.IsNullOrWhiteSpace(settings.ModFolder))
+        {
+            if (await view.ConfirmAsync("Choose where to deploy", "Heaven Tool deploys mods into your emulator's mod folder for Animal Crossing. Choose it in Settings first.", "Open Settings"))
+                OpenSettings();
+            return;
+        }
+
+        IsDeploying = true;
+        BusyText = "Deploying...";
+        var enabled = installed.Where(mod => mod.Enabled).ToList();
+        try
+        {
+            var warnings = new List<string>();
+            string? skyline = null;
+            if (settings.InstallSkyline && enabled.Count > 0)
+            {
+                BusyText = "Getting Skyline...";
+                try { skyline = await Skyline.GetExefsAsync(Path.Combine(AppSettings.Folder, "Skyline"), Http); }
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException)
+                {
+                    warnings.Add($"Skyline couldn't be downloaded, so it wasn't deployed, and mods that need it won't load: {ex.Message}");
+                }
+            }
+
+            var deployer = new ModDeployer
+            {
+                ModFolder = settings.ModFolder,
+                FolderName = AppSettings.DeployFolderName,
+                VanillaRomfs = GameFiles.FindRomfs(settings.RomfsFolder),
+                SkylineExefs = skyline,
+            };
+            var progress = new Progress<string>(text => { if (IsDeploying) BusyText = text; });
+            // Installs move library folders, so they wait for the deploy to finish reading them.
+            await installLock.WaitAsync();
+            DeployResult result;
+            try { result = await Task.Run(() => deployer.Deploy(enabled, progress)); }
+            finally { installLock.Release(); }
+            result.Warnings.InsertRange(0, warnings);
+            IsDeploying = false;
+            BusyText = null;
+            UpdateDeployStatus();
+            await view.ShowMessageAsync(enabled.Count > 0 ? "Mods deployed" : "Nothing deployed", DescribeDeploy(result));
+        }
+        catch (Exception ex)
+        {
+            IsDeploying = false;
+            BusyText = null;
+            await view.ShowMessageAsync("Couldn't deploy", ex is IOException
+                ? $"{ex.Message}\n\nIf the emulator is running the game, close it and deploy again."
+                : ex.Message);
+        }
+        finally
+        {
+            IsDeploying = false;
+            BusyText = null;
+            UpdateDeployStatus();
+        }
+    }
+
+    private static string DescribeDeploy(DeployResult result)
+    {
+        const int listed = 12;
+        var text = new StringBuilder();
+        if (result.ModCount == 0)
+            text.Append($"No mods are turned on, so nothing is deployed to {result.Target} now.");
+        else
+        {
+            text.Append($"{result.ModCount} mod{(result.ModCount == 1 ? "" : "s")} ({result.FileCount:N0} files) deployed to {result.Target}.");
+            if (result.SkylineInstalled) text.Append(" Skyline is included.");
+            if (result.ResourceSizeTableUpdated) text.Append(" The resource size table was updated to fit them.");
+        }
+
+        if (result.MergedFiles.Count > 0)
+        {
+            text.Append($"\n\nMerged {result.MergedFiles.Count} file{(result.MergedFiles.Count == 1 ? "" : "s")} that several mods change:");
+            foreach (var file in result.MergedFiles.Take(listed)) text.Append($"\n• {file}");
+            if (result.MergedFiles.Count > listed) text.Append($"\n• ...and {result.MergedFiles.Count - listed} more");
+        }
+        if (result.Conflicts.Count > 0)
+        {
+            text.Append($"\n\n{result.Conflicts.Count} file{(result.Conflicts.Count == 1 ? "" : "s")} couldn't be merged, so the mod higher in the list wins:");
+            foreach (var conflict in result.Conflicts.Take(listed))
+                text.Append($"\n• {conflict.Path}: {conflict.Winner} over {string.Join(", ", conflict.Overwritten.Distinct())}");
+            if (result.Conflicts.Count > listed) text.Append($"\n• ...and {result.Conflicts.Count - listed} more");
+        }
+        foreach (var warning in result.Warnings) text.Append($"\n\n{warning}");
+        return text.ToString();
+    }
+
+    /// <summary>Compares what was last deployed with the library's enabled mods, for the line under the Deploy button.</summary>
+    private void UpdateDeployStatus()
+    {
+        var settings = AppSettings.Current;
+        if (string.IsNullOrWhiteSpace(settings.ModFolder))
+        {
+            DeployStatus = "Choose a mod folder in Settings";
+            return;
+        }
+        var enabled = installed.Where(mod => mod.Enabled).ToList();
+        var marker = ModDeployer.ReadMarker(Path.Combine(settings.ModFolder, AppSettings.DeployFolderName));
+        DeployStatus = marker == null
+            ? enabled.Count == 0 ? "No mods turned on" : "Not deployed yet"
+            : marker.Matches(enabled, settings.InstallSkyline) ? "Up to date" : "Changes not deployed";
+    }
+
+    private static HttpClient CreateHttpClient()
+    {
+        var http = new HttpClient();
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("HeavenTool");
+        return http;
+    }
+
     internal async Task OpenPageAsync(ModCardViewModel card)
     {
         if (view == null || !Uri.TryCreate(card.ProfileUrl, UriKind.Absolute, out var uri)) return;
@@ -414,12 +587,15 @@ public partial class MainWindowViewModel : ObservableObject
         {
             await Task.Run(() => ModLibrary.Remove(mod));
             Mods.Remove(card);
+            UpdateMoveState();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             await view.ShowMessageAsync($"Couldn't remove {mod.Name}", ex.Message);
         }
         LoadInstalled();
+        // Drop it from the load order, so a mod installed later in a folder of the same name starts fresh.
+        SaveLoadOrder();
         if (Mods.Count == 0 && IsInstalledPage) await ReloadAsync();
     }
 

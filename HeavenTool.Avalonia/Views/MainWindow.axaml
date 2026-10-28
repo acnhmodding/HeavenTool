@@ -38,6 +38,41 @@
       <Setter Property="Width" Value="14" />
       <Setter Property="Height" Value="14" />
     </Style>
+    <Style Selector="Button.deploy">
+      <Setter Property="Background" Value="{StaticResource ACNHGreen}" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Height" Value="38" />
+    </Style>
+    <Style Selector="Button.deploy:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource ACNHGreenDark}" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.deploy:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource ACNHGreenDark}" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.deploy:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{StaticResource ACNHGreenDark}" />
+      <Setter Property="Foreground" Value="#B0FFFFFF" />
+    </Style>
+    <!-- The load order arrows on library cards. -->
+    <Style Selector="Button.order">
+      <Setter Property="Width" Value="26" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.order icons|PackIconFontAwesome6">
+      <Setter Property="Width" Value="11" />
+      <Setter Property="Height" Value="11" />
+    </Style>
+    <!-- A library mod that is turned off fades, except for its buttons. -->
+    <Style Selector="Border.modCard.off :is(Control).fade">
+      <Setter Property="Opacity" Value="0.45" />
+    </Style>
   </fluent:FAAppWindow.Styles>
 
   <Grid RowDefinitions="32, *">
@@ -55,7 +90,7 @@
                DisplayMode="CompactInline">
 
       <SplitView.Pane>
-        <Grid VerticalAlignment="Stretch" Margin="10" RowDefinitions="Auto,Auto,*,Auto,Auto">
+        <Grid VerticalAlignment="Stretch" Margin="10" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
           <!-- In the order of ModPage. -->
           <ListBox Grid.Row="0" VerticalAlignment="Stretch" SelectedIndex="{Binding PageIndex}">
             <ListBoxItem>
@@ -87,15 +122,27 @@
             </ListBoxItem>
           </ListBox>
 
-          <Separator Grid.Row="1" Margin="0,10"/>
-          <StackPanel Grid.Row="2" Spacing="5">
+          <StackPanel Grid.Row="1" Spacing="4" Margin="0 10 0 0">
+            <Button Classes="deploy" HorizontalAlignment="Stretch" Command="{Binding DeployCommand}"
+                    ToolTip.Tip="Copy the turned on mods into the emulator's mod folder, merging the files they share">
+              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                <icons:PackIconFontAwesome6 Kind="RocketSolid" Width="14" Height="14" VerticalAlignment="Center" />
+                <TextBlock Text="Deploy" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <TextBlock Text="{Binding DeployStatus}" FontSize="11" Foreground="{StaticResource DimText}" HorizontalAlignment="Center"
+                       TextWrapping="Wrap" TextAlignment="Center" />
+          </StackPanel>
+
+          <Separator Grid.Row="2" Margin="0,10"/>
+          <StackPanel Grid.Row="3" Spacing="5">
             <TextBlock HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold">Modding Tools</TextBlock>
             <Button HorizontalAlignment="Stretch" Command="{Binding OpenBCSV}">BCSV Editor</Button>
             <Button HorizontalAlignment="Stretch" Command="{Binding OpenBFRES}">BFRES Viewer</Button>
           </StackPanel>
 
-          <Separator Grid.Row="3" Margin="0,10"/>
-          <Button Grid.Row="4" Content="Settings" HorizontalAlignment="Stretch" Command="{Binding OpenSettings}"/>
+          <Separator Grid.Row="4" Margin="0,10"/>
+          <Button Grid.Row="5" Content="Settings" HorizontalAlignment="Stretch" Command="{Binding OpenSettings}"/>
         </Grid>
       </SplitView.Pane>
 
@@ -131,6 +178,15 @@
 
           <ScrollViewer Grid.Row="2" x:Name="ModScroller">
             <StackPanel Margin="10">
+              <TextBlock Text="Mods higher in the list win when two change the same file. Turn a mod off to leave it out of the next deploy."
+                         FontSize="12" Foreground="{StaticResource DimText}" TextWrapping="Wrap" Margin="2 0 0 8">
+                <TextBlock.IsVisible>
+                  <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="IsInstalledPage"/>
+                    <Binding Path="Message" Converter="{x:Static StringConverters.IsNullOrEmpty}"/>
+                  </MultiBinding>
+                </TextBlock.IsVisible>
+              </TextBlock>
               <ItemsControl ItemsSource="{Binding Mods}">
                 <!-- Only the cards in view are built, so a long feed doesn't keep every card and thumbnail alive. -->
                 <ItemsControl.ItemsPanel>
@@ -140,30 +196,41 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:ModCardViewModel">
-                    <Border Classes="modCard">
+                    <Border Classes="modCard" Classes.off="{Binding !IsModEnabled}">
                       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
 
-                        <Border Grid.Column="0" Width="96" Height="64" CornerRadius="4" ClipToBounds="True"
-                                Background="{StaticResource PanelBackground}" VerticalAlignment="Center">
-                          <Panel>
-                            <icons:PackIconFontAwesome6 Kind="ImageRegular" Width="20" Height="20" Foreground="{StaticResource DimText}"
-                                                        HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasImage}" />
-                            <Image asyncImageLoader:ImageLoader.Source="{Binding ImageUrl}" Stretch="UniformToFill" IsVisible="{Binding HasImage}">
-                              <ToolTip.Tip>
-                                <!-- Wider than the theme's tooltips, and sized up front so it isn't blank while the image loads. -->
-                                <ToolTip MaxWidth="560" Padding="4">
-                                  <Panel Width="530" Height="298">
-                                    <TextBlock Text="Loading preview..." Foreground="{StaticResource DimText}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                               IsVisible="{Binding #PreviewImage.(asyncImageLoader:ImageLoader.IsLoading)}" />
-                                    <Image x:Name="PreviewImage" asyncImageLoader:ImageLoader.Source="{Binding PreviewUrl}" Stretch="Uniform" />
-                                  </Panel>
-                                </ToolTip>
-                              </ToolTip.Tip>
-                            </Image>
-                          </Panel>
-                        </Border>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                          <StackPanel VerticalAlignment="Center" Margin="0 0 8 0" IsVisible="{Binding IsLibraryCard}">
+                            <Button Classes="order" Command="{Binding MoveUpCommand}" ToolTip.Tip="Higher priority">
+                              <icons:PackIconFontAwesome6 Kind="ChevronUpSolid" />
+                            </Button>
+                            <Button Classes="order" Command="{Binding MoveDownCommand}" ToolTip.Tip="Lower priority">
+                              <icons:PackIconFontAwesome6 Kind="ChevronDownSolid" />
+                            </Button>
+                          </StackPanel>
 
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                          <Border Classes="fade" Width="96" Height="64" CornerRadius="4" ClipToBounds="True"
+                                  Background="{StaticResource PanelBackground}" VerticalAlignment="Center">
+                            <Panel>
+                              <icons:PackIconFontAwesome6 Kind="ImageRegular" Width="20" Height="20" Foreground="{StaticResource DimText}"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasImage}" />
+                              <Image asyncImageLoader:ImageLoader.Source="{Binding ImageUrl}" Stretch="UniformToFill" IsVisible="{Binding HasImage}">
+                                <ToolTip.Tip>
+                                  <!-- Wider than the theme's tooltips, and sized up front so it isn't blank while the image loads. -->
+                                  <ToolTip MaxWidth="560" Padding="4">
+                                    <Panel Width="530" Height="298">
+                                      <TextBlock Text="Loading preview..." Foreground="{StaticResource DimText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                 IsVisible="{Binding #PreviewImage.(asyncImageLoader:ImageLoader.IsLoading)}" />
+                                      <Image x:Name="PreviewImage" asyncImageLoader:ImageLoader.Source="{Binding PreviewUrl}" Stretch="Uniform" />
+                                    </Panel>
+                                  </ToolTip>
+                                </ToolTip.Tip>
+                              </Image>
+                            </Panel>
+                          </Border>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Classes="fade" VerticalAlignment="Center" Spacing="2">
                           <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Bold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}"/>
                           <TextBlock Text="{Binding Author, StringFormat='by {0}'}" FontSize="12" Foreground="{StaticResource SecondaryText}"
                                      IsVisible="{Binding Author, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
@@ -176,6 +243,8 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
+                          <ToggleSwitch IsChecked="{Binding IsModEnabled}" IsVisible="{Binding IsLibraryCard}" OnContent="" OffContent="" MinWidth="0"
+                                        ToolTip.Tip="{Binding IsModEnabled, Converter={x:Static views:MainWindow.EnabledTip}}" />
                           <Button Classes="icon" Command="{Binding ToggleFavoriteCommand}" IsVisible="{Binding CanFavorite}"
                                   ToolTip.Tip="{Binding IsFavorite, Converter={x:Static views:MainWindow.FavoriteTip}}">
                             <icons:PackIconFontAwesome6 Kind="{Binding IsFavorite, Converter={x:Static views:MainWindow.FavoriteIcon}}"

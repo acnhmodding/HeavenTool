@@ -25,6 +25,8 @@ namespace HeavenTool.Avalonia.Views
             new(favorite => App.Brush(favorite ? "WarningText" : "SecondaryText"));
         public static readonly FuncValueConverter<bool, string> FavoriteTip =
             new(favorite => favorite ? "Remove from favorites" : "Add to favorites");
+        public static readonly FuncValueConverter<bool, string> EnabledTip =
+            new(enabled => enabled ? "Deployed. Turn off to leave it out of the next deploy" : "Not deployed. Turn on to include it in the next deploy");
 
         private static readonly FuncDataTemplate<Choice> ChoiceTemplate = new((choice, _) => ChoiceView(choice));
 
@@ -160,7 +162,12 @@ namespace HeavenTool.Avalonia.Views
         public Task ShowMessageAsync(string title, string message) => ShowDialogAsync(new FAContentDialog
         {
             Title = title,
-            Content = new SelectableTextBlock { Text = message, TextWrapping = TextWrapping.Wrap, MaxWidth = 460 },
+            // Long messages, like a deploy's list of conflicts, scroll.
+            Content = new ScrollViewer
+            {
+                MaxHeight = 420,
+                Content = new SelectableTextBlock { Text = message, TextWrapping = TextWrapping.Wrap, MaxWidth = 460, Margin = new Thickness(0, 0, 14, 0) },
+            },
             CloseButtonText = "OK",
             DefaultButton = FAContentDialogButton.Close,
         });
