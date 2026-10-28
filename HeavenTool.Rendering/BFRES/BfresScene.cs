@@ -13,11 +13,16 @@ public sealed record BfresScene(IReadOnlyList<BfresAsset> Assets, BfresRenderer.
         return new(assets, BfresRenderer.PrepareScene(meshes, cancellation));
     }
 
+    /// <summary>The material archive of the romfs a model was opened from.</summary>
     public static string? FindShaderArchive(string modelPath)
     {
         string? parent = Directory.GetParent(Path.GetDirectoryName(Path.GetFullPath(modelPath))!)?.FullName;
-        if (parent == null) return null;
-        string path = Path.Combine(parent, "Shader", "Park_UBER_All.Nin_NX_NVN.szs");
+        return parent == null ? null : FindRomfsShaderArchive(parent);
+    }
+
+    public static string? FindRomfsShaderArchive(string romfs)
+    {
+        string path = Path.Combine(romfs, "Shader", "Park_UBER_All.Nin_NX_NVN.szs");
         return File.Exists(path) ? path : null;
     }
 

@@ -2,6 +2,7 @@ using Avalonia.Data;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using HeavenTool.Avalonia.Settings;
 using HeavenTool.IO.FileFormats.BFRES;
 using HeavenTool.Rendering.BFRES;
 using HeavenTool.Shaders;
@@ -20,11 +21,11 @@ public partial class BfresViewModel : ObservableObject, IDisposable
 {
     private readonly BfresRenderer renderer;
     private readonly IStorageProvider storage;
-    // Models and game materials load independently, as in the WinForms viewer.
-    private CancellationTokenSource? loading, shaderLoading;
+    private CancellationTokenSource? loading;
     private bool disposed;
+    // Game materials load with each model, from the romfs in Settings or the model's own.
     private SwitchShaderArchive? shaderArchive;
-    private int shaderRequestVersion;
+    private string? shaderArchivePath;
     private IReadOnlyList<BfresAsset> assets = [];
     private string sourceName = "";
     private string[] modelWarnings = [], shaderWarnings = [];
@@ -167,22 +168,21 @@ public partial class BfresViewModel : ObservableObject, IDisposable
             UpdateWarning();
             UpdateTitle();
             // The model is already showing, so a broken material archive must not fail the load.
-            int shaderVersion = shaderRequestVersion;
             try
             {
-                if (shaderArchive == null && shaderLoading == null && path != null && BfresScene.FindShaderArchive(path) is { } shaderPath)
+                // Without an archive for this model, the last one found keeps applying.
+                if (FindShaderArchive(path) is { } shaderPath && shaderPath != shaderArchivePath)
                 {
+                    Status = "Loading game materials...";
                     var archive = await Task.Run(() => SwitchShaderArchive.Load(shaderPath), request.Token);
                     request.Token.ThrowIfCancellationRequested();
-                    // A manually selected archive takes precedence over auto-discovery.
-                    if (shaderVersion == shaderRequestVersion) shaderArchive = archive;
+                    (shaderArchive, shaderArchivePath) = (archive, shaderPath);
                 }
-                if (shaderLoading == null) await PrepareShadersAsync(request.Token);
+                await PrepareShadersAsync(request.Token);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                if (!request.IsCancellationRequested && shaderVersion == shaderRequestVersion)
-                    Error = $"Could not load game materials: {ex.Message}";
+                if (!request.IsCancellationRequested) Error = $"Could not load game materials: {ex.Message}";
             }
             request.Token.ThrowIfCancellationRequested();
             UpdateStatus();
@@ -192,43 +192,10 @@ public partial class BfresViewModel : ObservableObject, IDisposable
         finally { EndRequest(ref loading, request); }
     }
 
-    [RelayCommand]
-    private async Task LoadShaders()
-    {
-        try
-        {
-            var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-            {
-                Title = "Load game materials",
-                FileTypeFilter = [new("Game material files") { Patterns = ["*.bfsha", "*.szs", "*.sarc"] }, FilePickerFileTypes.All]
-            });
-            if (files.Count == 0) return;
-            if (files[0].TryGetLocalPath() is not { } path) { Error = "Select a shader archive on the local file system."; return; }
-            await LoadShaderArchiveAsync(path);
-        }
-        catch (Exception ex) { Error = ex.Message; }
-    }
-
-    public async Task LoadShaderArchiveAsync(string path)
-    {
-        var request = BeginRequest(ref shaderLoading, "Loading game materials...");
-        shaderRequestVersion++;
-        try
-        {
-            var archive = await Task.Run(() => SwitchShaderArchive.Load(path), request.Token);
-            request.Token.ThrowIfCancellationRequested();
-            shaderArchive = archive;
-            await PrepareShadersAsync(request.Token);
-            request.Token.ThrowIfCancellationRequested();
-            // A model still loading reports its own status when it finishes.
-            if (loading != null) return;
-            if (IsLoaded) UpdateStatus();
-            else Status = "Game materials loaded. Open a model to use them.";
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex) { if (!request.IsCancellationRequested) { Error = ex.Message; Status = "Could not load game materials."; } }
-        finally { EndRequest(ref shaderLoading, request); }
-    }
+    // The romfs from Settings comes first, then the romfs the model was opened from.
+    private static string? FindShaderArchive(string? modelPath) =>
+        (GameFiles.FindRomfs(AppSettings.Current.RomfsFolder) is { } romfs ? BfresScene.FindRomfsShaderArchive(romfs) : null)
+        ?? (modelPath != null ? BfresScene.FindShaderArchive(modelPath) : null);
 
     private async Task PrepareShadersAsync(CancellationToken cancellation)
     {
@@ -236,11 +203,10 @@ public partial class BfresViewModel : ObservableObject, IDisposable
         Status = "Preparing game materials...";
         var snapshot = assets;
         var archive = shaderArchive;
-        int version = shaderRequestVersion;
         var prepared = await Task.Run(() => BfresScene.PrepareShaders(snapshot, archive, cancellation), cancellation);
         cancellation.ThrowIfCancellationRequested();
         // A model opened in the meantime prepares its own materials.
-        if (disposed || !ReferenceEquals(snapshot, assets) || !ReferenceEquals(archive, shaderArchive) || version != shaderRequestVersion) return;
+        if (disposed || !ReferenceEquals(snapshot, assets) || !ReferenceEquals(archive, shaderArchive)) return;
         renderer.SetNativeShaders(prepared.Programs);
         shaderWarnings = prepared.Errors.Select(p => $"{p.Key.Name}: {p.Value}").ToArray();
         UpdateWarning();
@@ -263,7 +229,7 @@ public partial class BfresViewModel : ObservableObject, IDisposable
     private void EndRequest(ref CancellationTokenSource? slot, CancellationTokenSource request)
     {
         if (ReferenceEquals(slot, request)) slot = null;
-        IsBusy = loading != null || shaderLoading != null;
+        IsBusy = loading != null;
         request.Dispose();
     }
 
@@ -384,7 +350,6 @@ public partial class BfresViewModel : ObservableObject, IDisposable
     {
         disposed = true;
         loading?.Cancel();
-        shaderLoading?.Cancel();
         renderer.DrawStatusChanged -= OnRendered;
         renderer.BonePicked -= OnBonePicked;
         renderer.NativeShaderWarningsChanged -= UpdateWarning;
