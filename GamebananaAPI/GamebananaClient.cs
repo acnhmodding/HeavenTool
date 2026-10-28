@@ -1,4 +1,5 @@
-﻿using GamebananaAPI.Data.Subfeed;
+﻿using GamebananaAPI.Data;
+using GamebananaAPI.Data.Subfeed;
 using System.Text.RegularExpressions;
 
 namespace GamebananaAPI;
@@ -14,6 +15,36 @@ public partial class GamebananaClient
         {
             BaseAddress = new Uri(BASE_URL)
         };
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("HeavenTool");
+    }
+
+    /// <summary>
+    /// Get the files a submission offers for download
+    /// </summary>
+    public async Task<DownloadPage?> GetDownloadPage(int modId, CancellationToken cancellation = default)
+    {
+        var response = await _httpClient.GetStringAsync($"Mod/{modId}/DownloadPage", cancellation);
+        return DownloadPage.FromJson(response);
+    }
+
+    /// <summary>
+    /// Download a file, reporting the bytes received so far
+    /// </summary>
+    public async Task DownloadFile(GamebananaFile file, Stream destination, IProgress<long>? progress = null, CancellationToken cancellation = default)
+    {
+        if (file.DownloadUrl == null) throw new InvalidOperationException($"{file.FileName} has no download link.");
+        using var response = await _httpClient.GetAsync(file.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellation);
+        response.EnsureSuccessStatusCode();
+        await using var source = await response.Content.ReadAsStreamAsync(cancellation);
+        var buffer = new byte[81920];
+        long total = 0;
+        int read;
+        while ((read = await source.ReadAsync(buffer, cancellation)) > 0)
+        {
+            await destination.WriteAsync(buffer.AsMemory(0, read), cancellation);
+            total += read;
+            progress?.Report(total);
+        }
     }
 
     /// <summary>
@@ -28,7 +59,7 @@ public partial class GamebananaClient
         return result;
     }
 
-    public async Task<Subfeed?> GetSubfeed(int gameId, int page = 1, SortType sortMode = SortType.New, Category category = Category.Mod, string query = "")
+    public async Task<Subfeed?> GetSubfeed(int gameId, int page = 1, SortType sortMode = SortType.New, Category category = Category.Mod, string query = "", CancellationToken cancellation = default)
     {
         var queryString = System.Web.HttpUtility.ParseQueryString(string.Empty);
         var sortString = sortMode.ToString().ToLower();
@@ -45,7 +76,7 @@ public partial class GamebananaClient
 
         var url = $"Game/{gameId}/Subfeed?{queryString}";
 
-        var response = await _httpClient.GetStringAsync(url);
+        var response = await _httpClient.GetStringAsync(url, cancellation);
 
         return Subfeed.FromJson(response);
     }

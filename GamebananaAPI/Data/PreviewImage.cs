@@ -13,8 +13,7 @@ public class PreviewImage
     [JsonProperty("_sFile")]
     public string? File { get; set; }
 
-    // Todo: Convert this to ImageData
-    // with URL, Width, Height
-    // use some regex stuff or JsonConverters
-    // _sFile220 | _hFile220 | _wFile220
+    /// <summary>A 220 pixel wide thumbnail of <see cref="File"/>.</summary>
+    [JsonProperty("_sFile220")]
+    public string? File220 { get; set; }
 }
