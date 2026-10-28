@@ -177,15 +177,10 @@
                           <Button Classes="icon" Command="{Binding RemoveCommand}" IsVisible="{Binding IsLibraryCard}" ToolTip.Tip="Remove">
                             <icons:PackIconFontAwesome6 Kind="TrashCanSolid" />
                           </Button>
-                          <Panel IsVisible="{Binding CanInstall}">
-                            <Button Height="34" MinWidth="96" Command="{Binding InstallCommand}" IsVisible="{Binding !IsBusy}">
-                              <StackPanel Orientation="Horizontal" Spacing="6">
-                                <icons:PackIconFontAwesome6 Kind="DownloadSolid" Width="12" Height="12" />
-                                <TextBlock Text="{Binding InstallText}" />
-                              </StackPanel>
-                            </Button>
-                            <Button Height="34" MinWidth="96" Command="{Binding CancelInstallCommand}" IsVisible="{Binding IsBusy}" Content="Cancel" />
-                          </Panel>
+                          <Button Classes="icon" Command="{Binding InstallCommand}" IsVisible="{Binding CanInstall}">
+                            <icons:PackIconFontAwesome6 Kind="{Binding InstallIcon}" />
+                          </Button>
+                          <Button Command="{Binding CancelInstallCommand}" IsVisible="{Binding CanCancel}" Content="Cancel" />
                         </StackPanel>
                       </Grid>
                     </Border>

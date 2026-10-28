@@ -29,18 +29,28 @@ public partial class ModCardViewModel : ObservableObject
 
     public bool HasImage => ImageUrl != null;
     public bool CanFavorite => ModId != null;
-    public bool CanInstall => ModId != null && Installed == null;
+    public bool CanInstall => ModId != null && Installed == null && !IsBusy;
+    public bool CanCancel => ModId != null && Installed == null && IsBusy;
     public bool CanOpenPage => ProfileUrl != null;
     public bool IsLibraryCard => Installed != null;
-    public string InstallText => IsInstalled ? "Reinstall" : "Install";
+    public string InstallIcon => IsInstalled ? "RotateSolid" : "DownloadSolid";
 
-    [ObservableProperty] private bool isFavorite;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(InstallText))] private bool isInstalled;
-    [ObservableProperty] private bool isBusy;
-    [ObservableProperty] private bool isProgressKnown;
-    [ObservableProperty] private double progress;
-    [ObservableProperty] private string? status;
+    [ObservableProperty]
+    public partial bool IsFavorite { get; set; }
 
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(InstallIcon))]
+    public partial bool IsInstalled { get; set; }
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCancel), nameof(CanInstall))]
+    public partial bool IsBusy { get; set; }
+    [ObservableProperty]
+    public partial bool IsProgressKnown { get; set; }
+
+    [ObservableProperty]
+    public partial double Progress { get; set; }
+
+    [ObservableProperty]
+    public partial string? Status { get; set; }
     internal CancellationTokenSource? Cancellation { get; set; }
 
     public ModCardViewModel(MainWindowViewModel owner, SubfeedRecord record)
@@ -83,7 +93,7 @@ public partial class ModCardViewModel : ObservableObject
         Author = mod.Author;
         ImageUrl = PreviewUrl = mod.ImageUrl;
         ProfileUrl = mod.ProfileUrl;
-        isInstalled = true;
+        IsInstalled = true;
 
         var details = new List<string>();
         if (!string.IsNullOrEmpty(mod.Variant)) details.Add(mod.Variant);
