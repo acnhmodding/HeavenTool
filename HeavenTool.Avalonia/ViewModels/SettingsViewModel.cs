@@ -39,6 +39,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string libraryFolder;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(RstbFixOff))] private bool installSkyline;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(RstbFixOff))] private bool installAutoRstb;
+    [ObservableProperty] private bool showRatedMods;
     [ObservableProperty] private string romfsFolder;
     [ObservableProperty] private SettingStatus romfsStatus = null!;
     [ObservableProperty] private string? error;
@@ -53,6 +54,7 @@ public partial class SettingsViewModel : ObservableObject
         libraryFolder = settings.LibraryFolder;
         installSkyline = settings.InstallSkyline;
         installAutoRstb = settings.InstallAutoRstb;
+        showRatedMods = settings.ShowRatedMods;
         romfsFolder = settings.RomfsFolder ?? "";
         saveTimer.Tick += (_, _) => Save();
         UpdateModFolder();
@@ -87,6 +89,12 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnInstallAutoRstbChanged(bool value)
     {
         settings.InstallAutoRstb = value;
+        QueueSave();
+    }
+
+    partial void OnShowRatedModsChanged(bool value)
+    {
+        settings.ShowRatedMods = value;
         QueueSave();
     }
 

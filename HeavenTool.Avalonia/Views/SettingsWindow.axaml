@@ -189,6 +189,24 @@
             </Border>
 
             <StackPanel Classes="section">
+              <icons:PackIconFontAwesome6 Kind="GlobeSolid" />
+              <TextBlock Text="GameBanana" />
+            </StackPanel>
+            <Border Classes="card">
+              <StackPanel>
+                <Border>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Classes="title" Text="Show mods with content ratings" />
+                      <TextBlock Classes="description" Text="Lists mods their authors marked as having mature content." />
+                    </StackPanel>
+                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowRatedMods}" OnContent="On" OffContent="Off" VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+              </StackPanel>
+            </Border>
+
+            <StackPanel Classes="section">
               <icons:PackIconFontAwesome6 Kind="PlugSolid" />
               <TextBlock Text="Skyline" />
             </StackPanel>

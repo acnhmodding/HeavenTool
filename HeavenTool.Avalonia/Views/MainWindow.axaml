@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:HeavenTool.Avalonia.ViewModels;assembly=HeavenTool.Avalonia"
+        xmlns:views="clr-namespace:HeavenTool.Avalonia.Views"
         xmlns:app="clr-namespace:HeavenTool.Avalonia;assembly=HeavenTool.Avalonia"
         mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="600"
         xmlns:fluent="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
@@ -18,6 +19,27 @@
     <vm:MainWindowViewModel/>
   </Design.DataContext>
 
+  <fluent:FAAppWindow.Styles>
+    <Style Selector="Border.modCard">
+      <Setter Property="Background" Value="{StaticResource CardBackground}" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="Margin" Value="0 0 0 6" />
+    </Style>
+    <!-- Small square icon buttons on a card. -->
+    <Style Selector="Button.icon">
+      <Setter Property="Width" Value="34" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.icon icons|PackIconFontAwesome6">
+      <Setter Property="Width" Value="14" />
+      <Setter Property="Height" Value="14" />
+    </Style>
+  </fluent:FAAppWindow.Styles>
+
   <Grid RowDefinitions="32, *">
     <DockPanel Grid.Row="0" Background="{StaticResource TitleBarBackground}"
                WindowDecorationProperties.ElementRole="TitleBar">
@@ -25,17 +47,18 @@
       <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Margin="0 0 0 0" Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
       <TextBlock Text="{x:Static app:App.DisplayVersion}" Margin="5 0 0 0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource DimText}"/>
     </DockPanel>
-    
-    <SplitView IsPaneOpen="True" 
-               OpenPaneLength="200" 
-               CompactPaneLength="48" 
-               Grid.Row="1" 
+
+    <SplitView IsPaneOpen="True"
+               OpenPaneLength="200"
+               CompactPaneLength="48"
+               Grid.Row="1"
                DisplayMode="CompactInline">
-        
+
       <SplitView.Pane>
         <Grid VerticalAlignment="Stretch" Margin="10" RowDefinitions="Auto,Auto,*,Auto,Auto">
-          <ListBox Grid.Row="0" VerticalAlignment="Stretch">
-            <ListBoxItem IsSelected="true">
+          <!-- In the order of ModPage. -->
+          <ListBox Grid.Row="0" VerticalAlignment="Stretch" SelectedIndex="{Binding PageIndex}">
+            <ListBoxItem>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                 <icons:PackIconFontAwesome6 Kind="FireSolid" Width="20" Height="20" />
                 <TextBlock Text="Trending" Margin="10 0"/>
@@ -61,12 +84,9 @@
                 <icons:PackIconFontAwesome6 Kind="DownloadSolid" Width="20" Height="20" />
                 <TextBlock Text="Installed" Margin="10 0"/>
               </StackPanel>
-              
             </ListBoxItem>
           </ListBox>
 
-      
-          
           <Separator Grid.Row="1" Margin="0,10"/>
           <StackPanel Grid.Row="2" Spacing="5">
             <TextBlock HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold">Modding Tools</TextBlock>
@@ -81,61 +101,111 @@
 
 
       <SplitView.Content>
-          
-        <Grid Background="{StaticResource ContentBackground}" RowDefinitions="Auto,*">
 
-          <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Background="{StaticResource ACNHGreen}">
-            <TextBox Grid.Column="0" Background="{StaticResource ACNHGreenDark}" Margin="10" PlaceholderText="Search..."/>
-            <Button Grid.Column="1"  Background="{StaticResource ACNHGreenDark}" Content="Search" Margin="0 10 10 10"/>
+        <Grid Background="{StaticResource ContentBackground}" RowDefinitions="Auto,Auto,*">
+
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Background="{StaticResource ACNHGreen}">
+            <TextBox x:Name="SearchBox" Grid.Column="0" Background="{StaticResource ACNHGreenDark}" Margin="10"
+                     Text="{Binding SearchText}" PlaceholderText="{Binding SearchPlaceholder}">
+              <TextBox.KeyBindings>
+                <KeyBinding Gesture="Enter" Command="{Binding SearchCommand}" />
+              </TextBox.KeyBindings>
+            </TextBox>
+            <Button Grid.Column="1" Background="{StaticResource ACNHGreenDark}" Content="Search" Margin="0 10 10 10"
+                    Command="{Binding SearchCommand}" IsVisible="{Binding IsOnlinePage}"/>
+            <Button Grid.Column="2" Background="{StaticResource ACNHGreenDark}" Margin="0 10 10 10"
+                    Command="{Binding InstallFromFileCommand}" IsVisible="{Binding IsInstalledPage}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <icons:PackIconFontAwesome6 Kind="FileZipperSolid" Width="12" Height="12" />
+                <TextBlock Text="Install from file..." />
+              </StackPanel>
+            </Button>
           </Grid>
 
-          <ListBox Grid.Row="1" Padding="10" ItemsSource="{Binding ModItems}" ScrollViewer.VerticalScrollBarVisibility="Auto">
-            <ListBox.ItemTemplate>
-              <DataTemplate>
-                <Grid Margin="5" HorizontalAlignment="Stretch" ColumnDefinitions="Auto,*,Auto">
+          <Border Grid.Row="1" Background="{StaticResource PanelBackground}" Padding="10 6" IsVisible="{Binding BusyText, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <ProgressBar IsIndeterminate="True" Width="120" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding BusyText}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
 
-                  <Image Grid.Column="0"
-                          Width="64"
-                          Height="64"
-                          Margin="5"
-                          asyncImageLoader:ImageLoader.Source="{Binding ImagePath}" Stretch="UniformToFill">
-                    <ToolTip.Tip>
-                      <Image                        
-                          Height="256"
-                          
-                          asyncImageLoader:ImageLoader.Source="{Binding ImagePath}"/>
-                    </ToolTip.Tip>
-                    
-                  </Image>
+          <ScrollViewer Grid.Row="2" x:Name="ModScroller">
+            <StackPanel Margin="10">
+              <ItemsControl ItemsSource="{Binding Mods}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ModCardViewModel">
+                    <Border Classes="modCard">
+                      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
 
-          
-                  <StackPanel Grid.Column="1" Margin="5" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Name}"
-                                FontSize="16"
-                                FontWeight="Bold"/>
-                    <TextBlock Text="{Binding Description}"
-                                TextWrapping="Wrap"
-                                FontSize="12"
-                                Foreground="Gray"/>
-                  </StackPanel>
+                        <Border Grid.Column="0" Width="96" Height="64" CornerRadius="4" ClipToBounds="True"
+                                Background="{StaticResource PanelBackground}" VerticalAlignment="Center">
+                          <Panel>
+                            <icons:PackIconFontAwesome6 Kind="ImageRegular" Width="20" Height="20" Foreground="{StaticResource DimText}"
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasImage}" />
+                            <Image asyncImageLoader:ImageLoader.Source="{Binding ImageUrl}" Stretch="UniformToFill" IsVisible="{Binding HasImage}">
+                              <ToolTip.Tip>
+                                <Image Height="256" asyncImageLoader:ImageLoader.Source="{Binding PreviewUrl}"/>
+                              </ToolTip.Tip>
+                            </Image>
+                          </Panel>
+                        </Border>
 
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                          <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Bold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}"/>
+                          <TextBlock Text="{Binding Author, StringFormat='by {0}'}" FontSize="12" Foreground="{StaticResource SecondaryText}"
+                                     IsVisible="{Binding Author, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                          <TextBlock Text="{Binding Details}" FontSize="12" Foreground="{StaticResource DimText}" TextTrimming="CharacterEllipsis"
+                                     IsVisible="{Binding Details, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                          <StackPanel IsVisible="{Binding IsBusy}" Spacing="2" Margin="0 4 0 0">
+                            <ProgressBar Value="{Binding Progress}" Maximum="1" IsIndeterminate="{Binding !IsProgressKnown}" />
+                            <TextBlock Text="{Binding Status}" FontSize="11" Foreground="{StaticResource SecondaryText}" TextTrimming="CharacterEllipsis"/>
+                          </StackPanel>
+                        </StackPanel>
 
-                  <StackPanel Grid.Column="2"
-                              Margin="0"
-                              VerticalAlignment="Center"
-                              Orientation="Horizontal"
-                              Spacing="3">
-                    <Button Height="50" Width="70">
-                      <StackPanel Orientation="Horizontal" Spacing="4">
-                        <icons:PackIconFontAwesome6 Kind="DownloadSolid" Width="12" Height="12" />
-                        <TextBlock Text="Install" />
-                      </StackPanel>
-                    </Button>
-                  </StackPanel>
-                </Grid>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
+                          <Button Classes="icon" Command="{Binding ToggleFavoriteCommand}" IsVisible="{Binding CanFavorite}"
+                                  ToolTip.Tip="{Binding IsFavorite, Converter={x:Static views:MainWindow.FavoriteTip}}">
+                            <icons:PackIconFontAwesome6 Kind="{Binding IsFavorite, Converter={x:Static views:MainWindow.FavoriteIcon}}"
+                                                        Foreground="{Binding IsFavorite, Converter={x:Static views:MainWindow.FavoriteBrush}}" />
+                          </Button>
+                          <Button Classes="icon" Command="{Binding OpenPageCommand}" IsVisible="{Binding CanOpenPage}" ToolTip.Tip="Open on GameBanana">
+                            <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" />
+                          </Button>
+                          <Button Classes="icon" Command="{Binding OpenFolderCommand}" IsVisible="{Binding IsLibraryCard}" ToolTip.Tip="Open folder">
+                            <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" />
+                          </Button>
+                          <Button Classes="icon" Command="{Binding RemoveCommand}" IsVisible="{Binding IsLibraryCard}" ToolTip.Tip="Remove">
+                            <icons:PackIconFontAwesome6 Kind="TrashCanSolid" />
+                          </Button>
+                          <Panel IsVisible="{Binding CanInstall}">
+                            <Button Height="34" MinWidth="96" Command="{Binding InstallCommand}" IsVisible="{Binding !IsBusy}">
+                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                <icons:PackIconFontAwesome6 Kind="DownloadSolid" Width="12" Height="12" />
+                                <TextBlock Text="{Binding InstallText}" />
+                              </StackPanel>
+                            </Button>
+                            <Button Height="34" MinWidth="96" Command="{Binding CancelInstallCommand}" IsVisible="{Binding IsBusy}" Content="Cancel" />
+                          </Panel>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <TextBlock Text="{Binding Message}" Foreground="{StaticResource SecondaryText}" HorizontalAlignment="Center" TextWrapping="Wrap" Margin="0 20"
+                         IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+              <ProgressBar IsIndeterminate="True" Width="160" Margin="0 16" IsVisible="{Binding IsLoading}"/>
+              <Button HorizontalAlignment="Center" Margin="0 8" Content="Load more" Command="{Binding LoadMoreCommand}">
+                <Button.IsVisible>
+                  <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="HasMore"/>
+                    <Binding Path="!IsLoading"/>
+                  </MultiBinding>
+                </Button.IsVisible>
+              </Button>
+            </StackPanel>
+          </ScrollViewer>
         </Grid>
       </SplitView.Content>
     </SplitView>

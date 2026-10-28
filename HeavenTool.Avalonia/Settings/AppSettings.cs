@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -19,6 +20,9 @@ public sealed class AppSettings
 
     public static AppSettings Current { get; } = Load();
 
+    /// <summary>Raised after the settings are saved.</summary>
+    public static event Action? Saved;
+
     /// <summary>The emulator folder that loads Animal Crossing mods.</summary>
     public string? ModFolder { get; set; }
 
@@ -30,6 +34,12 @@ public sealed class AppSettings
 
     /// <summary>Deploy the auto-rstb plugin, which fixes the RSTB as the game runs. Needs Skyline.</summary>
     public bool InstallAutoRstb { get; set; } = true;
+
+    /// <summary>List GameBanana mods that have content ratings, which are hidden by default.</summary>
+    public bool ShowRatedMods { get; set; }
+
+    /// <summary>GameBanana mods the user starred, kept with what's needed to show them offline.</summary>
+    public List<FavoriteMod> Favorites { get; set; } = [];
 
     /// <summary>The user's extracted romfs. Only ever read.</summary>
     public string? RomfsFolder { get; set; }
@@ -56,5 +66,8 @@ public sealed class AppSettings
         var temporary = FilePath + ".tmp";
         File.WriteAllText(temporary, JsonSerializer.Serialize(this, JsonOptions));
         File.Move(temporary, FilePath, true);
+        Saved?.Invoke();
     }
 }
+
+public sealed record FavoriteMod(int ModId, string Name, string? Author, string? ImageUrl, string? ProfileUrl);
