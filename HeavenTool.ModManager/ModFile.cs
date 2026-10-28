@@ -31,6 +31,11 @@ namespace HeavenTool.ModManager
         public abstract byte[] SaveFile();
         public abstract void DoDiff(ModFile otherFile);
 
+        /// <summary>
+        /// Whether <see cref="DoDiff"/> can take the changes in <paramref name="otherFile"/>, rather than skip them.
+        /// </summary>
+        public virtual bool CanMerge(ModFile otherFile) => otherFile?.GetType() == GetType();
+
         public virtual void ExportToJson(string outputPath)
         {
             ConsoleUtilities.WriteLine($"Exporting: {Name}", ConsoleColor.Gray);

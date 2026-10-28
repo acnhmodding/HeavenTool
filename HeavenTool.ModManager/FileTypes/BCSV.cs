@@ -78,6 +78,16 @@ public sealed class BCSV : ModFile
         }
     }
 
+    public override bool CanMerge(ModFile otherFile)
+    {
+        // Entries are matched by their unique key, so both files need the same fields and no repeated keys.
+        return otherFile is BCSV other && UniqueHeader.HasValue && LoadedFile != null && other.LoadedFile != null &&
+            LoadedFile.Fields.SequenceEqual(other.LoadedFile.Fields) && HasDistinctKeys() && other.HasDistinctKeys();
+    }
+
+    private bool HasDistinctKeys() =>
+        LoadedFile.Entries.Select(entry => entry[UniqueHeaderIndex]).Distinct().Count() == LoadedFile.Entries.Count;
+
     public override byte[] SaveFile()
     {
         if (LoadedFile == null)

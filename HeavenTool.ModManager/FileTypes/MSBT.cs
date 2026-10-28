@@ -58,6 +58,13 @@ public sealed class MSBT : ModFile
                 RemovedEntries.Add(entry.Key);
     }
 
+    public override bool CanMerge(ModFile file)
+    {
+        return file is MSBT other && MsbtFile != null && other.MsbtFile != null &&
+            MsbtFile.HasLbl1 && other.MsbtFile.HasLbl1 &&
+            MsbtFile.EncodingType == other.MsbtFile.EncodingType && MsbtFile.BigEndian == other.MsbtFile.BigEndian;
+    }
+
     /// <summary>
     /// Apply our changes (<see cref="ChangedEntries"/> and <see cref="RemovedEntries"/>) into <see cref="MsbtFile"/>
     /// </summary>

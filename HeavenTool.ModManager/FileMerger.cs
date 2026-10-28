@@ -42,6 +42,27 @@ namespace HeavenTool.ModManager
         /// </returns>
         public ModFile LoadModFile(byte[] bytes, string fileName)
         {
+            var modFile = TryLoad(bytes, fileName);
+            if (modFile != null) return modFile;
+
+            ConsoleUtilities.WriteLine($"Moving unsupported file {fileName} to Output", ConsoleColor.Yellow);
+            var outputPath = Path.Combine(OutputDirectory, fileName);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+            File.WriteAllBytes(outputPath, bytes);
+
+            return null;
+            // TODO: save it to output folder already to save memory
+            // modFile = new GenericFile(stream, fileName);
+        }
+
+        /// <summary>
+        /// Uncompress (if needed) and read a file that can be merged.
+        /// </summary>
+        /// <param name="fileName">The path for the file, in RomFs, with or without the romfs folder</param>
+        /// <returns>A <see cref="ModFile"/> based on the file type, or null if the file type is <b>not</b> supported.</returns>
+        public static ModFile TryLoad(byte[] bytes, string fileName)
+        {
             ArgumentNullException.ThrowIfNull(bytes);
             ArgumentException.ThrowIfNullOrEmpty(fileName);
 
@@ -62,28 +83,47 @@ namespace HeavenTool.ModManager
             ModFile modFile;
             if (MsbtFileReader.CanReadStatic(stream))
                 modFile = new MSBT(stream, fileName);
-            else if (!fileName.StartsWith("romfs\\Model\\") && SarcFileReader.CanReadStatic(stream))
+            else if (!IsModel(fileName) && SarcFileReader.CanReadStatic(stream))
                 modFile = new SARC(stream, fileName);
             else if (fileName.EndsWith(".bcsv") && BcsvFileReader.CanReadStatic(stream))
                 modFile = new BCSV(stream, fileName);
             else
-            {
-                ConsoleUtilities.WriteLine($"Moving unsupported file {fileName} to Output", ConsoleColor.Yellow);
-                var outputPath = Path.Combine(OutputDirectory, fileName);
-
-                Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-                File.WriteAllBytes(outputPath, bytes);
-
                 return null;
-                // TODO: save it to output folder already to save memory
-                // modFile = new GenericFile(stream, fileName);
-            }
 
             modFile?.Compression = compression;
 
             return modFile;
         }
 
+
+        /// <summary>
+        /// Save a loaded file, compressing it again if it was compressed.
+        /// </summary>
+        public static byte[] SaveModFile(ModFile file)
+        {
+            var fileBytes = file.SaveFile();
+
+            switch (file.Compression)
+            {
+                case Compression.Zstd:
+                    using (var compressionStream = new MemoryStream())
+                    {
+                        ZstdCompressor.Compress(new MemoryStream(fileBytes), compressionStream);
+                        fileBytes = compressionStream.ToArray();
+                    }
+                    break;
+            }
+
+            return fileBytes;
+        }
+
+        // Model archives are SARCs too, but hold nothing that can be merged.
+        private static bool IsModel(string fileName)
+        {
+            var path = fileName.Replace('/', '\\');
+            if (path.StartsWith("romfs\\", StringComparison.OrdinalIgnoreCase)) path = path["romfs\\".Length..];
+            return path.StartsWith("Model\\", StringComparison.OrdinalIgnoreCase);
+        }
 
         public byte[] GetVanillaFile(string fileName)
         {
@@ -200,20 +240,10 @@ namespace HeavenTool.ModManager
 
             foreach (var (path, file) in _patchedFiles)
             {
-                var fileBytes = file.SaveFile();
-
                 // Recompress files if it was compressed before patching
-                switch (file.Compression)
-                {
-                    case Compression.Zstd:
-                        ConsoleUtilities.WriteLine($"Compressing {file.Name} to ZSTD", ConsoleColor.Blue);
-                        using (var compressionStream = new MemoryStream())
-                        {
-                            ZstdCompressor.Compress(new MemoryStream(fileBytes), compressionStream);
-                            fileBytes = compressionStream.ToArray();
-                        }
-                        break;
-                }
+                if (file.Compression == Compression.Zstd)
+                    ConsoleUtilities.WriteLine($"Compressing {file.Name} to ZSTD", ConsoleColor.Blue);
+                var fileBytes = SaveModFile(file);
 
                 var outputPath = Path.Combine(OutputDirectory, path);
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath));

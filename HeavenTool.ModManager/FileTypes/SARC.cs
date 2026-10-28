@@ -78,6 +78,8 @@ public sealed class SARC : ModFile
         }
     }
 
+    public override bool CanMerge(ModFile otherFile) => otherFile is SARC other && SarcFile != null && other.SarcFile != null;
+
     public override byte[] SaveFile()
     {
         if (SarcFile == null) throw new Exception("SarcFile is not loaded");
