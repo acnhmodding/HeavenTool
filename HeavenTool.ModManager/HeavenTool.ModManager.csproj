@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="AeonSake.NintendoTools" Version="3.6.10" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="SharpCompress" Version="0.50.7" />
   </ItemGroup>
 
   <ItemGroup>
