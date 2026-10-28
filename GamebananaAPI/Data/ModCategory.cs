@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace GamebananaAPI.Data;
 
-/// <summary>A mod category of a game, as Mod/Categories and a profile page list it.</summary>
+/// <summary>A mod category of a game, as Mod/Categories, a profile page and a listing show it.</summary>
 public class ModCategory
 {
     [JsonProperty("_idRow")]
@@ -20,6 +20,4 @@ public class ModCategory
 
     [JsonProperty("_sIconUrl")]
     public string? IconUrl { get; set; }
-
-    public static ModCategory[] ListFromJson(string json) => JsonConvert.DeserializeObject<ModCategory[]>(json, GamebananaJsonConverter.Settings) ?? [];
 }

@@ -136,7 +136,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (!IsOnlinePage) return;
         feedCancellation?.Cancel();
         var cancellation = feedCancellation = new CancellationTokenSource();
-        var sort = Page == ModPage.Trending ? SortType.Default : SortType.New;
+        var sort = Page == ModPage.Trending ? SubfeedSort.Default : SubfeedSort.New;
         var query = SearchText.Trim();
         IsLoading = true;
         Message = null;
@@ -145,13 +145,12 @@ public partial class MainWindowViewModel : ObservableObject
             var filter = await BuildFilterAsync(query, cancellation.Token);
             var feed = filter != null
                 ? await client.GetModIndex(GameId, filter, nextFeedPage, cancellation: cancellation.Token)
-                : await client.GetSubfeed(GameId, nextFeedPage, sort, Category.Mod, query, cancellation.Token);
+                : await client.GetSubfeed(GameId, sort, nextFeedPage, query, cancellation.Token);
             if (cancellation.IsCancellationRequested) return;
             nextFeedPage++;
             foreach (var record in feed?.Records ?? [])
             {
-                if (record?.IdRow == null) continue;
-                if (record.BHasContentRatings == true && !showRatedMods) continue;
+                if (record.IdRow == null || record.HasContentRatings && !showRatedMods) continue;
                 Mods.Add(WithState(new ModCardViewModel(this, record)));
             }
             HasMore = feed?.Metadata is { IsComplete: false };

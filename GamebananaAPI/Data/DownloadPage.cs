@@ -7,8 +7,6 @@ public class DownloadPage
 {
     [JsonProperty("_aFiles")]
     public GamebananaFile[] Files { get; set; } = [];
-
-    public static DownloadPage? FromJson(string json) => JsonConvert.DeserializeObject<DownloadPage>(json, GamebananaJsonConverter.Settings);
 }
 
 public class GamebananaFile
@@ -39,8 +37,4 @@ public class GamebananaFile
 
     [JsonProperty("_sDescription")]
     public string? Description { get; set; }
-
-    /// <summary>GameBanana's virus scan result: "clean" once the file passed.</summary>
-    [JsonProperty("_sAvResult")]
-    public string? AvResult { get; set; }
 }

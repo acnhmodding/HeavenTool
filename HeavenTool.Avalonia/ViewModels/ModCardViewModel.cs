@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using GamebananaAPI.Data.Subfeed;
+using GamebananaAPI.Data;
 using HeavenTool.Avalonia.Settings;
 using HeavenTool.ModManager.Library;
 using System;
@@ -70,7 +70,7 @@ public partial class ModCardViewModel : ObservableObject
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(MoveDownCommand))]
     public partial bool CanMoveDown { get; set; }
 
-    public ModCardViewModel(MainWindowViewModel owner, SubfeedRecord record)
+    public ModCardViewModel(MainWindowViewModel owner, ModRecord record)
     {
         this.owner = owner;
         ModId = record.IdRow;

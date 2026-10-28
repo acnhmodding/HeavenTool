@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GamebananaAPI;
+using GamebananaAPI.Data;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -123,7 +124,7 @@ public partial class MainWindowViewModel
             var roots = await client.GetModCategories(GameId);
             var subcategories = await Task.WhenAll(roots.Select(root => root.CategoryCount > 0
                 ? client.GetModSubcategories(root.IdRow)
-                : Task.FromResult<GamebananaAPI.Data.ModCategory[]>([])));
+                : Task.FromResult<ModCategory[]>([])));
             // Added after "Any category", which stays selected: replacing it would leave the combo box blank.
             for (var i = 0; i < roots.Length; i++)
             {

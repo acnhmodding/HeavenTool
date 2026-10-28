@@ -15,8 +15,6 @@ public class ModProfile
     /// <summary>The root category, absent when <see cref="Category"/> is one.</summary>
     [JsonProperty("_aSuperCategory")]
     public ModCategory? SuperCategory { get; set; }
-
-    public static ModProfile? FromJson(string json) => JsonConvert.DeserializeObject<ModProfile>(json, GamebananaJsonConverter.Settings);
 }
 
 public class ModTag
