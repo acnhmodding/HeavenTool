@@ -22,6 +22,23 @@ namespace HeavenTool.ModManager.Library
         // Folders the Switch and emulators use to place a mod, which say nothing about the variant.
         private static readonly HashSet<string> LayoutFolders = new(StringComparer.OrdinalIgnoreCase) { "atmosphere", "contents", "load", "mods", "sdmc" };
 
+        // Files of a game save: the island (main), each player (personal) and the save tools' metadata.
+        private static readonly HashSet<string> SaveFiles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "main.dat", "mainHeader.dat", "personal.dat", "personalHeader.dat", ".nx_save_meta.bin",
+        };
+
+        /// <summary>Whether extracted files include an Animal Crossing save rather than (or as well as) game file changes.</summary>
+        public static bool ContainsSaveData(string folder) => ContainsSaveData(Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories));
+
+        /// <summary>Whether an archive's file paths include an Animal Crossing save.</summary>
+        public static bool ContainsSaveData(IEnumerable<string> paths) => paths.Any(path => SaveFiles.Contains(Path.GetFileName(path)));
+
+        /// <summary>Whether an archive's file paths include a romfs, an exefs or known romfs folders, the same folders <see cref="FindVariants"/> looks for.</summary>
+        public static bool ContainsGameFiles(IEnumerable<string> paths) =>
+            paths.Any(path => path.Split('/', '\\').SkipLast(1).Any(folder =>
+                folder.Equals("romfs", StringComparison.OrdinalIgnoreCase) || folder.Equals("exefs", StringComparison.OrdinalIgnoreCase) || RomfsFolders.Contains(folder)));
+
         /// <summary>Extracts an archive (zip, 7z, rar, ...) into <paramref name="destination"/>, reporting the share of bytes written from 0 to 1.</summary>
         public static void Extract(string archivePath, string destination, IProgress<double>? progress = null, CancellationToken cancellation = default)
         {

@@ -48,15 +48,16 @@ public partial class GamebananaClient
     }
 
     /// <summary>
-    /// Get all files that will be downloaded from a specific file (zip)
+    /// Get the paths of the files inside a downloadable archive, without downloading it
     /// </summary>
-    /// <param name="fileId"></param>
-    /// <returns></returns>
-    public async Task<string[]> GetRawFileList(uint fileId)
+    public async Task<string[]> GetRawFileList(int fileId, CancellationToken cancellation = default)
     {
-        var text = await _httpClient.GetStringAsync($"File/{fileId}/RawFileList");
-        var result = NewLineRegex().Split(text);
-        return result;
+        // apiv11 answers this with an empty list, apiv13 has the real one.
+        var text = await _httpClient.GetStringAsync($"https://gamebanana.com/apiv13/File/{fileId}/RawFileList", cancellation);
+        // A missing file can come back as a 200 with a JSON error instead of a 404.
+        if (text.StartsWith('{') && text.Contains("\"_sErrorCode\""))
+            throw new HttpRequestException($"GameBanana couldn't list the files of {fileId}: {text}", null, System.Net.HttpStatusCode.NotFound);
+        return NewLineRegex().Split(text).Where(line => line.Length > 0).ToArray();
     }
 
     public async Task<Subfeed?> GetSubfeed(int gameId, int page = 1, SortType sortMode = SortType.New, Category category = Category.Mod, string query = "", CancellationToken cancellation = default)

@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -213,6 +214,14 @@ public partial class MainWindowViewModel : ObservableObject
             var file = files.Length == 1 ? files[0] : await ChooseFileAsync(card.Name, files);
             if (file == null) return;
 
+            // GameBanana lists an archive's files, so a save can be turned down before downloading it.
+            card.Status = "Checking the file...";
+            if (await GetFileListAsync(file, cancellation.Token) is { } paths && ModArchive.ContainsSaveData(paths) && !ModArchive.ContainsGameFiles(paths))
+            {
+                await ShowSaveFileWarningAsync(card.Name);
+                return;
+            }
+
             card.Status = $"Downloading {file.FileName}...";
             card.IsProgressKnown = file.Size > 0;
             card.Progress = 0;
@@ -247,6 +256,17 @@ public partial class MainWindowViewModel : ObservableObject
             DeleteTemporaryFolder(temporary);
         }
     }
+
+    /// <summary>The paths inside a GameBanana file, or null when GameBanana can't list them, in which case the archive is checked once extracted.</summary>
+    private async Task<string[]?> GetFileListAsync(GamebananaFile file, CancellationToken cancellation)
+    {
+        try { return await client.GetRawFileList(file.IdRow, cancellation); }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellation.IsCancellationRequested) { return null; }
+    }
+
+    private Task ShowSaveFileWarningAsync(string name) =>
+        view!.ShowMessageAsync($"{name} is a save file",
+            "This download is an Animal Crossing save (it has files like main.dat and mainHeader.dat), not a mod of the game's files. Heaven Tool can't install save files yet.");
 
     [RelayCommand]
     private async Task InstallFromFile()
@@ -293,6 +313,12 @@ public partial class MainWindowViewModel : ObservableObject
         await Task.Run(() => ModArchive.Extract(archive, extracted, progress, cancellation), cancellation);
 
         var variants = ModArchive.FindVariants(extracted);
+        // A save that comes with game file changes still installs those; a save on its own can't be installed yet.
+        if (variants.Count == 0 && ModArchive.ContainsSaveData(extracted))
+        {
+            await ShowSaveFileWarningAsync(metadata.Name);
+            return;
+        }
         if (variants.Count == 0)
             throw new InvalidDataException("No romfs or exefs folder was found in this file, so Heaven Tool can't tell where its files go.");
         var chosen = variants.Count == 1 ? variants : await ChooseVariantsAsync(metadata.Name, variants);
