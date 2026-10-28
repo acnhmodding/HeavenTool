@@ -11,12 +11,60 @@ namespace HeavenTool.ModManager.Library
     public sealed class ModLibrary(string folder)
     {
         public const string MetadataFile = "heaven-tool-mod.json";
+        public const string LoadOrderFile = "load-order.json";
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
         public string Folder { get; } = folder;
 
-        /// <summary>Reads every installed mod. Folders without metadata, or with metadata that can't be read, are left out.</summary>
+        /// <summary>
+        /// Reads every installed mod, highest priority first, with <see cref="InstalledMod.Enabled"/> set from the load order.
+        /// Mods the load order doesn't know yet go on top, newest first. Folders without metadata, or with metadata that
+        /// can't be read, are left out.
+        /// </summary>
         public List<InstalledMod> Load()
+        {
+            var mods = LoadUnordered();
+            var order = ReadLoadOrder();
+            var position = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var name in order.Order) position.TryAdd(name, position.Count);
+            var disabled = new HashSet<string>(order.Disabled, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var mod in mods) mod.Enabled = !disabled.Contains(Path.GetFileName(mod.Folder));
+            return [.. mods
+                .OrderBy(mod => position.TryGetValue(Path.GetFileName(mod.Folder), out var index) ? index : -1)
+                .ThenByDescending(mod => mod.InstalledAt)];
+        }
+
+        /// <summary>Saves the mods' order, highest priority first, and which of them are enabled.</summary>
+        public void SaveLoadOrder(IEnumerable<InstalledMod> mods)
+        {
+            var order = new LoadOrder();
+            foreach (var mod in mods)
+            {
+                var name = Path.GetFileName(mod.Folder);
+                order.Order.Add(name);
+                if (!mod.Enabled) order.Disabled.Add(name);
+            }
+            Directory.CreateDirectory(Folder);
+            var path = Path.Combine(Folder, LoadOrderFile);
+            var temporary = path + ".tmp";
+            File.WriteAllText(temporary, JsonSerializer.Serialize(order, JsonOptions));
+            File.Move(temporary, path, true);
+        }
+
+        private LoadOrder ReadLoadOrder()
+        {
+            var path = Path.Combine(Folder, LoadOrderFile);
+            if (!File.Exists(path)) return new LoadOrder();
+            try { return JsonSerializer.Deserialize<LoadOrder>(File.ReadAllText(path), JsonOptions) ?? new LoadOrder(); }
+            catch (JsonException ex)
+            {
+                Trace.WriteLine($"Ignoring the load order in {path}: {ex.Message}");
+                return new LoadOrder();
+            }
+        }
+
+        private List<InstalledMod> LoadUnordered()
         {
             var mods = new List<InstalledMod>();
             if (!Directory.Exists(Folder)) return mods;
@@ -36,7 +84,7 @@ namespace HeavenTool.ModManager.Library
                     Trace.WriteLine($"Skipping {directory}: {ex.Message}");
                 }
             }
-            return [.. mods.OrderBy(mod => mod.Name, StringComparer.CurrentCultureIgnoreCase)];
+            return mods;
         }
 
         /// <summary>
@@ -47,7 +95,7 @@ namespace HeavenTool.ModManager.Library
         public InstalledMod Install(InstalledMod mod, IReadOnlyList<ModVariant> variants)
         {
             Directory.CreateDirectory(Folder);
-            var existing = Load().FirstOrDefault(installed => IsSameSource(installed, mod));
+            var existing = LoadUnordered().FirstOrDefault(installed => IsSameSource(installed, mod));
 
             // Copy into a hidden folder first so a failed install never leaves a half copied mod behind.
             var staging = Path.Combine(Folder, ".installing-" + Guid.NewGuid().ToString("N"));
@@ -116,6 +164,13 @@ namespace HeavenTool.ModManager.Library
             for (int i = 2; Directory.Exists(path); i++)
                 path = Path.Combine(Folder, $"{safe} ({i})");
             return path;
+        }
+
+        private sealed class LoadOrder
+        {
+            /// <summary>Mod folder names, highest priority first.</summary>
+            public List<string> Order { get; set; } = [];
+            public List<string> Disabled { get; set; } = [];
         }
 
         private static void CopyDirectory(string source, string destination)

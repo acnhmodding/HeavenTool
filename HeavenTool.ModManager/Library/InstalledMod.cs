@@ -30,5 +30,9 @@ namespace HeavenTool.ModManager.Library
         /// <summary>The mod's folder in the library.</summary>
         [JsonIgnore]
         public string Folder { get; set; } = "";
+
+        /// <summary>Whether the mod is deployed. Kept in the library's load order, not beside the mod.</summary>
+        [JsonIgnore]
+        public bool Enabled { get; set; } = true;
     }
 }
