@@ -23,9 +23,13 @@ namespace HeavenTool.ModManager
             {
                 Directory.Move(staging, target);
             }
-            catch
+            catch (Exception ex)
             {
-                Directory.Move(previous, target);
+                try { Directory.Move(previous, target); }
+                catch (Exception restore) when (restore is IOException or UnauthorizedAccessException)
+                {
+                    throw new IOException($"{ex.Message} The earlier copy couldn't be put back either, and is kept at {previous}.", ex);
+                }
                 throw;
             }
 
@@ -43,5 +47,33 @@ namespace HeavenTool.ModManager
         /// <summary>Whether a folder name is a copy <see cref="Replace"/> set aside for the folder named <paramref name="target"/>.</summary>
         public static bool IsPreviousCopy(string name, string target) =>
             name.StartsWith($".{target}.previous-", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Tidies the copies that swaps in <paramref name="parent"/> set aside and couldn't delete, or left when they were stopped:
+        /// a copy whose folder is missing is put back, and the rest are deleted. Returns the folders that could be put back.
+        /// </summary>
+        public static List<string> Recover(string parent)
+        {
+            var restored = new List<string>();
+            if (!Directory.Exists(parent)) return restored;
+            foreach (var folder in Directory.EnumerateDirectories(parent, ".*.previous-*").ToList())
+            {
+                var name = Path.GetFileName(folder);
+                var end = name.LastIndexOf(".previous-", StringComparison.Ordinal);
+                if (end <= 1) continue;
+                var target = Path.Combine(parent, name[1..end]);
+                try
+                {
+                    if (Directory.Exists(target)) Directory.Delete(folder, true);
+                    else
+                    {
+                        Directory.Move(folder, target);
+                        restored.Add(target);
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            }
+            return restored;
+        }
     }
 }

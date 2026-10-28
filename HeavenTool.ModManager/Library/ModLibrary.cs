@@ -35,6 +35,21 @@ namespace HeavenTool.ModManager.Library
                 .ThenByDescending(mod => mod.InstalledAt)];
         }
 
+        /// <summary>
+        /// Cleans up after installs that were stopped or couldn't finish: a mod left hidden by a reinstall is put back, and the
+        /// copies and half finished installs left beside the mods are deleted. Call it while no install runs.
+        /// </summary>
+        public void Recover()
+        {
+            foreach (var folder in FolderSwap.Recover(Folder)) Trace.WriteLine($"Put back {folder}, which a reinstall had left hidden");
+            if (!Directory.Exists(Folder)) return;
+            foreach (var staging in Directory.EnumerateDirectories(Folder, ".installing-*").ToList())
+            {
+                try { Directory.Delete(staging, true); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Trace.WriteLine($"Couldn't delete {staging}: {ex.Message}"); }
+            }
+        }
+
         /// <summary>Saves the mods' order, highest priority first, and which of them are enabled.</summary>
         public void SaveLoadOrder(IEnumerable<InstalledMod> mods)
         {

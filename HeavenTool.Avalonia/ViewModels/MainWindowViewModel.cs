@@ -61,6 +61,8 @@ public partial class MainWindowViewModel : ObservableObject
     public void Attach(IMainView view)
     {
         this.view = view;
+        try { Library.Recover(); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         LoadInstalled();
         _ = ReloadAsync();
     }
