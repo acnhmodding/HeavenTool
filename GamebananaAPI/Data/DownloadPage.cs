@@ -37,4 +37,8 @@ public class GamebananaFile
 
     [JsonProperty("_sDescription")]
     public string? Description { get; set; }
+
+    /// <summary>Whether the author moved the file to the profile's archived files, usually because a newer one replaces it.</summary>
+    [JsonProperty("_bIsArchived")]
+    public bool IsArchived { get; set; }
 }

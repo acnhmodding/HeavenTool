@@ -5,7 +5,7 @@ namespace GamebananaAPI.Data;
 /// <summary>The parts of a mod's profile page that the subfeed leaves out.</summary>
 public class ModProfile
 {
-    [JsonProperty("_aTags")]
+    [JsonProperty("_aTags", NullValueHandling = NullValueHandling.Ignore)]
     public ModTag[] Tags { get; set; } = [];
 
     /// <summary>The mod's own category, a subcategory when <see cref="SuperCategory"/> is set.</summary>
@@ -15,6 +15,14 @@ public class ModProfile
     /// <summary>The root category, absent when <see cref="Category"/> is one.</summary>
     [JsonProperty("_aSuperCategory")]
     public ModCategory? SuperCategory { get; set; }
+
+    /// <summary>The files offered for download, the same as the download page's.</summary>
+    [JsonProperty("_aFiles", NullValueHandling = NullValueHandling.Ignore)]
+    public GamebananaFile[] Files { get; set; } = [];
+
+    /// <summary>The mod's current version, as its author wrote it.</summary>
+    [JsonProperty("_sVersion")]
+    public string? Version { get; set; }
 }
 
 public class ModTag

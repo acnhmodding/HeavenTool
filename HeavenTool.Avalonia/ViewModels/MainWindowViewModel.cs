@@ -65,6 +65,7 @@ public partial class MainWindowViewModel : ObservableObject
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         LoadInstalled();
         _ = ReloadAsync();
+        _ = CheckForUpdatesCommand.ExecuteAsync(null);
     }
 
     /// <summary>The page list's selection. Clearing the selection keeps the current page.</summary>
@@ -172,6 +173,7 @@ public partial class MainWindowViewModel : ObservableObject
     {
         card.IsFavorite = card.ModId is { } id && AppSettings.Current.Favorites.Any(favorite => favorite.ModId == id);
         if (!card.IsLibraryCard) card.IsInstalled = card.ModId is { } modId && installed.Any(mod => mod.ModId == modId);
+        card.Update = UpdateFor(card);
         return card;
     }
 
@@ -185,6 +187,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
         foreach (var card in Mods.Where(card => !card.IsLibraryCard))
             card.IsInstalled = card.ModId is { } modId && installed.Any(mod => mod.ModId == modId);
+        ShowUpdates();
         UpdateDeployStatus();
     }
 

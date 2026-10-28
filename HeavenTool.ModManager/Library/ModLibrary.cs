@@ -106,12 +106,13 @@ namespace HeavenTool.ModManager.Library
         /// <summary>
         /// Copies a variant's romfs and exefs into the library. Installing the same GameBanana file again, or the same local
         /// archive, replaces the earlier copy. Several variants are merged into one mod, later ones winning when they share a file,
-        /// for archives that split a mod into parts.
+        /// for archives that split a mod into parts. An update passes the mod it <paramref name="replaces"/>, which keeps its folder,
+        /// and so its place in the load order.
         /// </summary>
-        public InstalledMod Install(InstalledMod mod, IReadOnlyList<ModVariant> variants)
+        public InstalledMod Install(InstalledMod mod, IReadOnlyList<ModVariant> variants, InstalledMod? replaces = null)
         {
             Directory.CreateDirectory(Folder);
-            var existing = LoadUnordered().FirstOrDefault(installed => IsSameSource(installed, mod));
+            var existing = replaces ?? LoadUnordered().FirstOrDefault(installed => IsSameSource(installed, mod));
 
             // Copy into a hidden folder first so a failed install never leaves a half copied mod behind.
             var staging = Path.Combine(Folder, ".installing-" + Guid.NewGuid().ToString("N"));

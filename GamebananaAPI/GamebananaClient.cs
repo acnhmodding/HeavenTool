@@ -103,7 +103,7 @@ public class GamebananaClient
             ("_nPage", 1)), cancellation))?.Records ?? [];
 
     /// <summary>
-    /// Get a mod's tags and categories
+    /// Get a mod's tags, categories, files and version
     /// </summary>
     public Task<ModProfile?> GetProfilePage(int modId, CancellationToken cancellation = default) =>
         GetAsync<ModProfile>($"Mod/{modId}/ProfilePage", cancellation);

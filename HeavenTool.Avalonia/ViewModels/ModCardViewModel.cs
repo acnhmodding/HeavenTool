@@ -33,8 +33,11 @@ public partial class ModCardViewModel : ObservableObject
 
     public bool HasImage => ImageUrl != null;
     public bool CanFavorite => ModId != null;
-    public bool CanInstall => ModId != null && Installed == null && !IsBusy;
-    public bool CanCancel => ModId != null && Installed == null && IsBusy;
+    public bool CanInstall => ModId != null && Installed == null && !IsBusy && !HasUpdate;
+    public bool CanCancel => ModId != null && IsBusy;
+    public bool HasUpdate => Update != null;
+    public bool CanUpdate => HasUpdate && !IsBusy;
+    public string? UpdateText => Update?.Description;
     public bool CanOpenPage => ProfileUrl != null;
     public bool CanFilterByAuthor => AuthorId != null && Author != null;
     public bool HasPlainAuthor => !string.IsNullOrEmpty(Author) && !CanFilterByAuthor;
@@ -48,8 +51,12 @@ public partial class ModCardViewModel : ObservableObject
     [ObservableProperty, NotifyPropertyChangedFor(nameof(InstallIcon))]
     public partial bool IsInstalled { get; set; }
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCancel), nameof(CanInstall))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCancel), nameof(CanInstall), nameof(CanUpdate))]
     public partial bool IsBusy { get; set; }
+
+    /// <summary>A newer GameBanana file for the installed mod, found by the update check.</summary>
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasUpdate), nameof(CanUpdate), nameof(CanInstall), nameof(UpdateText))]
+    public partial ModUpdate? Update { get; set; }
     [ObservableProperty]
     public partial bool IsProgressKnown { get; set; }
 
@@ -130,6 +137,7 @@ public partial class ModCardViewModel : ObservableObject
     public FavoriteMod ToFavorite() => new(ModId!.Value, Name, Author, PreviewUrl, ProfileUrl);
 
     [RelayCommand] private Task Install() => owner.InstallAsync(this);
+    [RelayCommand] private Task UpdateMod() => owner.InstallAsync(this, Update);
     [RelayCommand] private void CancelInstall() => Cancellation?.Cancel();
     [RelayCommand] private void ToggleFavorite() => owner.ToggleFavorite(this);
     [RelayCommand] private Task OpenPage() => owner.OpenPageAsync(this);

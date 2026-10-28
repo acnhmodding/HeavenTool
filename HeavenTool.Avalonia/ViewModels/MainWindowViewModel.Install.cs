@@ -16,9 +16,11 @@ namespace HeavenTool.Avalonia.ViewModels;
 // Installing mods into the library, from GameBanana or from an archive on disk.
 public partial class MainWindowViewModel
 {
-    internal async Task InstallAsync(ModCardViewModel card)
+    /// <summary>Downloads a GameBanana mod into the library, or with <paramref name="update"/>, its newer file over the installed one.</summary>
+    internal async Task InstallAsync(ModCardViewModel card, ModUpdate? update = null)
     {
         if (view == null || card.ModId is not { } modId || card.IsBusy) return;
+        var name = update?.Mod.Name ?? card.Name;
         var cancellation = card.Cancellation = new CancellationTokenSource();
         var temporary = NewTemporaryFolder();
         card.IsBusy = true;
@@ -27,7 +29,7 @@ public partial class MainWindowViewModel
         try
         {
             var profile = GetProfileAsync(modId, cancellation.Token);
-            var files = (await client.GetDownloadPage(modId, cancellation.Token))?.Files ?? [];
+            var files = update?.Files ?? (await client.GetDownloadPage(modId, cancellation.Token))?.Files ?? [];
             if (files.Length == 0)
             {
                 if (card.CanOpenPage && await view.ConfirmAsync(card.Name, "This mod has no files to download on GameBanana. Open its page to see how to get it?", "Open page"))
@@ -35,14 +37,16 @@ public partial class MainWindowViewModel
                 return;
             }
 
-            var file = files.Length == 1 ? files[0] : await ChooseFileAsync(card.Name, files);
+            var file = files.Length == 1 ? files[0] : await ChooseFileAsync(name, files, update != null
+                ? "The installed file isn't on GameBanana anymore, and it doesn't say which of these replaces it. Choose the one to update to."
+                : "This mod has more than one file. Choose the one to install.");
             if (file == null) return;
 
             // GameBanana lists an archive's files, so a save can be turned down before downloading it.
             card.Status = "Checking the file...";
             if (await GetFileListAsync(file, cancellation.Token) is { } paths && ModArchive.ContainsSaveData(paths) && !ModArchive.ContainsGameFiles(paths))
             {
-                await ShowSaveFileWarningAsync(card.Name);
+                await ShowSaveFileWarningAsync(name);
                 return;
             }
 
@@ -56,28 +60,29 @@ public partial class MainWindowViewModel
 
             var metadata = new InstalledMod
             {
-                Name = card.Name,
-                Author = card.Author,
+                Name = name,
+                Author = card.Author ?? update?.Mod.Author,
                 Version = file.Version,
                 ModId = modId,
                 FileId = file.IdRow,
                 FileName = file.FileName,
                 ProfileUrl = card.ProfileUrl,
-                ImageUrl = card.PreviewUrl,
+                ImageUrl = card.PreviewUrl ?? update?.Mod.ImageUrl,
             };
             if (await profile is { } details)
             {
+                metadata.Version = VersionOf(file, details);
                 // A mod in a root category has no super category, and its own category is the root.
                 metadata.Category = (details.SuperCategory ?? details.Category)?.Name;
                 metadata.Subcategory = details.SuperCategory != null ? details.Category?.Name : null;
                 metadata.Tags = [.. details.Tags.Select(tag => tag.ToString()).Where(tag => tag.Length > 0)];
             }
-            await InstallArchiveAsync(archive, temporary, metadata, card, cancellation.Token);
+            await InstallArchiveAsync(archive, temporary, metadata, card, update?.Mod, cancellation.Token);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            await view.ShowMessageAsync($"Couldn't install {card.Name}", ex.Message);
+            await view.ShowMessageAsync(update != null ? $"Couldn't update {name}" : $"Couldn't install {name}", ex.Message);
         }
         finally
         {
@@ -125,7 +130,7 @@ public partial class MainWindowViewModel
         try
         {
             var metadata = new InstalledMod { Name = name, FileName = Path.GetFileName(archive) };
-            await InstallArchiveAsync(archive, temporary, metadata, null, CancellationToken.None);
+            await InstallArchiveAsync(archive, temporary, metadata, null, null, CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -138,8 +143,11 @@ public partial class MainWindowViewModel
         }
     }
 
-    /// <summary>Extracts an archive, asks which variants to keep when it holds more than one, and installs them in the library.</summary>
-    private async Task InstallArchiveAsync(string archive, string temporary, InstalledMod metadata, ModCardViewModel? card, CancellationToken cancellation)
+    /// <summary>
+    /// Extracts an archive, asks which variants to keep when it holds more than one, and installs them in the library, over the
+    /// mod it <paramref name="replaces"/> for an update.
+    /// </summary>
+    private async Task InstallArchiveAsync(string archive, string temporary, InstalledMod metadata, ModCardViewModel? card, InstalledMod? replaces, CancellationToken cancellation)
     {
         var extracted = Path.Combine(temporary, "files");
         if (card != null)
@@ -160,7 +168,12 @@ public partial class MainWindowViewModel
         }
         if (variants.Count == 0)
             throw new InvalidDataException("No romfs or exefs folder was found in this file, so Heaven Tool can't tell where its files go.");
-        var chosen = variants.Count == 1 ? variants : await ChooseVariantsAsync(metadata.Name, variants);
+        // An update keeps the variants installed before, and asks only when the new file doesn't have them all.
+        var previous = replaces?.Variant.Split(", ", StringSplitOptions.RemoveEmptyEntries) ?? [];
+        var kept = variants.Where(variant => previous.Contains(variant.Name, StringComparer.OrdinalIgnoreCase)).ToList();
+        var chosen = variants.Count == 1 ? variants
+            : previous.Length > 0 && kept.Count == previous.Length ? kept
+            : await ChooseVariantsAsync(metadata.Name, variants, kept);
         if (chosen == null) return;
 
         if (card != null)
@@ -169,14 +182,14 @@ public partial class MainWindowViewModel
             card.IsProgressKnown = false;
         }
         await installLock.WaitAsync(cancellation);
-        try { await Task.Run(() => Library.Install(metadata, chosen), cancellation); }
+        try { await Task.Run(() => Library.Install(metadata, chosen, replaces), cancellation); }
         finally { installLock.Release(); }
 
         LoadInstalled();
         if (IsInstalledPage) await ReloadAsync();
     }
 
-    private async Task<GamebananaFile?> ChooseFileAsync(string modName, GamebananaFile[] files)
+    private async Task<GamebananaFile?> ChooseFileAsync(string modName, GamebananaFile[] files, string message)
     {
         var choices = files.Select(file =>
         {
@@ -187,11 +200,12 @@ public partial class MainWindowViewModel
             var description = string.IsNullOrWhiteSpace(file.Description) ? null : file.Description.Trim();
             return new Choice(description ?? file.FileName, description != null ? file.FileName : null, string.Join(" · ", details));
         }).ToList();
-        var index = await view!.ChooseAsync(modName, "This mod has more than one file. Choose the one to install.", choices, "Download");
+        var index = await view!.ChooseAsync(modName, message, choices, "Download");
         return index is { } i ? files[i] : null;
     }
 
-    private async Task<List<ModVariant>?> ChooseVariantsAsync(string modName, List<ModVariant> variants)
+    /// <param name="kept">Variants an update had installed, ticked in place of the required ones.</param>
+    private async Task<List<ModVariant>?> ChooseVariantsAsync(string modName, List<ModVariant> variants, List<ModVariant> kept)
     {
         var choices = variants.Select(variant =>
         {
@@ -205,9 +219,10 @@ public partial class MainWindowViewModel
         // Archives split into parts usually mark the one every install needs.
         List<int> required = [.. variants.Select((variant, index) => (variant, index))
             .Where(pair => pair.variant.Name.Contains("required", StringComparison.OrdinalIgnoreCase)).Select(pair => pair.index)];
+        List<int> ticked = kept.Count > 0 ? [.. kept.Select(variant => variants.IndexOf(variant))] : required.Count > 0 ? required : [0];
         var picked = await view!.ChooseManyAsync(modName,
             "This file holds more than one set of mod files: either versions to pick from, or parts to combine. Tick the ones to install; they're installed together as one mod.",
-            choices, required.Count > 0 ? required : [0], "Install");
+            choices, ticked, "Install");
         return picked is { Count: > 0 } ? [.. picked.Order().Select(index => variants[index])] : null;
     }
 

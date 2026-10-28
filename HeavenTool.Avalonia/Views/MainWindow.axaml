@@ -163,6 +163,10 @@
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                 <icons:PackIconFontAwesome6 Kind="DownloadSolid" Width="20" Height="20" />
                 <TextBlock Text="Installed" Margin="10 0"/>
+                <Border Classes="filterBadge" Margin="0" VerticalAlignment="Center" IsVisible="{Binding HasUpdates}"
+                        ToolTip.Tip="{Binding UpdateCount, StringFormat='Updates available: {0}'}">
+                  <TextBlock Text="{Binding UpdateCount}" />
+                </Border>
               </StackPanel>
             </ListBoxItem>
           </ListBox>
@@ -263,13 +267,28 @@
             </Panel>
             <Button Grid.Column="2" Background="{StaticResource ACNHGreenDark}" Content="Search" Margin="0 10 10 10"
                     Command="{Binding SearchCommand}" IsVisible="{Binding IsOnlinePage}"/>
-            <Button Grid.Column="3" Background="{StaticResource ACNHGreenDark}" Margin="0 10 10 10"
-                    Command="{Binding InstallFromFileCommand}" IsVisible="{Binding IsInstalledPage}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <icons:PackIconFontAwesome6 Kind="FileZipperSolid" Width="12" Height="12" />
-                <TextBlock Text="Install from file..." />
-              </StackPanel>
-            </Button>
+            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" Margin="0 10 10 10" IsVisible="{Binding IsInstalledPage}">
+              <Button Background="{StaticResource ACNHGreenDark}" Command="{Binding UpdateAllCommand}" IsVisible="{Binding HasUpdates}"
+                      ToolTip.Tip="Install every update found, keeping each mod's place in the list and whether it's on">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:PackIconFontAwesome6 Kind="CircleArrowUpSolid" Width="12" Height="12" />
+                  <TextBlock Text="Update all" />
+                </StackPanel>
+              </Button>
+              <Button Background="{StaticResource ACNHGreenDark}" Command="{Binding CheckForUpdatesCommand}"
+                      ToolTip.Tip="Ask GameBanana for newer files of the mods installed from it">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:PackIconFontAwesome6 Kind="RotateSolid" Width="12" Height="12" />
+                  <TextBlock Text="Check for updates" />
+                </StackPanel>
+              </Button>
+              <Button Background="{StaticResource ACNHGreenDark}" Command="{Binding InstallFromFileCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:PackIconFontAwesome6 Kind="FileZipperSolid" Width="12" Height="12" />
+                  <TextBlock Text="Install from file..." />
+                </StackPanel>
+              </Button>
+            </StackPanel>
           </Grid>
 
           <Border Grid.Row="1" Background="{StaticResource PanelBackground}" Padding="10 6" IsVisible="{Binding BusyText, Converter={x:Static ObjectConverters.IsNotNull}}">
@@ -287,6 +306,14 @@
                   <MultiBinding Converter="{x:Static BoolConverters.And}">
                     <Binding Path="IsInstalledPage"/>
                     <Binding Path="Message" Converter="{x:Static StringConverters.IsNullOrEmpty}"/>
+                  </MultiBinding>
+                </TextBlock.IsVisible>
+              </TextBlock>
+              <TextBlock Text="{Binding UpdateStatus}" FontSize="12" Foreground="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="2 0 0 8">
+                <TextBlock.IsVisible>
+                  <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="IsInstalledPage"/>
+                    <Binding Path="UpdateStatus" Converter="{x:Static StringConverters.IsNotNullOrEmpty}"/>
                   </MultiBinding>
                 </TextBlock.IsVisible>
               </TextBlock>
@@ -344,6 +371,8 @@
                           <TextBlock Text="{Binding Details}" FontSize="12" Foreground="{StaticResource DimText}" TextTrimming="CharacterEllipsis"
                                      ToolTip.Tip="{Binding TagsTip}"
                                      IsVisible="{Binding Details, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                          <TextBlock Text="{Binding UpdateText}" FontSize="12" Foreground="{StaticResource WarningText}" TextTrimming="CharacterEllipsis"
+                                     ToolTip.Tip="{Binding UpdateText}" IsVisible="{Binding HasUpdate}"/>
                           <StackPanel IsVisible="{Binding IsBusy}" Spacing="2" Margin="0 4 0 0">
                             <ProgressBar Value="{Binding Progress}" Maximum="1" IsIndeterminate="{Binding !IsProgressKnown}" />
                             <TextBlock Text="{Binding Status}" FontSize="11" Foreground="{StaticResource SecondaryText}" TextTrimming="CharacterEllipsis"/>
@@ -369,6 +398,9 @@
                           </Button>
                           <Button Classes="icon" Command="{Binding InstallCommand}" IsVisible="{Binding CanInstall}">
                             <icons:PackIconFontAwesome6 Kind="{Binding InstallIcon}" />
+                          </Button>
+                          <Button Classes="icon" Command="{Binding UpdateModCommand}" IsVisible="{Binding CanUpdate}" ToolTip.Tip="Update">
+                            <icons:PackIconFontAwesome6 Kind="CircleArrowUpSolid" Foreground="{StaticResource WarningText}" />
                           </Button>
                           <Button Command="{Binding CancelInstallCommand}" IsVisible="{Binding CanCancel}" Content="Cancel" />
                         </StackPanel>
