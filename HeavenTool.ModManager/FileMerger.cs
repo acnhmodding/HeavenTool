@@ -54,6 +54,7 @@ namespace HeavenTool.ModManager
 
                 var decompressedStream = new MemoryStream();
                 ZstdDecompressor.Decompress(stream, decompressedStream);
+                decompressedStream.Position = 0;
 
                 stream = decompressedStream;
             }
