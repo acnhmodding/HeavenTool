@@ -23,6 +23,15 @@ namespace HeavenTool.ModManager.Library
         /// <summary>The folders inside the archive that were installed, joined with ", ". Empty when the archive held a single mod.</summary>
         public string Variant { get; set; } = "";
 
+        /// <summary>The GameBanana category, the root one when the mod is in a subcategory.</summary>
+        public string? Category { get; set; }
+
+        /// <summary>The GameBanana subcategory, or null when the mod sits in a root category.</summary>
+        public string? Subcategory { get; set; }
+
+        /// <summary>The GameBanana tags, "Title: Value" for tags that have a title.</summary>
+        public List<string> Tags { get; set; } = [];
+
         public string? ProfileUrl { get; set; }
         public string? ImageUrl { get; set; }
         public DateTimeOffset InstalledAt { get; set; }
