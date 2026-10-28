@@ -34,8 +34,11 @@ public class SubfeedRecord
     [JsonProperty("_aTags")]
     public dynamic[]? Tags { get; set; }
 
-    [JsonProperty("_aPreviewMedia")]
-    public PreviewMedia? PreviewImage { get; set; }
+    [JsonProperty("_sPayType")]
+    public string? PayType { get; set; } // free
+
+    [JsonProperty("_aPreviewContent")]
+    public PreviewContent? PreviewContent { get; set; }
 
     [JsonProperty("_aSubmitter")]
     public Submitter? Submitter { get; set; }

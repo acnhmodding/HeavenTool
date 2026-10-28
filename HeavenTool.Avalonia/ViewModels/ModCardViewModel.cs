@@ -50,7 +50,7 @@ public partial class ModCardViewModel : ObservableObject
         Name = record.Name ?? "Untitled mod";
         Author = record.Submitter?.Name;
         ProfileUrl = record.ProfileUrl?.ToString();
-        var image = record.PreviewImage?.Data is { Length: > 0 } images ? images[0] : null;
+        var image = record.PreviewContent?.Screenshot;
         if (image?.BaseUrl != null && image.File != null)
         {
             ImageUrl = $"{image.BaseUrl}/{image.File220 ?? image.File}";

@@ -7,7 +7,7 @@ namespace GamebananaAPI;
 public partial class GamebananaClient
 {
     private readonly HttpClient _httpClient;
-    private const string BASE_URL = "https://gamebanana.com/apiv11/";
+    private const string BASE_URL = "https://gamebanana.com/apiv13/";
 
     public GamebananaClient()
     {
@@ -52,8 +52,7 @@ public partial class GamebananaClient
     /// </summary>
     public async Task<string[]> GetRawFileList(int fileId, CancellationToken cancellation = default)
     {
-        // apiv11 answers this with an empty list, apiv13 has the real one.
-        var text = await _httpClient.GetStringAsync($"https://gamebanana.com/apiv13/File/{fileId}/RawFileList", cancellation);
+        var text = await _httpClient.GetStringAsync($"File/{fileId}/RawFileList", cancellation);
         // A missing file can come back as a 200 with a JSON error instead of a 404.
         if (text.StartsWith('{') && text.Contains("\"_sErrorCode\""))
             throw new HttpRequestException($"GameBanana couldn't list the files of {fileId}: {text}", null, System.Net.HttpStatusCode.NotFound);
