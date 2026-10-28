@@ -144,7 +144,14 @@
                                                         HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasImage}" />
                             <Image asyncImageLoader:ImageLoader.Source="{Binding ImageUrl}" Stretch="UniformToFill" IsVisible="{Binding HasImage}">
                               <ToolTip.Tip>
-                                <Image Height="256" asyncImageLoader:ImageLoader.Source="{Binding PreviewUrl}"/>
+                                <!-- Wider than the theme's tooltips, and sized up front so it isn't blank while the image loads. -->
+                                <ToolTip MaxWidth="560" Padding="4">
+                                  <Panel Width="530" Height="298">
+                                    <TextBlock Text="Loading preview..." Foreground="{StaticResource DimText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               IsVisible="{Binding #PreviewImage.(asyncImageLoader:ImageLoader.IsLoading)}" />
+                                    <Image x:Name="PreviewImage" asyncImageLoader:ImageLoader.Source="{Binding PreviewUrl}" Stretch="Uniform" />
+                                  </Panel>
+                                </ToolTip>
                               </ToolTip.Tip>
                             </Image>
                           </Panel>

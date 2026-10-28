@@ -64,7 +64,8 @@ public partial class ModCardViewModel : ObservableObject
         if (image?.BaseUrl != null && image.File != null)
         {
             ImageUrl = $"{image.BaseUrl}/{image.File220 ?? image.File}";
-            PreviewUrl = $"{image.BaseUrl}/{image.File}";
+            // The full screenshot can be several hundred KB; the 530 pixel one loads fast enough for a tooltip.
+            PreviewUrl = $"{image.BaseUrl}/{image.File530 ?? image.File}";
         }
 
         var details = new List<string> { Plural(record.LikeCount, "like") };
