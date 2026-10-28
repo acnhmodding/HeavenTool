@@ -46,6 +46,9 @@ public class SubfeedRecord
     [JsonProperty("_aRootCategory")]
     public Category? Category { get; set; }
 
+    [JsonProperty("_aSubCategory", NullValueHandling = NullValueHandling.Ignore)]
+    public Category? SubCategory { get; set; }
+
     [JsonProperty("_sVersion", NullValueHandling = NullValueHandling.Ignore)]
     public string? Version { get; set; }
 

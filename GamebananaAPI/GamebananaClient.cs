@@ -81,6 +81,72 @@ public partial class GamebananaClient
         return Subfeed.FromJson(response);
     }
 
+    /// <summary>
+    /// List a game's mods narrowed by a filter. Unlike the subfeed, Mod/Index honors filters and more sorts
+    /// </summary>
+    public async Task<Subfeed?> GetModIndex(int gameId, ModFilter filter, int page = 1, int perPage = 15, CancellationToken cancellation = default)
+    {
+        var queryString = System.Web.HttpUtility.ParseQueryString(string.Empty);
+        queryString.Add("_nPage", page.ToString());
+        queryString.Add("_nPerpage", perPage.ToString());
+        queryString.Add("_aFilters[Generic_Game]", gameId.ToString());
+
+        if (!string.IsNullOrWhiteSpace(filter.Name))
+            queryString.Add("_aFilters[Generic_Name]", "contains," + filter.Name.Trim());
+        if (filter.CategoryId is { } categoryId)
+            queryString.Add("_aFilters[Generic_Category]", categoryId.ToString());
+        if (filter.SubmitterId is { } submitterId)
+            queryString.Add("_aFilters[Generic_Submitter]", submitterId.ToString());
+        if (filter.FeaturedOnly)
+            queryString.Add("_aFilters[Generic_WasFeatured]", "true");
+        if (filter.Sort != ModSort.Default)
+            queryString.Add("_sSort", "Generic_" + filter.Sort);
+
+        var response = await _httpClient.GetStringAsync($"Mod/Index?{queryString}", cancellation);
+        return Subfeed.FromJson(response);
+    }
+
+    /// <summary>
+    /// Get a game's top-level mod categories, A to Z
+    /// </summary>
+    public async Task<ModCategory[]> GetModCategories(int gameId, CancellationToken cancellation = default)
+    {
+        var response = await _httpClient.GetStringAsync($"Mod/Categories?_idGameRow={gameId}&_sSort=a_to_z&_bShowEmpty=true", cancellation);
+        return ModCategory.ListFromJson(response);
+    }
+
+    /// <summary>
+    /// Get the subcategories of a mod category, A to Z
+    /// </summary>
+    public async Task<ModCategory[]> GetModSubcategories(int categoryId, CancellationToken cancellation = default)
+    {
+        var response = await _httpClient.GetStringAsync($"Mod/Categories?_idCategoryRow={categoryId}&_sSort=a_to_z&_bShowEmpty=true", cancellation);
+        return ModCategory.ListFromJson(response);
+    }
+
+    /// <summary>
+    /// Search GameBanana's members by name
+    /// </summary>
+    public async Task<SubfeedRecord[]> FindMembers(string name, CancellationToken cancellation = default)
+    {
+        var queryString = System.Web.HttpUtility.ParseQueryString(string.Empty);
+        queryString.Add("_sModelName", "Member");
+        queryString.Add("_sSearchString", name);
+        queryString.Add("_nPage", "1");
+
+        var response = await _httpClient.GetStringAsync($"Util/Search/Results?{queryString}", cancellation);
+        return Subfeed.FromJson(response)?.Records ?? [];
+    }
+
+    /// <summary>
+    /// Get a mod's tags and categories
+    /// </summary>
+    public async Task<ModProfile?> GetProfilePage(int modId, CancellationToken cancellation = default)
+    {
+        var response = await _httpClient.GetStringAsync($"Mod/{modId}/ProfilePage", cancellation);
+        return ModProfile.FromJson(response);
+    }
+
     [GeneratedRegex("\r\n|\r|\n")]
     private static partial Regex NewLineRegex();
 }
