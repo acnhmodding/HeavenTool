@@ -112,27 +112,9 @@ namespace HeavenTool.ModManager.Library
                 Directory.CreateDirectory(staging);
                 File.WriteAllText(Path.Combine(staging, MetadataFile), JsonSerializer.Serialize(mod, JsonOptions));
 
-                if (existing == null)
-                {
-                    mod.Folder = UniqueFolder(mod.Name);
-                    Directory.Move(staging, mod.Folder);
-                    return mod;
-                }
-
-                // Keep the earlier copy until the new one is in place.
-                var previous = Path.Combine(Folder, ".replacing-" + Guid.NewGuid().ToString("N"));
-                Directory.Move(existing.Folder, previous);
-                mod.Folder = existing.Folder;
-                try
-                {
-                    Directory.Move(staging, mod.Folder);
-                }
-                catch
-                {
-                    Directory.Move(previous, existing.Folder);
-                    throw;
-                }
-                Directory.Delete(previous, true);
+                mod.Folder = existing?.Folder ?? UniqueFolder(mod.Name);
+                if (FolderSwap.Replace(staging, mod.Folder) is { } previous)
+                    Trace.WriteLine($"Couldn't delete the replaced copy at {previous}");
                 return mod;
             }
             finally

@@ -80,7 +80,8 @@ namespace HeavenTool.ModManager.Deploy
 
                 cancellation.ThrowIfCancellationRequested();
                 progress?.Report("Replacing the deployed mods...");
-                Replace(staging, result);
+                if (FolderSwap.Replace(staging, Target) is { } previous)
+                    result.Warnings.Add($"Couldn't delete the previous deploy at {previous}. Delete it yourself, or the emulator loads it too.");
             }
             finally
             {
@@ -248,34 +249,6 @@ namespace HeavenTool.ModManager.Deploy
             catch (Exception ex) when (ex is not (IOException or UnauthorizedAccessException))
             {
                 result.Warnings.Add($"Couldn't update the resource size table: {ex.Message}. The game can crash when a mod makes a file bigger than the table expects.");
-            }
-        }
-
-        private void Replace(string staging, DeployResult result)
-        {
-            if (!Directory.Exists(Target))
-            {
-                Directory.Move(staging, Target);
-                return;
-            }
-
-            // Keep the previous deploy until the new one is in place.
-            var previous = Path.Combine(ModFolder, $".{FolderName}.previous-{Guid.NewGuid():N}");
-            Directory.Move(Target, previous);
-            try
-            {
-                Directory.Move(staging, Target);
-            }
-            catch
-            {
-                Directory.Move(previous, Target);
-                throw;
-            }
-
-            try { Directory.Delete(previous, true); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                result.Warnings.Add($"Couldn't delete the previous deploy at {previous}: {ex.Message}. Delete it yourself, or the emulator loads it too.");
             }
         }
     }
