@@ -16,7 +16,7 @@ namespace HeavenTool.ModManager
                 return null;
             }
 
-            // A dot folder beside the target, which the library and the deploy's mod check skip.
+            // A dot folder beside the target, which the library and the deploy's leftover check know.
             var previous = Path.Combine(Path.GetDirectoryName(target)!, $".{Path.GetFileName(target)}.previous-{Guid.NewGuid():N}");
             Directory.Move(target, previous);
             try
@@ -39,5 +39,9 @@ namespace HeavenTool.ModManager
                 return previous;
             }
         }
+
+        /// <summary>Whether a folder name is a copy <see cref="Replace"/> set aside for the folder named <paramref name="target"/>.</summary>
+        public static bool IsPreviousCopy(string name, string target) =>
+            name.StartsWith($".{target}.previous-", StringComparison.OrdinalIgnoreCase);
     }
 }

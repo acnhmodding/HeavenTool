@@ -42,6 +42,7 @@ namespace HeavenTool.ModManager.Deploy
             sharedNames = [.. mods.GroupBy(mod => mod.Name).Where(group => group.Count() > 1).Select(group => group.Key)];
             if (Directory.Exists(Target) && !IsOwned(Target))
                 throw new InvalidOperationException($"{Target} wasn't made by Heaven Tool, so it won't be replaced. Rename or move it, then deploy again.");
+            var leftovers = DeleteLeftovers(result);
 
             if (mods.Count == 0)
             {
@@ -80,7 +81,7 @@ namespace HeavenTool.ModManager.Deploy
 
                 cancellation.ThrowIfCancellationRequested();
                 progress?.Report("Replacing the deployed mods...");
-                if (FolderSwap.Replace(staging, Target) is { } previous)
+                if (FolderSwap.Replace(staging, Target) is { } previous && leftovers.Add(Path.GetFileName(previous)))
                     result.Warnings.Add($"Couldn't delete the previous deploy at {previous}. Delete it yourself, or the emulator loads it too.");
             }
             finally
@@ -88,9 +89,10 @@ namespace HeavenTool.ModManager.Deploy
                 if (Directory.Exists(staging)) Directory.Delete(staging, true);
             }
 
+            // Hidden folders count too: the emulator loads them like any other.
             var others = Directory.EnumerateDirectories(ModFolder)
                 .Select(Path.GetFileName)
-                .Where(name => name != null && !name.Equals(FolderName, StringComparison.OrdinalIgnoreCase) && !name.StartsWith('.'))
+                .Where(name => name != null && !name.Equals(FolderName, StringComparison.OrdinalIgnoreCase) && !leftovers.Contains(name))
                 .Where(name => Directory.Exists(Path.Combine(ModFolder, name!, "romfs")) || Directory.Exists(Path.Combine(ModFolder, name!, "exefs")))
                 .ToList();
             if (others.Count > 0)
@@ -109,6 +111,28 @@ namespace HeavenTool.ModManager.Deploy
                 Trace.WriteLine($"Couldn't read {path}: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Deletes what an earlier deploy left beside the target when it was stopped, or couldn't delete the folder it replaced.
+        /// Returns the names of the ones still there, which <paramref name="result"/> warns about.
+        /// </summary>
+        private HashSet<string> DeleteLeftovers(DeployResult result)
+        {
+            var remaining = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!Directory.Exists(ModFolder)) return remaining;
+            foreach (var folder in Directory.EnumerateDirectories(ModFolder, $".{FolderName}.*").ToList())
+            {
+                var name = Path.GetFileName(folder);
+                if (!name.StartsWith($".{FolderName}.deploying-", StringComparison.OrdinalIgnoreCase) && !FolderSwap.IsPreviousCopy(name, FolderName)) continue;
+                try { Directory.Delete(folder, true); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    remaining.Add(name);
+                    result.Warnings.Add($"Couldn't delete {folder}, left by an earlier deploy. Delete it yourself, or the emulator loads it too.");
+                }
+            }
+            return remaining;
         }
 
         // Only a folder a deploy made, or an empty one, is replaced.
