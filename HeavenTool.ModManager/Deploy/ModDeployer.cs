@@ -39,6 +39,7 @@ namespace HeavenTool.ModManager.Deploy
         public DeployResult Deploy(IReadOnlyList<InstalledMod> mods, IProgress<string>? progress = null, CancellationToken cancellation = default)
         {
             var result = new DeployResult { Target = Target, ModCount = mods.Count };
+            sharedNames = [.. mods.GroupBy(mod => mod.Name).Where(group => group.Count() > 1).Select(group => group.Key)];
             if (Directory.Exists(Target) && !IsOwned(Target))
                 throw new InvalidOperationException($"{Target} wasn't made by Heaven Tool, so it won't be replaced. Rename or move it, then deploy again.");
 
@@ -57,9 +58,10 @@ namespace HeavenTool.ModManager.Deploy
                 var canBuildTable = vanillaTable != null && File.Exists(vanillaTable);
 
                 // A table built from the game's own fits every mod, so the mods' copies are left out.
-                DeployFolder("romfs", lowestFirst, staging, result, VanillaRomfs != null, canBuildTable ? ResourceSizeTablePath : null, progress, cancellation);
-                DeployFolder("exefs", lowestFirst, staging, result, false, null, progress, cancellation);
-                if (SkylineExefs != null) DeploySkyline(staging, result);
+                DeployFolder("romfs", lowestFirst, staging, result, VanillaRomfs != null, canBuildTable ? [ResourceSizeTablePath] : [], progress, cancellation);
+                // Skyline always wins: the mods' own copies of its files are left out, whatever their priority.
+                DeployFolder("exefs", lowestFirst, staging, result, false, SkylineExefs != null ? Skyline.Files : [], progress, cancellation);
+                if (SkylineExefs != null) DeploySkyline(lowestFirst, staging, result);
 
                 cancellation.ThrowIfCancellationRequested();
                 if (!canBuildTable)
@@ -112,10 +114,14 @@ namespace HeavenTool.ModManager.Deploy
         private static bool IsOwned(string folder) =>
             File.Exists(Path.Combine(folder, MarkerFile)) || !Directory.EnumerateFileSystemEntries(folder).Any();
 
-        // Two files from one GameBanana mod share its name, so the installed variant tells them apart.
-        private static string Label(InstalledMod mod) => string.IsNullOrEmpty(mod.Variant) ? mod.Name : $"{mod.Name} ({mod.Variant})";
+        // Names that several of the deployed mods share, like two files from one GameBanana mod.
+        private HashSet<string> sharedNames = [];
 
-        private void DeployFolder(string kind, List<InstalledMod> lowestFirst, string staging, DeployResult result, bool merge, string? skip,
+        // The installed variant tells apart mods that share a name.
+        private string Label(InstalledMod mod) =>
+            sharedNames.Contains(mod.Name) && !string.IsNullOrEmpty(mod.Variant) ? $"{mod.Name} ({mod.Variant})" : mod.Name;
+
+        private void DeployFolder(string kind, List<InstalledMod> lowestFirst, string staging, DeployResult result, bool merge, IReadOnlyCollection<string> skip,
             IProgress<string>? progress, CancellationToken cancellation)
         {
             // Every file, with the mods that have it, lowest priority first.
@@ -127,7 +133,7 @@ namespace HeavenTool.ModManager.Deploy
                 foreach (var file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
                 {
                     var path = Path.GetRelativePath(folder, file).Replace('\\', '/');
-                    if (skip != null && path.Equals(skip, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (skip.Contains(path, StringComparer.OrdinalIgnoreCase)) continue;
                     if (!files.TryGetValue(path, out var providers)) files[path] = providers = [];
                     providers.Add((mod, file));
                 }
@@ -197,23 +203,32 @@ namespace HeavenTool.ModManager.Deploy
             }
         }
 
-        private void DeploySkyline(string staging, DeployResult result)
+        private void DeploySkyline(List<InstalledMod> lowestFirst, string staging, DeployResult result)
         {
             var exefs = Path.Combine(staging, "exefs");
             Directory.CreateDirectory(exefs);
             foreach (var file in Skyline.Files)
             {
                 var source = Path.Combine(SkylineExefs!, file);
-                var output = Path.Combine(exefs, file);
-                if (File.Exists(output))
-                {
-                    if (!File.ReadAllBytes(output).AsSpan().SequenceEqual(File.ReadAllBytes(source)))
-                        result.Warnings.Add($"A mod's exefs/{file} was replaced by Skyline's. Turn off \"Install Skyline\" in Settings to keep the mod's copy.");
-                }
-                else result.FileCount++;
-                File.Copy(source, output, true);
+                var skyline = File.ReadAllBytes(source);
+                var replaced = lowestFirst
+                    .Where(mod => ModCopies(mod, file).Any(copy => !File.ReadAllBytes(copy).AsSpan().SequenceEqual(skyline)))
+                    .Select(Label).Reverse().ToList();
+                if (replaced.Count > 0)
+                    result.Warnings.Add($"Skyline's exefs/{file} replaces the one from {string.Join(", ", replaced)}. Turn off \"Install Skyline\" in Settings to keep the mod's copy.");
+                File.Copy(source, Path.Combine(exefs, file));
+                result.FileCount++;
             }
             result.SkylineInstalled = true;
+        }
+
+        // A mod's own copies of an exefs file, in any letter case.
+        private static IEnumerable<string> ModCopies(InstalledMod mod, string file)
+        {
+            var exefs = Path.Combine(mod.Folder, "exefs");
+            return Directory.Exists(exefs)
+                ? Directory.EnumerateFiles(exefs).Where(path => Path.GetFileName(path).Equals(file, StringComparison.OrdinalIgnoreCase))
+                : [];
         }
 
         private static void BuildResourceSizeTable(string vanillaTable, string staging, DeployResult result, IProgress<string>? progress)
