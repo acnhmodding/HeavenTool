@@ -36,10 +36,7 @@ namespace HeavenTool.ModManager
         /// <param name="stream"></param>
         /// <param name="fileName">The path for the file, in RomFs
         /// <br/>Example: Message/TalkNNpc_EUen.sarc.zs</param>
-        /// <returns>
-        /// <para>• A <see cref="ModFile"/> based on the file type.</para>
-        /// <para>• <see cref="GenericFile"/> if file type is <b>not</b> supported.</para>
-        /// </returns>
+        /// <returns>A <see cref="ModFile"/> based on the file type, or null when it isn't supported and was copied to the output as it is.</returns>
         public ModFile LoadModFile(byte[] bytes, string fileName)
         {
             var modFile = TryLoad(bytes, fileName);
@@ -52,8 +49,6 @@ namespace HeavenTool.ModManager
             File.WriteAllBytes(outputPath, bytes);
 
             return null;
-            // TODO: save it to output folder already to save memory
-            // modFile = new GenericFile(stream, fileName);
         }
 
         /// <summary>
@@ -207,7 +202,7 @@ namespace HeavenTool.ModManager
 
                     using var zipFile = ZipFile.OpenRead(modZip);
 
-                    var entry = zipFile.Entries.FirstOrNull(entry =>
+                    var entry = zipFile.Entries.FirstOrDefault(entry =>
                     {
                         var path = PathUtilities.GetRelativePathFromTarget(entry.FullName, "romfs");
                         return path != null && PathUtilities.ArePathsEqual(path, filePath);

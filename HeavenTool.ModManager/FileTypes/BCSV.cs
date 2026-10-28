@@ -20,7 +20,7 @@ public sealed class BCSV : ModFile
             LoadedFile = new BinaryCSV(memoryStream);
             if (LoadedFile.Length == 0 || LoadedFile.Fields.Length == 0) return;
 
-            UniqueHeader = BinaryCSV.UniqueHashes.FirstOrNullStruct(x => LoadedFile.Fields.Any(field => field.Hash == x));
+            UniqueHeader = BinaryCSV.UniqueHashes.FirstOrNull(x => LoadedFile.Fields.Any(field => field.Hash == x));
             UniqueHeaderIndex = UniqueHeader.HasValue ? Array.FindIndex(LoadedFile.Fields, x => x.Hash == UniqueHeader) : -1;
         }
     }

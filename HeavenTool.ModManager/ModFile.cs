@@ -13,15 +13,6 @@ namespace HeavenTool.ModManager
             Content = stream;
         }
 
-        public ModFile(string path)
-        {
-            var directoryFile = new FileInfo(path);
-
-            Name = directoryFile.Name;
-            //Extension = directoryFile.Extension;
-            Content = File.OpenRead(path);
-        }
-
         public string Name { get; set; }
 
         [JsonIgnore]
