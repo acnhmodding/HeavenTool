@@ -33,6 +33,7 @@ public partial class ModCardViewModel : ObservableObject
     public bool CanCancel => ModId != null && Installed == null && IsBusy;
     public bool CanOpenPage => ProfileUrl != null;
     public bool IsLibraryCard => Installed != null;
+    public bool IsTurnedOff => IsLibraryCard && !IsModEnabled;
     public string InstallIcon => IsInstalled ? "RotateSolid" : "DownloadSolid";
 
     [ObservableProperty]
@@ -54,7 +55,7 @@ public partial class ModCardViewModel : ObservableObject
     internal CancellationTokenSource? Cancellation { get; set; }
 
     /// <summary>Whether a library mod is deployed.</summary>
-    [ObservableProperty]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsTurnedOff))]
     public partial bool IsModEnabled { get; set; }
 
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(MoveUpCommand))]

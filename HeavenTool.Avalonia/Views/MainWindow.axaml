@@ -196,7 +196,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:ModCardViewModel">
-                    <Border Classes="modCard" Classes.off="{Binding !IsModEnabled}">
+                    <Border Classes="modCard" Classes.off="{Binding IsTurnedOff}">
                       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
 
                         <StackPanel Grid.Column="0" Orientation="Horizontal">
