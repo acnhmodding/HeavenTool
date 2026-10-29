@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:vc="using:HeavenTool.Avalonia.ViewModels.VillagerCreator"
+  x:Class="HeavenTool.Avalonia.Views.Tools.VillagerTraitsStep"
+  x:DataType="vc:TraitsStepViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="28,20,28,28">
+      <TextBlock Classes="page" Text="Traits" />
+      <TextBlock Classes="intro"
+        Text="These come from the villager's NmlNpcParam row. The game doesn't name most styles and colors, so each choice lists villagers that share it." />
+
+      <StackPanel Classes="section">
+        <icons:PackIconFontAwesome6 Kind="FaceSmileSolid" />
+        <TextBlock Text="Personality" />
+      </StackPanel>
+      <Border Classes="card">
+        <ItemsControl ItemsSource="{Binding Personality}" />
+      </Border>
+
+      <StackPanel Classes="section">
+        <icons:PackIconFontAwesome6 Kind="CakeCandlesSolid" />
+        <TextBlock Text="Birthday and name" />
+      </StackPanel>
+      <Border Classes="card">
+        <ItemsControl ItemsSource="{Binding Birthday}" />
+      </Border>
+
+      <StackPanel Classes="section">
+        <icons:PackIconFontAwesome6 Kind="PaletteSolid" />
+        <TextBlock Text="Favorites" />
+      </StackPanel>
+      <Border Classes="card">
+        <ItemsControl ItemsSource="{Binding Favorites}" />
+      </Border>
+
+      <StackPanel Classes="section">
+        <icons:PackIconFontAwesome6 Kind="ShirtSolid" />
+        <TextBlock Text="Clothing and items" />
+      </StackPanel>
+      <TextBlock Classes="intro" FontSize="12" Margin="2,0,0,8" Text="Item IDs, as in ItemParam. The name of a vanilla item shows under each." />
+      <Border Classes="card">
+        <ItemsControl ItemsSource="{Binding Items}" />
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -1,0 +1,117 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:sys="using:System"
+  xmlns:vc="using:HeavenTool.Avalonia.ViewModels.VillagerCreator"
+  xmlns:villagers="using:HeavenTool.ModManager.Villagers"
+  x:Class="HeavenTool.Avalonia.Views.Tools.VillagerGenerateStep"
+  x:DataType="vc:GenerateStepViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="28,20,28,28">
+      <TextBlock Classes="page" Text="Generate" />
+      <TextBlock Classes="intro"
+        Text="Writes the villager as NookKit patches in romfs/NookKit, which add it to the game without replacing anyone. The project file is saved with them, so you can open the villager again later." />
+
+      <Border Classes="banner" Margin="0,16,0,0" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <SelectableTextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{StaticResource ErrorText}" />
+      </Border>
+
+      <StackPanel Classes="section">
+        <icons:PackIconFontAwesome6 Kind="FolderSolid" />
+        <TextBlock Text="Output" />
+      </StackPanel>
+      <Border Classes="card">
+        <StackPanel>
+          <Border Classes="row">
+            <StackPanel Spacing="10">
+              <StackPanel>
+                <TextBlock Classes="title" Text="Output folder" />
+                <TextBlock Classes="description" Text="The mod's root folder. Files already there with the same names are replaced." />
+              </StackPanel>
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                <TextBox Text="{Binding OutputFolder}" />
+                <Button Grid.Column="1" Command="{Binding BrowseCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="12" Height="12" />
+                    <TextBlock Text="Browse" />
+                  </StackPanel>
+                </Button>
+                <Button Grid.Column="2" Command="{Binding OpenFolderCommand}" ToolTip.Tip="Open in file manager">
+                  <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
+                </Button>
+              </Grid>
+            </StackPanel>
+          </Border>
+          <Border Classes="row">
+            <StackPanel>
+              <TextBlock Classes="title" Text="Not generated" />
+              <TextBlock Classes="description" Text="The model isn't part of the patches. Add it to the mod yourself:" />
+              <SelectableTextBlock Text="{Binding ModelPath}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Margin="0,6,0,0" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <StackPanel Classes="section">
+        <icons:PackIconFontAwesome6 Kind="ListCheckSolid" />
+        <TextBlock Text="Check" />
+      </StackPanel>
+      <Border Classes="card" Padding="16,12">
+        <StackPanel Spacing="8">
+          <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsValid}">
+            <icons:PackIconFontAwesome6 Kind="CircleCheckSolid" Width="14" Height="14" VerticalAlignment="Center" Foreground="{StaticResource ACNHGreen}" />
+            <TextBlock Text="Ready to generate." VerticalAlignment="Center" />
+          </StackPanel>
+          <ItemsControl ItemsSource="{Binding Problems}" IsVisible="{Binding !IsValid}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="sys:String">
+                <DockPanel>
+                  <icons:PackIconFontAwesome6 Kind="CircleXmarkSolid" Width="14" Height="14" Margin="0,1,10,0" VerticalAlignment="Top"
+                    Foreground="{StaticResource ErrorText}" />
+                  <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                </DockPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,16,0,0">
+        <Button Classes="accent" Command="{Binding GenerateCommand}" MinWidth="140">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <icons:PackIconFontAwesome6 Kind="WandMagicSparklesSolid" Width="13" Height="13" VerticalAlignment="Center" />
+            <TextBlock Text="Generate" />
+          </StackPanel>
+        </Button>
+        <ProgressBar IsIndeterminate="True" Width="120" VerticalAlignment="Center" IsVisible="{Binding IsGenerating}" />
+      </StackPanel>
+
+      <StackPanel IsVisible="{Binding HasFiles}">
+        <StackPanel Classes="section">
+          <icons:PackIconFontAwesome6 Kind="FileCircleCheckSolid" />
+          <TextBlock Text="Written" />
+        </StackPanel>
+        <Border Classes="card">
+          <ItemsControl ItemsSource="{Binding Files}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="villagers:GeneratedFile">
+                <Border Classes="row">
+                  <StackPanel>
+                    <TextBlock Classes="title" Text="{Binding Description}" />
+                    <SelectableTextBlock Text="{Binding Path}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Margin="0,2,0,0"
+                      Foreground="{StaticResource SecondaryText}" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

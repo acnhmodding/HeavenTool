@@ -1,0 +1,97 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:sys="using:System"
+  xmlns:vc="using:HeavenTool.Avalonia.ViewModels.VillagerCreator"
+  xmlns:villagers="using:HeavenTool.ModManager.Villagers"
+  xmlns:controls="using:HeavenTool.Avalonia.Controls"
+  x:Class="HeavenTool.Avalonia.Views.Tools.VillagerHouseStep"
+  x:DataType="vc:HouseStepViewModel">
+  <Grid ColumnDefinitions="380,*">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="28,20,20,28">
+        <TextBlock Classes="page" Text="House" />
+        <TextBlock Classes="intro" Text="The outside of the villager's house. Walls and roofs only fit the shape they were made for." />
+
+        <StackPanel Classes="section">
+          <icons:PackIconFontAwesome6 Kind="HouseSolid" />
+          <TextBlock Text="Exterior" />
+        </StackPanel>
+        <Border Classes="card">
+          <StackPanel>
+            <Border Classes="row">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="title" Text="Shape" />
+                <ComboBox ItemsSource="{Binding Shapes}" SelectedItem="{Binding Shape}" HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="sys:Int32">
+                      <TextBlock Text="{Binding StringFormat='Shape {0}'}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+            </Border>
+            <Border Classes="row">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="title" Text="Wall" />
+                <ComboBox ItemsSource="{Binding Walls}" SelectedItem="{Binding Wall}" HorizontalAlignment="Stretch" />
+              </StackPanel>
+            </Border>
+            <Border Classes="row">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="title" Text="Roof" />
+                <ComboBox ItemsSource="{Binding Roofs}" SelectedItem="{Binding Roof}" HorizontalAlignment="Stretch" />
+              </StackPanel>
+            </Border>
+            <Border Classes="row">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="title" Text="Door" />
+                <ComboBox ItemsSource="{Binding Doors}" SelectedItem="{Binding Door}" HorizontalAlignment="Stretch" />
+              </StackPanel>
+            </Border>
+            <Border Classes="row">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Classes="title" Text="Curtains" />
+                  <TextBlock Classes="description" Text="The pattern behind the windows. Not shown in the preview." />
+                </StackPanel>
+                <NumericUpDown Grid.Column="1" Value="{Binding Curtain}" Minimum="0" Maximum="{Binding MaxCurtain}" Increment="1"
+                  FormatString="0" Width="110" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <DockPanel Margin="2,12,0,0" IsVisible="{Binding PreviewWarning, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="13" Height="13" Margin="0,1,8,0" VerticalAlignment="Top"
+            Foreground="{StaticResource WarningText}" />
+          <TextBlock Classes="warning" Text="{Binding PreviewWarning}" />
+        </DockPanel>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border Grid.Column="1" Margin="0,20,28,20" CornerRadius="6" ClipToBounds="True" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
+      <Grid Background="#1c1e23">
+        <controls:BfresViewport x:Name="Viewport" />
+        <Border IsVisible="{Binding IsPreviewLoading}" Background="#C0202226" CornerRadius="4" Padding="12,8" Margin="12"
+          HorizontalAlignment="Left" VerticalAlignment="Top">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <ProgressBar IsIndeterminate="True" Width="60" MinWidth="0" VerticalAlignment="Center" />
+            <TextBlock Text="Loading the house…" FontSize="12" VerticalAlignment="Center" />
+          </StackPanel>
+        </Border>
+        <Border IsVisible="{Binding RenderError, Converter={x:Static ObjectConverters.IsNotNull}}" Background="#E6202226"
+          BorderBrush="{StaticResource PanelBorder}" BorderThickness="1" CornerRadius="6" Padding="16,12" MaxWidth="420" Margin="16"
+          HorizontalAlignment="Center" VerticalAlignment="Center">
+          <StackPanel Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="14" Height="14" Foreground="{StaticResource ErrorText}" />
+              <TextBlock Text="3D view unavailable" FontWeight="SemiBold" />
+            </StackPanel>
+            <SelectableTextBlock Text="{Binding RenderError}" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource SecondaryText}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

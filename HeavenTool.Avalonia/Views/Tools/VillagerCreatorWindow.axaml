@@ -1,0 +1,283 @@
+<fa:FAAppWindow xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:fa="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
+  xmlns:vc="using:HeavenTool.Avalonia.ViewModels.VillagerCreator"
+  xmlns:tools="using:HeavenTool.Avalonia.Views.Tools"
+  xmlns:app="clr-namespace:HeavenTool.Avalonia;assembly=HeavenTool.Avalonia"
+  x:Class="HeavenTool.Avalonia.Views.Tools.VillagerCreatorWindow"
+  x:DataType="vc:VillagerCreatorViewModel"
+  Title="{Binding Title}" Width="1120" Height="740" MinWidth="820" MinHeight="520"
+  Background="{StaticResource WindowBackground}">
+
+  <!-- The rows the steps list, found by type so every step shows them the same way. -->
+  <fa:FAAppWindow.DataTemplates>
+    <DataTemplate x:DataType="vc:ChoiceField">
+      <Border Classes="row">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Classes="title" Text="{Binding Title}" />
+            <TextBlock Classes="description" Text="{Binding Selected.Hint, StringFormat='Used by {0}'}"
+              IsVisible="{Binding Selected.Hint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+          <ComboBox Grid.Column="1" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}" Width="240" VerticalAlignment="Center">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vc:ValueOption">
+                <TextBlock Text="{Binding Text}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </Grid>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:DataType="vc:NumberField">
+      <Border Classes="row">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Classes="title" Text="{Binding Title}" />
+            <TextBlock Classes="description" Text="{Binding Description}"
+              IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+          <NumericUpDown Grid.Column="1" Value="{Binding Value}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+            Increment="1" FormatString="0" Width="240" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:DataType="vc:ItemField">
+      <Border Classes="row">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Classes="title" Text="{Binding Title}" />
+            <TextBlock Classes="description" Classes.unknown="{Binding !IsKnown}" Text="{Binding ItemName}" />
+          </StackPanel>
+          <NumericUpDown Grid.Column="1" Value="{Binding Value}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+            Increment="1" FormatString="0" Width="240" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </fa:FAAppWindow.DataTemplates>
+
+  <fa:FAAppWindow.Styles>
+    <Style Selector="TextBlock.page">
+      <Setter Property="FontSize" Value="24" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="TextBlock.intro">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+    </Style>
+    <!-- A section title: an icon and a name above its card. -->
+    <Style Selector="StackPanel.section">
+      <Setter Property="Orientation" Value="Horizontal" />
+      <Setter Property="Spacing" Value="10" />
+      <Setter Property="Margin" Value="2,22,0,8" />
+    </Style>
+    <Style Selector="StackPanel.section > icons|PackIconFontAwesome6">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="StackPanel.section > TextBlock">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- A card of rows, split by lines. Rows are direct children of its panel, or the items of one list. -->
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{StaticResource CardBackground}" />
+      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="Border.row">
+      <Setter Property="Padding" Value="16,12" />
+      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style Selector="StackPanel > Border.row:nth-child(1)">
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ContentPresenter:nth-child(1) > Border.row">
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.row:disabled">
+      <Setter Property="Opacity" Value="0.5" />
+    </Style>
+    <Style Selector="TextBlock.title">
+      <Setter Property="FontSize" Value="14" />
+    </Style>
+    <Style Selector="TextBlock.description">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+      <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
+    <Style Selector="TextBlock.description.unknown">
+      <Setter Property="Foreground" Value="{StaticResource WarningText}" />
+    </Style>
+    <Style Selector="TextBlock.error">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{StaticResource ErrorText}" />
+      <Setter Property="Margin" Value="0,4,0,0" />
+    </Style>
+    <Style Selector="TextBlock.warning">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Foreground" Value="{StaticResource WarningText}" />
+    </Style>
+    <Style Selector="Border.banner">
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Margin" Value="0,0,0,12" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{StaticResource ErrorText}" />
+    </Style>
+    <Style Selector="ListBox.steps ListBoxItem">
+      <Setter Property="Padding" Value="12,9" />
+      <Setter Property="Margin" Value="0,1" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="ListBox.steps ListBoxItem:disabled">
+      <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="ListBox.steps icons|PackIconFontAwesome6">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </fa:FAAppWindow.Styles>
+
+  <Grid RowDefinitions="32,*">
+    <DockPanel Grid.Row="0" Background="{StaticResource TitleBarBackground}" WindowDecorationProperties.ElementRole="TitleBar">
+      <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16" />
+      <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Title}" />
+      <TextBlock Text="{x:Static app:App.DisplayVersion}" Margin="5 0 0 0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource DimText}" />
+    </DockPanel>
+
+    <Grid Grid.Row="1">
+      <!-- Waiting for the game files -->
+      <StackPanel IsVisible="{Binding IsLoading}" Spacing="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <ProgressBar IsIndeterminate="True" Width="200" />
+        <TextBlock Text="Reading the game files…" HorizontalAlignment="Center" Foreground="{StaticResource SecondaryText}" />
+      </StackPanel>
+
+      <StackPanel IsVisible="{Binding NeedsRomfs}" Spacing="10" MaxWidth="420" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <icons:PackIconFontAwesome6 Kind="HardDriveSolid" Width="32" Height="32" HorizontalAlignment="Center" Foreground="{StaticResource SecondaryText}" />
+        <TextBlock Text="Set your romfs first" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+        <TextBlock Classes="intro" TextAlignment="Center"
+          Text="The Villager Creator reads villagers, house parts and messages from your extracted romfs. Set its folder in Settings and this window picks it up." />
+        <Button Classes="accent" HorizontalAlignment="Center" Margin="0,6,0,0" Command="{Binding OpenSettingsCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <icons:PackIconFontAwesome6 Kind="GearSolid" Width="13" Height="13" VerticalAlignment="Center" />
+            <TextBlock Text="Open Settings" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+
+      <StackPanel IsVisible="{Binding LoadError, Converter={x:Static ObjectConverters.IsNotNull}}" Spacing="10" MaxWidth="480"
+        HorizontalAlignment="Center" VerticalAlignment="Center">
+        <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="32" Height="32" HorizontalAlignment="Center" Foreground="{StaticResource ErrorText}" />
+        <SelectableTextBlock Text="{Binding LoadError}" TextWrapping="Wrap" TextAlignment="Center" />
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,6,0,0">
+          <Button Content="Try again" Command="{Binding RetryCommand}" />
+          <Button Content="Open Settings" Command="{Binding OpenSettingsCommand}" />
+        </StackPanel>
+      </StackPanel>
+
+      <!-- The wizard -->
+      <Grid IsVisible="{Binding IsReady}" ColumnDefinitions="230,*">
+        <Border Background="{StaticResource MenuBackground}" BorderBrush="{StaticResource PanelBorder}" BorderThickness="0,0,1,0">
+          <DockPanel Margin="8">
+            <Button DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+              Command="{Binding OpenProjectCommand}" ToolTip.Tip="Open a villager saved by Generate">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="13" Height="13" VerticalAlignment="Center" />
+                <TextBlock Text="Open villager…" />
+              </StackPanel>
+            </Button>
+            <ListBox Classes="steps" SelectionMode="AlwaysSelected" Background="Transparent" SelectedIndex="{Binding StepIndex}">
+              <ListBoxItem x:Name="DonorItem">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <icons:PackIconFontAwesome6 Kind="UserGroupSolid" />
+                  <TextBlock Text="Start from" VerticalAlignment="Center" />
+                </StackPanel>
+              </ListBoxItem>
+              <ListBoxItem x:Name="IdentityItem" IsEnabled="{Binding HasProject}">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <icons:PackIconFontAwesome6 Kind="IdCardSolid" />
+                  <TextBlock Text="Identity" VerticalAlignment="Center" />
+                </StackPanel>
+              </ListBoxItem>
+              <ListBoxItem x:Name="TraitsItem" IsEnabled="{Binding HasProject}">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <icons:PackIconFontAwesome6 Kind="HeartSolid" />
+                  <TextBlock Text="Traits" VerticalAlignment="Center" />
+                </StackPanel>
+              </ListBoxItem>
+              <ListBoxItem x:Name="HouseItem" IsEnabled="{Binding HasProject}">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <icons:PackIconFontAwesome6 Kind="HouseSolid" />
+                  <TextBlock Text="House" VerticalAlignment="Center" />
+                </StackPanel>
+              </ListBoxItem>
+              <ListBoxItem x:Name="RoomItem" IsEnabled="{Binding HasProject}">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <icons:PackIconFontAwesome6 Kind="CouchSolid" />
+                  <TextBlock Text="Room" VerticalAlignment="Center" />
+                </StackPanel>
+              </ListBoxItem>
+              <ListBoxItem x:Name="AmiiboItem" IsEnabled="{Binding HasProject}">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <icons:PackIconFontAwesome6 Kind="IdBadgeSolid" />
+                  <TextBlock Text="Amiibo" VerticalAlignment="Center" />
+                </StackPanel>
+              </ListBoxItem>
+              <ListBoxItem x:Name="GenerateItem" IsEnabled="{Binding HasProject}">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <icons:PackIconFontAwesome6 Kind="WandMagicSparklesSolid" />
+                  <TextBlock Text="Generate" VerticalAlignment="Center" />
+                </StackPanel>
+              </ListBoxItem>
+            </ListBox>
+          </DockPanel>
+        </Border>
+
+        <DockPanel Grid.Column="1">
+          <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource PanelBorder}" BorderThickness="0,1,0,0" Padding="20,10">
+            <Grid ColumnDefinitions="*,Auto,*">
+              <Button Command="{Binding BackCommand}" MinWidth="96" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <icons:PackIconFontAwesome6 Kind="ArrowLeftSolid" Width="12" Height="12" VerticalAlignment="Center" />
+                  <TextBlock Text="Back" />
+                </StackPanel>
+              </Button>
+              <TextBlock Grid.Column="1" Text="{Binding StepText}" VerticalAlignment="Center"
+                FontSize="12" Foreground="{StaticResource DimText}" />
+              <Button Grid.Column="2" Classes="accent" Command="{Binding NextCommand}" MinWidth="96" HorizontalAlignment="Right"
+                IsVisible="{Binding !IsLastStep}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Next" />
+                  <icons:PackIconFontAwesome6 Kind="ArrowRightSolid" Width="12" Height="12" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </Grid>
+          </Border>
+
+          <!-- Every step stays loaded, so the house preview keeps its 3D view between visits. -->
+          <Grid>
+            <tools:VillagerDonorStep DataContext="{Binding Donor}" IsVisible="{Binding #DonorItem.IsSelected}" />
+            <tools:VillagerIdentityStep DataContext="{Binding Identity}" IsVisible="{Binding #IdentityItem.IsSelected}" />
+            <tools:VillagerTraitsStep DataContext="{Binding Traits}" IsVisible="{Binding #TraitsItem.IsSelected}" />
+            <tools:VillagerHouseStep x:Name="HouseStep" DataContext="{Binding House}" IsVisible="{Binding #HouseItem.IsSelected}" />
+            <tools:VillagerRoomStep DataContext="{Binding Room}" IsVisible="{Binding #RoomItem.IsSelected}" />
+            <tools:VillagerAmiiboStep DataContext="{Binding Amiibo}" IsVisible="{Binding #AmiiboItem.IsSelected}" />
+            <tools:VillagerGenerateStep DataContext="{Binding Generate}" IsVisible="{Binding #GenerateItem.IsSelected}" />
+          </Grid>
+        </DockPanel>
+      </Grid>
+    </Grid>
+  </Grid>
+</fa:FAAppWindow>

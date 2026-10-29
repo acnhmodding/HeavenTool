@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:vc="using:HeavenTool.Avalonia.ViewModels.VillagerCreator"
+  x:Class="HeavenTool.Avalonia.Views.Tools.VillagerAmiiboStep"
+  x:DataType="vc:AmiiboStepViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="28,20,28,28">
+      <TextBlock Classes="page" Text="Amiibo" />
+      <TextBlock Classes="intro"
+        Text="An amiibo lets players invite the villager by scanning it at Resident Services. The Villager Creator adds its AmiiboData row and writes an emuiibo virtual amiibo, so you can test it on an emulator." />
+
+      <StackPanel Classes="section">
+        <icons:PackIconFontAwesome6 Kind="IdBadgeSolid" />
+        <TextBlock Text="Amiibo" />
+      </StackPanel>
+      <Border Classes="card">
+        <StackPanel>
+          <Border Classes="row">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Classes="title" Text="Make an amiibo" />
+                <TextBlock Classes="description" Text="The emuiibo files go in emuiibo/amiibo in the output folder." />
+              </StackPanel>
+              <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsEnabled}" OnContent="On" OffContent="Off" VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+          <Border Classes="row" IsEnabled="{Binding IsEnabled}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Classes="title" Text="IDs" />
+                <TextBlock Classes="description"
+                  Text="{Binding FreeSlots, StringFormat='A random one of the {0} free slots after the vanilla villagers, so two new villagers rarely share one.'}" />
+              </StackPanel>
+              <Button Grid.Column="1" Command="{Binding PickOtherCommand}" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <icons:PackIconFontAwesome6 Kind="ShuffleSolid" Width="12" Height="12" VerticalAlignment="Center" />
+                  <TextBlock Text="Pick other IDs" />
+                </StackPanel>
+              </Button>
+            </Grid>
+          </Border>
+          <Border Classes="row" IsEnabled="{Binding IsEnabled}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Classes="title" Text="Character ID" />
+                <TextBlock Classes="description" Text="AmiiboData's character ID." />
+              </StackPanel>
+              <SelectableTextBlock Grid.Column="1" Text="{Binding CharacterId}" FontFamily="Consolas,Menlo,monospace" VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+          <Border Classes="row" IsEnabled="{Binding IsEnabled}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Classes="title" Text="Numbering ID" />
+                <TextBlock Classes="description" Text="AmiiboData's numbering ID, and the amiibo's model number." />
+              </StackPanel>
+              <SelectableTextBlock Grid.Column="1" Text="{Binding NumberingId}" FontFamily="Consolas,Menlo,monospace" VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+          <Border Classes="row" IsEnabled="{Binding IsEnabled}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Classes="title" Text="Game character ID" />
+                <TextBlock Classes="description" Text="The character ID as the amiibo stores it, in emuiibo's amiibo.json." />
+              </StackPanel>
+              <SelectableTextBlock Grid.Column="1" Text="{Binding GameCharacterId}" FontFamily="Consolas,Menlo,monospace" VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="error" Margin="2,10,0,0" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

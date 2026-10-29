@@ -6,6 +6,7 @@ using GamebananaAPI;
 using HeavenTool.Avalonia.Settings;
 using HeavenTool.Avalonia.Views;
 using HeavenTool.Avalonia.Views.FileEditors;
+using HeavenTool.Avalonia.Views.Tools;
 using HeavenTool.ModManager.Library;
 using System;
 using System.Collections.Generic;
@@ -305,6 +306,8 @@ public partial class MainWindowViewModel : ObservableObject
     public void OpenBCSV() => new BCSVWindow().Show();
 
     public void OpenBFRES() => new BFRESWindow().Show();
+
+    public void OpenVillagerCreator() => new VillagerCreatorWindow().Show();
 
     public void OpenSettings() => SettingsWindow.ShowSingle();
 }

@@ -188,6 +188,7 @@
             <TextBlock HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold">Modding Tools</TextBlock>
             <Button HorizontalAlignment="Stretch" Command="{Binding OpenBCSV}">BCSV Editor</Button>
             <Button HorizontalAlignment="Stretch" Command="{Binding OpenBFRES}">BFRES Viewer</Button>
+            <Button HorizontalAlignment="Stretch" Command="{Binding OpenVillagerCreator}">Villager Creator</Button>
           </StackPanel>
 
           <Separator Grid.Row="4" Margin="0,10"/>
