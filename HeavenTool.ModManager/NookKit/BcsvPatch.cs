@@ -2,6 +2,8 @@
 
 using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
+using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace HeavenTool.ModManager.NookKit;
@@ -26,6 +28,20 @@ public sealed record BcsvPatch(string File, IReadOnlyList<JsonObject> Rows)
         return row;
     }
 
+    /// <summary>
+    /// Reads a row written by <see cref="Row"/> back into the table's cell types. Columns the row leaves out get the table's default.
+    /// </summary>
+    public static object[] ReadRow(BinaryCSV table, JsonObject row)
+    {
+        var entry = new object[table.Fields.Length];
+        for (var i = 0; i < table.Fields.Length; i++)
+        {
+            var field = table.Fields[i];
+            entry[i] = row[ColumnKey(field)] is JsonValue value ? ReadValue(field, value) : field.GetFieldDefaultValue();
+        }
+        return entry;
+    }
+
     public static string ColumnKey(Field field) =>
         field.GetTranslatedNameOrNull() is { } name && name.ToCRC32() == field.Hash ? name : "0x" + field.Hash.ToString("x8");
 
@@ -42,4 +58,23 @@ public sealed record BcsvPatch(string File, IReadOnlyList<JsonObject> Rows)
     // A known string is clearer than its hash, but only when it hashes back to the same value.
     private static JsonNode HashValue(uint hash, Func<uint, string?> translate, Func<string, uint> rehash) =>
         translate(hash) is { } text && rehash(text) == hash ? JsonValue.Create(text) : JsonValue.Create(hash);
+
+    private static object ReadValue(Field field, JsonValue value) => field.DataType switch
+    {
+        DataType.String => value.GetValue<string>(),
+        DataType.Float32 => float.Parse(value.ToJsonString(), CultureInfo.InvariantCulture),
+        DataType.CRC32 => value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>().ToCRC32() : checked((uint)Integer(value)),
+        DataType.MMH3 => value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>().ToMurmur() : checked((uint)Integer(value)),
+        DataType.BitField => Convert.FromHexString(value.GetValue<string>()),
+        DataType.S8 => checked((sbyte)Integer(value)),
+        DataType.U8 => checked((byte)Integer(value)),
+        DataType.Int16 => checked((short)Integer(value)),
+        DataType.UInt16 => checked((ushort)Integer(value)),
+        DataType.Int32 => checked((int)Integer(value)),
+        DataType.UInt32 => checked((uint)Integer(value)),
+        _ => throw new NotSupportedException($"Unexpected column type {field.DataType}."),
+    };
+
+    // Read from the number's text, which works the same for parsed values and for values built in memory with any integer type.
+    private static long Integer(JsonValue value) => long.Parse(value.ToJsonString(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
 }

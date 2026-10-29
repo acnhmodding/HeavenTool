@@ -1,6 +1,7 @@
 #nullable enable
 
 using AeonSake.NintendoTools.FileFormats.Byml;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -69,9 +70,11 @@ public static class BymlJson
             case JsonValueKind.String: return new BymlStringValue(value.GetValue<string>());
             case JsonValueKind.True: return new BymlBoolValue(true);
             case JsonValueKind.False: return new BymlBoolValue(false);
-            case JsonValueKind.Number when NookKitJson.IsFloat(value): return new BymlSingleValue(value.GetValue<float>());
+            // Read from the number's text, which works the same for parsed values and for values built in memory.
+            case JsonValueKind.Number when NookKitJson.IsFloat(value):
+                return new BymlSingleValue(float.Parse(value.ToJsonString(), CultureInfo.InvariantCulture));
             case JsonValueKind.Number:
-                var number = value.GetValue<long>();
+                var number = long.Parse(value.ToJsonString(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
                 return number is >= int.MinValue and <= int.MaxValue ? new BymlInt32Value((int)number) : new BymlInt64Value(number);
             default: throw new NotSupportedException($"Unexpected JSON value {value.ToJsonString()}.");
         }
