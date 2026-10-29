@@ -181,9 +181,11 @@ public sealed partial class BfresRenderer
         if (p.Translucent)
         {
             GL.Enable(EnableCap.Blend);
-            GL.BlendEquationSeparate(Equation(source.Info("gsys_color_blend_rgb_op", "add")), Equation(source.Info("gsys_color_blend_alpha_op", "add")));
+            // The frame's alpha is the preview's coverage, which tone mapping mixes the background by. The game's own alpha blend
+            // replaces it with the surface's alpha, so glass would let the background through what's behind it; coverage adds up instead.
+            GL.BlendEquationSeparate(Equation(source.Info("gsys_color_blend_rgb_op", "add")), BlendEquationMode.FuncAdd);
             GL.BlendFuncSeparate((BlendingFactorSrc)Factor(source.Info("gsys_color_blend_rgb_src_func", "src_alpha")), (BlendingFactorDest)Factor(source.Info("gsys_color_blend_rgb_dst_func", "one_minus_src_alpha")),
-                (BlendingFactorSrc)Factor(source.Info("gsys_color_blend_alpha_src_func", "one")), (BlendingFactorDest)Factor(source.Info("gsys_color_blend_alpha_dst_func", "zero")));
+                BlendingFactorSrc.One, BlendingFactorDest.OneMinusSrcAlpha);
             var blend = source.RenderInfos.TryGetValue("gsys_color_blend_const_color", out var info) ? info.Floats : Array.Empty<float>();
             GL.BlendColor(blend.Count > 0 ? blend[0] : 0, blend.Count > 1 ? blend[1] : 0, blend.Count > 2 ? blend[2] : 0, blend.Count > 3 ? blend[3] : 0);
         }
