@@ -130,13 +130,25 @@ public sealed partial class VillagerGameData
     private IReadOnlyDictionary<int, string> LoadItemNames()
     {
         var names = new Dictionary<int, string>();
-        var path = Path.Combine(Romfs, "Message", $"String_{NameLanguage}.sarc.zs");
-        foreach (var content in ReadSarc(path).Files.Where(file => file.Name.StartsWith("Item/STR_ItemName_", StringComparison.Ordinal)))
+        var files = ReadSarc(Path.Combine(Romfs, "Message", $"String_{NameLanguage}.sarc.zs")).Files;
+        IEnumerable<MsbtMessage> Read(string prefix) => files
+            .Where(file => file.Name.StartsWith(prefix, StringComparison.Ordinal))
+            .SelectMany(file => new MsbtFileReader().Read(new MemoryStream(file.Data)).Messages);
+        static int? Id(string label) => int.TryParse(label.AsSpan(label.LastIndexOf('_') + 1), out var id) ? id : null;
+
+        // Labels end in the item ID: "RoomWall_01057".
+        foreach (var message in Read("Item/STR_ItemName_"))
+            if (Id(message.Label) is { } id) names.TryAdd(id, PlainText(message.Text));
+
+        // Clothing is named by its group, and each of the group's items by its color: "084_Tops_09223" is group 084 in green.
+        var groups = Read("Outfit/GroupName/").GroupBy(message => message.Label).ToDictionary(group => group.Key, group => PlainText(group.First().Text));
+        foreach (var variants in Read("Outfit/GroupColor/").GroupBy(message => message.Label[..message.Label.IndexOf('_')]))
         {
-            // Labels end in the item ID: "RoomWall_01057".
-            foreach (var message in new MsbtFileReader().Read(new MemoryStream(content.Data)).Messages)
-                if (int.TryParse(message.Label.AsSpan(message.Label.LastIndexOf('_') + 1), out var id))
-                    names.TryAdd(id, PlainText(message.Text));
+            if (!groups.TryGetValue(variants.Key, out var group)) continue;
+            // A group with one item has no color to tell it apart; its message just says so.
+            var single = variants.Count() == 1;
+            foreach (var message in variants)
+                if (Id(message.Label) is { } id) names.TryAdd(id, single ? group : $"{group} ({PlainText(message.Text)})");
         }
         return names;
     }
