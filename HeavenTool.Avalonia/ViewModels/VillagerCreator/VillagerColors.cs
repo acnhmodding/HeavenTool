@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
+using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 
@@ -33,6 +35,13 @@ public static class VillagerColors
     /// <summary>The option for a color's NookKit value.</summary>
     public static (string Text, IBrush? Swatch) Describe(string json) =>
         int.TryParse(json, out var index) && index >= 0 && index < Colors.Length ? Colors[index] : ($"Unknown ({json})", null);
+
+    /// <summary>A brush for one of the game's RGBA colors, with channels from 0 to 1.</summary>
+    public static IBrush Brush(Vector4 rgba)
+    {
+        static byte Channel(float value) => (byte)Math.Round(Math.Clamp(value, 0, 1) * 255);
+        return new ImmutableSolidColorBrush(Color.FromArgb(Channel(rgba.W), Channel(rgba.X), Channel(rgba.Y), Channel(rgba.Z)));
+    }
 
     private static IBrush Solid(byte r, byte g, byte b) => new ImmutableSolidColorBrush(Color.FromRgb(r, g, b));
 

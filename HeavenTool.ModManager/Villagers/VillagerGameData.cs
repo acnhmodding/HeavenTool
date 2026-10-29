@@ -30,6 +30,7 @@ public sealed partial class VillagerGameData
     private readonly Lazy<SarcFile> staticParam;
     private readonly Lazy<IReadOnlyDictionary<int, string>> itemNames;
     private readonly Lazy<IReadOnlyList<VillagerInfo>> villagers;
+    private readonly Lazy<IReadOnlyList<NameColor>> nameColors;
 
     public string Romfs { get; }
 
@@ -39,6 +40,7 @@ public sealed partial class VillagerGameData
         staticParam = new(() => ReadSarc(Path.Combine(Romfs, "Pack", StaticParamArchive + ".pack")));
         itemNames = new(LoadItemNames);
         villagers = new(LoadVillagers);
+        nameColors = new(() => ReadParam(NameColor.ParamPath) is { } root ? NameColor.ReadAll(root) : []);
     }
 
     /// <summary>Opens a romfs folder, after checking it has the files the villager creator needs.</summary>
@@ -66,6 +68,9 @@ public sealed partial class VillagerGameData
 
     /// <summary>English item names by item ID, from the <c>Item/STR_ItemName_*</c> messages.</summary>
     public IReadOnlyDictionary<int, string> ItemNames => itemNames.Value;
+
+    /// <summary>The colors villager names can be shown in, by NpcColor value; empty when StaticParam.pack doesn't list them.</summary>
+    public IReadOnlyList<NameColor> NameColors => nameColors.Value;
 
     public SarcFile StaticParam => staticParam.Value;
 

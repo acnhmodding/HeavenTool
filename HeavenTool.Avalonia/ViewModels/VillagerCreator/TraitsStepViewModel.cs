@@ -36,7 +36,7 @@ public partial class TraitsStepViewModel(VillagerCreatorViewModel creator) : Obs
             Vanilla("Personality subtype", Key(VillagerColumns.SubPersonality), json => json == "0" ? "A" : json == "1" ? "B" : json),
             Vanilla("Hobby", Key(VillagerColumns.Hobby)),
         ];
-        ChoiceField Color(string title, string key) => new(title, key, RowValues.VanillaOptions(data, key, (json, _) =>
+        ChoiceField Color(string title, string key) => new(title, key, RowValues.VanillaOptions(data, key, json =>
         {
             var (name, swatch) = VillagerColors.Describe(json);
             return new ValueOption(json, name, Swatch: swatch);
@@ -64,10 +64,15 @@ public partial class TraitsStepViewModel(VillagerCreatorViewModel creator) : Obs
             new ChoiceField("Birthday month", Key(VillagerColumns.BirthMonth),
                 [.. Enumerable.Range(1, 12).Select(month => new ValueOption($"{month}", CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month)))]),
             new NumberField("Birthday day", Key(VillagerColumns.BirthDay), 1, 31),
-            // The name's color comes from a palette in the game's code, so each value is shown by a villager whose name has it.
-            new ChoiceField("Name color", Key(VillagerColumns.NameColor),
-                RowValues.VanillaOptions(data, Key(VillagerColumns.NameColor), (json, villagers) => new ValueOption(json, $"Like {villagers[0].Name}"))),
+            new ChoiceField("Name color", Key(VillagerColumns.NameColor), NameColors(Key(VillagerColumns.NameColor))),
         ];
+
+        // Each value is shown as the name plate it draws in conversations, or as its number when the romfs has no palette.
+        IReadOnlyList<ValueOption> NameColors(string key) => data.NameColors.Count == 0
+            ? RowValues.VanillaOptions(data, key)
+            : RowValues.WithUsers(data, key, data.NameColors.Select((color, index) => new ValueOption(
+                index.ToString(CultureInfo.InvariantCulture), $"Color {index}",
+                Swatch: VillagerColors.Brush(color.Plate), SwatchText: VillagerColors.Brush(color.Text))));
     }
 
     internal void Load(VillagerProject project)
