@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using HeavenTool.IO.FileFormats.BCSV;
 using HeavenTool.ModManager.NookKit;
@@ -12,7 +13,7 @@ using System.Text.Json.Nodes;
 namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 
 /// <summary>One value a column can take, as its NookKit JSON, with what to show for it.</summary>
-public sealed record ValueOption(string Json, string Text, string? Hint = null)
+public sealed record ValueOption(string Json, string Text, string? Hint = null, IBrush? Swatch = null)
 {
     public override string ToString() => Text;
 }
@@ -33,14 +34,18 @@ public static class RowValues
     /// <summary>
     /// The values vanilla villagers use in a column, each with a few villagers that use it, since the game files name few of them.
     /// </summary>
-    public static IReadOnlyList<ValueOption> VanillaOptions(VillagerGameData data, string key, Func<string, string>? text = null)
+    public static IReadOnlyList<ValueOption> VanillaOptions(VillagerGameData data, string key, Func<string, string>? text = null) =>
+        VanillaOptions(data, key, (json, _) => new ValueOption(json, text?.Invoke(json) ?? Unquote(json)));
+
+    /// <summary>The values vanilla villagers use in a column, each shown by <paramref name="option"/> from the villagers that use it.</summary>
+    public static IReadOnlyList<ValueOption> VanillaOptions(VillagerGameData data, string key, Func<string, IReadOnlyList<VillagerInfo>, ValueOption> option)
     {
         var table = data.NmlNpcParam;
         return [.. data.Villagers
             .GroupBy(villager => BcsvPatch.Row(table, table.Entries[villager.Row])[key]?.ToJsonString() ?? "null")
             .OrderBy(group => long.TryParse(group.Key, out var number) ? number : long.MaxValue)
             .ThenBy(group => group.Key, StringComparer.Ordinal)
-            .Select(group => new ValueOption(group.Key, text?.Invoke(group.Key) ?? Unquote(group.Key), Examples(group)))];
+            .Select(group => option(group.Key, [.. group]) with { Hint = Examples(group) })];
     }
 
     private static string Examples(IEnumerable<VillagerInfo> villagers)

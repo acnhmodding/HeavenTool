@@ -8,7 +8,7 @@
     <StackPanel Margin="28,20,28,28">
       <TextBlock Classes="page" Text="Traits" />
       <TextBlock Classes="intro"
-        Text="These come from the villager's NmlNpcParam row. The game doesn't name most styles and colors, so each choice lists villagers that share it." />
+        Text="These come from the villager's NmlNpcParam row. The game doesn't name styles or name colors, so those choices list villagers that share them." />
 
       <StackPanel Classes="section">
         <icons:PackIconFontAwesome6 Kind="FaceSmileSolid" />
