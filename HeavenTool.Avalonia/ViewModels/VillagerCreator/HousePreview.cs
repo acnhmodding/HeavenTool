@@ -30,10 +30,16 @@ public sealed class HousePreview(string romfs)
     private readonly Lazy<SwitchShaderArchive?> shaders = new(() =>
         BfresScene.FindRomfsShaderArchive(romfs) is { } path ? SwitchShaderArchive.Load(path) : null);
 
-    public Task<HouseScene> BuildAsync(HousePart wall, HousePart roof, HousePart door, CancellationToken cancellation) =>
-        Task.Run(() => Build(wall, roof, door, cancellation), cancellation);
+    /// <summary>The house with these parts, or null when <paramref name="cancellation"/> stops it first.</summary>
+    public Task<HouseScene?> BuildAsync(HousePart wall, HousePart roof, HousePart door, CancellationToken cancellation) =>
+        Task.Run(() =>
+        {
+            // A newer pick cancels the build often, so the cancellation ends here instead of escaping the task.
+            try { return Build(wall, roof, door, cancellation); }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return null; }
+        });
 
-    private HouseScene Build(HousePart wall, HousePart roof, HousePart door, CancellationToken cancellation)
+    private HouseScene? Build(HousePart wall, HousePart roof, HousePart door, CancellationToken cancellation)
     {
         var warnings = new List<string>();
         BfresModel? Load(HousePart part)
@@ -46,7 +52,7 @@ public sealed class HousePreview(string romfs)
         var wallModel = Load(wall);
         var roofModel = Load(roof);
         var doorModel = Load(door);
-        cancellation.ThrowIfCancellationRequested();
+        if (cancellation.IsCancellationRequested) return null;
 
         var doorPlace = wallModel?.Bones.FirstOrDefault(bone => bone.Name == DoorBone)?.WorldTransform ?? Matrix4x4.Identity;
         var meshes = new List<BfresMesh>();

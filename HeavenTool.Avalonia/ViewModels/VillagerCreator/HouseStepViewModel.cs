@@ -15,7 +15,7 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
     private BfresRenderer? renderer;
     private CancellationTokenSource? previewLoad;
     private (HousePart Wall, HousePart Roof, HousePart Door)? shown;
-    private bool previewVisible;
+    private bool previewVisible, changingShape;
 
     [ObservableProperty] private IReadOnlyList<int> shapes = [];
     [ObservableProperty] private IReadOnlyList<HousePart> walls = [];
@@ -62,10 +62,16 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
         if (value is not { } id) return;
         // Walls and roofs only fit their own shape, so keep the current ones only if they still fit.
         var (wall, roof) = (Wall, Roof);
-        Walls = [.. creator.Catalog.WallsFor(id)];
-        Roofs = [.. creator.Catalog.RoofsFor(id)];
-        Wall = Walls.FirstOrDefault(part => part.Name == wall?.Name) ?? Walls.FirstOrDefault();
-        Roof = Roofs.FirstOrDefault(part => part.Name == roof?.Name) ?? Roofs.FirstOrDefault();
+        // The new wall and roof go in together, as one house.
+        changingShape = true;
+        try
+        {
+            Walls = [.. creator.Catalog.WallsFor(id)];
+            Roofs = [.. creator.Catalog.RoofsFor(id)];
+            Wall = Walls.FirstOrDefault(part => part.Name == wall?.Name) ?? Walls.FirstOrDefault();
+            Roof = Roofs.FirstOrDefault(part => part.Name == roof?.Name) ?? Roofs.FirstOrDefault();
+        }
+        finally { changingShape = false; }
         Commit();
     }
 
@@ -77,7 +83,7 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
 
     private void Commit()
     {
-        if (project == null || Shape is not { } shape || Wall == null || Roof == null || Door == null) return;
+        if (changingShape || project == null || Shape is not { } shape || Wall == null || Roof == null || Door == null) return;
         project.House = new HouseExterior(shape, Wall.Id, Roof.Id, Door.Id, (int)Math.Clamp(Curtain ?? 0, 0, MaxCurtain),
             project.House?.DecoItem ?? HouseExterior.NoDeco);
         RefreshPreview();
@@ -101,13 +107,12 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
         try
         {
             var scene = await creator.Preview.BuildAsync(wall, roof, door, request.Token);
-            if (request.IsCancellationRequested) return;
+            if (scene == null || request.IsCancellationRequested) return;
             renderer.SetScene(scene.Geometry);
             renderer.SetNativeShaders(scene.Shaders);
             PreviewWarning = scene.Warnings.Count > 0 ? string.Join(Environment.NewLine, scene.Warnings) : null;
             shown = (wall, roof, door);
         }
-        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             if (!request.IsCancellationRequested) PreviewWarning = $"Couldn't show the house: {ex.Message}";
