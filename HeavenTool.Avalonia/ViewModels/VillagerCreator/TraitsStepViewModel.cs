@@ -16,6 +16,9 @@ public partial class TraitsStepViewModel(VillagerCreatorViewModel creator) : Obs
         ["Girl_active"] = "Peppy", ["Girl_big_sis"] = "Sisterly", ["Girl_normal"] = "Normal", ["Girl_pride"] = "Snooty",
     };
 
+    // The styles a villager can like, in the order of the game's style enum (Style1 and Style2).
+    private static readonly string[] Styles = ["None", "Simple", "Gorgeous", "Cool", "Cute", "Active", "Elegant"];
+
     [ObservableProperty] private IReadOnlyList<ChoiceField> personality = [];
     [ObservableProperty] private IReadOnlyList<ChoiceField> favorites = [];
     [ObservableProperty] private IReadOnlyList<ItemField> items = [];
@@ -42,10 +45,12 @@ public partial class TraitsStepViewModel(VillagerCreatorViewModel creator) : Obs
             return new ValueOption(json, name, Swatch: swatch);
         }));
 
+        static string Style(string json) => int.TryParse(json, out var index) && index >= 0 && index < Styles.Length ? Styles[index] : $"Unknown ({json})";
+
         Favorites =
         [
-            Vanilla("Favorite style", RowValues.Key(table, VillagerColumns.Style1)),
-            Vanilla("Second favorite style", RowValues.Key(table, VillagerColumns.Style2)),
+            Vanilla("Favorite style", RowValues.Key(table, VillagerColumns.Style1), Style),
+            Vanilla("Second favorite style", RowValues.Key(table, VillagerColumns.Style2), Style),
             Color("Favorite color", Key(VillagerColumns.Color1)),
             Color("Second favorite color", Key(VillagerColumns.Color2)),
         ];
