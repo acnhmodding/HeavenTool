@@ -52,6 +52,9 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
     internal HouseCatalog Catalog { get; private set; } = null!;
     internal HousePreview Preview { get; private set; } = null!;
 
+    /// <summary>Shows an item picker as a dialog; true when an item was chosen. The window sets it.</summary>
+    internal Func<ItemPickerViewModel, Task<bool>> PickItem { get; set; } = _ => Task.FromResult(false);
+
     /// <summary>The folder of the project file the villager was opened from, if any.</summary>
     internal string? ProjectFolder { get; private set; }
 

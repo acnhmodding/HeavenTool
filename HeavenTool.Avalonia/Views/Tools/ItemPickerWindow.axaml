@@ -1,0 +1,81 @@
+<fa:FAAppWindow xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:fa="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
+  xmlns:vc="using:HeavenTool.Avalonia.ViewModels.VillagerCreator"
+  x:Class="HeavenTool.Avalonia.Views.Tools.ItemPickerWindow"
+  x:DataType="vc:ItemPickerViewModel"
+  Title="{Binding Title}" Width="560" Height="680" MinWidth="420" MinHeight="420"
+  WindowStartupLocation="CenterOwner" Background="{StaticResource WindowBackground}">
+
+  <fa:FAAppWindow.Styles>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{StaticResource CardBackground}" />
+      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="ListBox.items ListBoxItem">
+      <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style Selector="Border.icon">
+      <Setter Property="Width" Value="40" />
+      <Setter Property="Height" Value="40" />
+      <Setter Property="Padding" Value="3" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Background" Value="{StaticResource PanelBorder}" />
+    </Style>
+  </fa:FAAppWindow.Styles>
+
+  <Grid RowDefinitions="32,*">
+    <DockPanel Grid.Row="0" Background="{StaticResource TitleBarBackground}" WindowDecorationProperties.ElementRole="TitleBar">
+      <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16" />
+      <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Title}" />
+    </DockPanel>
+
+    <DockPanel Grid.Row="1">
+      <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource PanelBorder}" BorderThickness="0,1,0,0" Padding="20,10">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{Binding CountText}" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource DimText}" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+            <Button Content="Cancel" MinWidth="96" IsCancel="True" Click="OnCancel" />
+            <Button Content="Select" MinWidth="96" Classes="accent" IsDefault="True" IsEnabled="{Binding HasSelection}" Click="OnSelect" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <DockPanel Margin="20,16,20,16">
+        <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Text="{Binding Search}" PlaceholderText="Search by name, label or ID"
+          Margin="0,0,0,8">
+          <TextBox.InnerLeftContent>
+            <icons:PackIconFontAwesome6 Kind="MagnifyingGlassSolid" Width="12" Height="12" Margin="10,0,2,0"
+              VerticalAlignment="Center" Foreground="{StaticResource DimText}" />
+          </TextBox.InnerLeftContent>
+        </TextBox>
+        <CheckBox DockPanel.Dock="Top" Content="{Binding OnlyKindsText}" IsChecked="{Binding OnlyKinds}" Margin="2,0,0,8" />
+
+        <Border Classes="card" ClipToBounds="True">
+          <ListBox x:Name="List" Classes="items" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected}"
+            Background="Transparent" DoubleTapped="OnItemDoubleTapped">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vc:ItemChoice">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                  <Border Classes="icon">
+                    <Image Source="{Binding Icon}" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                  </Border>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Item.Name}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Item.Label}" FontFamily="Consolas,Menlo,monospace" FontSize="11"
+                      TextTrimming="CharacterEllipsis" Foreground="{StaticResource DimText}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="2" Text="{Binding Item.Id}" FontFamily="Consolas,Menlo,monospace" FontSize="12"
+                    VerticalAlignment="Center" Foreground="{StaticResource SecondaryText}" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
+      </DockPanel>
+    </DockPanel>
+  </Grid>
+</fa:FAAppWindow>

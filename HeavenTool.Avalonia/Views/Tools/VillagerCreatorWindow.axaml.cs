@@ -22,6 +22,7 @@ public partial class VillagerCreatorWindow : FAAppWindow
         TitleBar.ExtendsContentIntoTitleBar = true;
         TitleBar.Height = 32;
         viewModel = new(StorageProvider, Launcher);
+        viewModel.PickItem = picker => new ItemPickerWindow(picker).ShowDialog<bool>(this);
         DataContext = viewModel;
 
         viewport = this.FindControl<VillagerHouseStep>("HouseStep")!.FindControl<BfresViewport>("Viewport")!;

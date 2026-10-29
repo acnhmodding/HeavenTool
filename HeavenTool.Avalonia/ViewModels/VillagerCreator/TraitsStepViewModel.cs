@@ -54,14 +54,17 @@ public partial class TraitsStepViewModel(VillagerCreatorViewModel creator) : Obs
             Color("Favorite color", Key(VillagerColumns.Color1)),
             Color("Second favorite color", Key(VillagerColumns.Color2)),
         ];
+        // The kinds are the ones vanilla villagers use in each column.
+        ItemField Item(string title, string column, bool signed, ItemKinds kinds) =>
+            new(title, Key(column), data, signed, kinds, picker => creator.PickItem(picker));
         Items =
         [
-            new("Default clothing", Key(VillagerColumns.Tops), data, signed: false),
-            new("Umbrella", Key(VillagerColumns.Umbrella), data, signed: false),
-            new("Rain hat", Key(VillagerColumns.RainHat), data, signed: false),
-            new("Raincoat", Key(VillagerColumns.RainWear), data, signed: false),
-            new("Photo", Key(VillagerColumns.Photo), data, signed: true),
-            new("Poster", Key(VillagerColumns.Poster), data, signed: true),
+            Item("Default clothing", VillagerColumns.Tops, signed: false, new("tops and dresses", "Tops", "OnePiece")),
+            Item("Umbrella", VillagerColumns.Umbrella, signed: false, new("umbrellas", "Umbrella")),
+            Item("Rain hat", VillagerColumns.RainHat, signed: false, new("hats", "Cap")),
+            Item("Raincoat", VillagerColumns.RainWear, signed: false, new("tops", "Tops")),
+            Item("Photo", VillagerColumns.Photo, signed: true, new("photos", "Bromide")),
+            Item("Poster", VillagerColumns.Poster, signed: true, new("posters", "Poster")),
         ];
         Birthday =
         [

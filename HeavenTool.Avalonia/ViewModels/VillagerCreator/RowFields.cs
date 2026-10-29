@@ -1,6 +1,7 @@
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using HeavenTool.IO.FileFormats.BCSV;
 using HeavenTool.ModManager.NookKit;
 using HeavenTool.ModManager.Villagers;
@@ -105,8 +106,12 @@ public sealed partial class NumberField(string title, string key, int minimum, i
     }
 }
 
-/// <summary>A row column that holds an item ID, shown with the item's name and, when the romfs has one, its icon.</summary>
-public sealed partial class ItemField(string title, string key, VillagerGameData data, bool signed) : ObservableObject
+/// <summary>
+/// A row column that holds an item ID, shown with the item's name and, when the romfs has one, its icon. The item can also be
+/// chosen by name in a picker, which <paramref name="pick"/> shows, from <paramref name="kinds"/> first.
+/// </summary>
+public sealed partial class ItemField(string title, string key, VillagerGameData data, bool signed, ItemKinds kinds,
+    Func<ItemPickerViewModel, Task<bool>> pick) : ObservableObject
 {
     private readonly IReadOnlyDictionary<int, string> names = data.ItemNames;
     private JsonObject? row;
@@ -139,5 +144,12 @@ public sealed partial class ItemField(string title, string key, VillagerGameData
         var icon = id is { } number ? await ItemIcons.Load(data, (int)number) : null;
         // The value may have changed while the icon loaded.
         if (Value == id) Icon = icon;
+    }
+
+    [RelayCommand]
+    private async Task Pick()
+    {
+        var picker = new ItemPickerViewModel(data, Title, kinds, Value is { } id ? (int)id : null);
+        if (await pick(picker) && picker.Selected is { } choice) Value = choice.Item.Id;
     }
 }
