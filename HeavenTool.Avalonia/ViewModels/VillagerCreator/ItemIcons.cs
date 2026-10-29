@@ -15,6 +15,9 @@ namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 /// <summary>Item icons from the romfs' layout icon archives, decoded once each.</summary>
 public static class ItemIcons
 {
+    // Icons show at most this many pixels wide, so a smaller mip saves memory when the picker lists many.
+    private const int Size = 64;
+
     private static readonly ConcurrentDictionary<string, Task<Bitmap?>> Icons = new();
 
     /// <summary>An item's icon, or null when the romfs has none or it can't be read.</summary>
@@ -28,11 +31,14 @@ public static class ItemIcons
             using var file = File.OpenRead(path);
             // Icons are decoded to RGBA8; anything else is a texture this preview can't show.
             if (BfresFileReader.LoadTextures(file).FirstOrDefault() is not { } texture || texture.Format >> 8 != 0x0b) return null;
-            var pixels = GCHandle.Alloc(texture.Mips[0].ToArray(), GCHandleType.Pinned);
+            int level = 0;
+            while (level + 1 < texture.Mips.Count && texture.Width >> (level + 1) >= Size) level++;
+            int width = Math.Max(1, texture.Width >> level), height = Math.Max(1, texture.Height >> level);
+            var pixels = GCHandle.Alloc(texture.Mips[level].ToArray(), GCHandleType.Pinned);
             try
             {
                 return new Bitmap(PixelFormat.Rgba8888, AlphaFormat.Unpremul, pixels.AddrOfPinnedObject(),
-                    new PixelSize(texture.Width, texture.Height), new Vector(96, 96), texture.Width * 4);
+                    new PixelSize(width, height), new Vector(96, 96), width * 4);
             }
             finally { pixels.Free(); }
         }

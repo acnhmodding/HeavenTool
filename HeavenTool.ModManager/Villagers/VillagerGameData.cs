@@ -12,6 +12,9 @@ namespace HeavenTool.ModManager.Villagers;
 /// <summary>A vanilla villager, as listed in NmlNpcParam with its English name.</summary>
 public sealed record VillagerInfo(string Label, string Name, string Species, int Row);
 
+/// <summary>A vanilla item with its English name. <paramref name="Kind"/> is the CRC32 of its ItemKind, such as <c>Tops</c>.</summary>
+public sealed record ItemInfo(int Id, string Name, string Label, uint Kind);
+
 /// <summary>
 /// The game files the villager creator reads, loaded from the romfs on first use and cached. Everything here is read-only:
 /// callers copy rows and BYML trees before editing them.
@@ -31,7 +34,8 @@ public sealed partial class VillagerGameData
     private readonly Lazy<IReadOnlyDictionary<int, string>> itemNames;
     private readonly Lazy<IReadOnlyList<VillagerInfo>> villagers;
     private readonly Lazy<IReadOnlyList<NameColor>> nameColors;
-    private readonly Lazy<IReadOnlyDictionary<int, (string Resource, string Label)>> itemResources;
+    private readonly Lazy<IReadOnlyDictionary<int, ItemRow>> itemParam;
+    private readonly Lazy<IReadOnlyList<ItemInfo>> items;
 
     public string Romfs { get; }
 
@@ -42,7 +46,12 @@ public sealed partial class VillagerGameData
         itemNames = new(LoadItemNames);
         villagers = new(LoadVillagers);
         nameColors = new(() => ReadParam(NameColor.ParamPath) is { } root ? NameColor.ReadAll(root) : []);
-        itemResources = new(LoadItemResources);
+        itemParam = new(LoadItemParam);
+        items = new(() => [.. itemParam.Value
+            .Where(item => ItemNames.ContainsKey(item.Key))
+            .Select(item => new ItemInfo(item.Key, ItemNames[item.Key], item.Value.Label, item.Value.Kind))
+            .OrderBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(item => item.Id)]);
     }
 
     /// <summary>Opens a romfs folder, after checking it has the files the villager creator needs.</summary>
@@ -71,6 +80,9 @@ public sealed partial class VillagerGameData
     /// <summary>English item names by item ID, from the <c>Item/STR_ItemName_*</c> messages.</summary>
     public IReadOnlyDictionary<int, string> ItemNames => itemNames.Value;
 
+    /// <summary>The items in ItemParam that have an English name, sorted by name.</summary>
+    public IReadOnlyList<ItemInfo> Items => items.Value;
+
     /// <summary>The colors villager names can be shown in, by NpcColor value; empty when StaticParam.pack doesn't list them.</summary>
     public IReadOnlyList<NameColor> NameColors => nameColors.Value;
 
@@ -82,7 +94,7 @@ public sealed partial class VillagerGameData
     /// </summary>
     public string? ItemIconPath(int id)
     {
-        if (!itemResources.Value.TryGetValue(id, out var item)) return null;
+        if (!itemParam.Value.TryGetValue(id, out var item)) return null;
         // Most icons are named by the item's resource; photos and posters by its label, and photos in each frame.
         string[] names =
         [
@@ -171,13 +183,17 @@ public sealed partial class VillagerGameData
         return names;
     }
 
-    // ItemParam's resource names and labels by item ID, which name the item's models and icons.
-    private IReadOnlyDictionary<int, (string Resource, string Label)> LoadItemResources()
+    // An item's resource name and label, which name its models and icons, and its kind.
+    private sealed record ItemRow(string Resource, string Label, uint Kind);
+
+    private IReadOnlyDictionary<int, ItemRow> LoadItemParam()
     {
-        if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemParam.bcsv"))) return new Dictionary<int, (string, string)>();
+        if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemParam.bcsv"))) return new Dictionary<int, ItemRow>();
         var table = Table("ItemParam");
-        int id = table.ColumnIndex("UniqueID u16"), resource = table.ColumnIndex("ResName string64"), label = table.ColumnIndex("Label string50");
-        return table.Entries.ToDictionary(row => Convert.ToInt32(row[id]), row => ((string)row[resource], (string)row[label]));
+        int id = table.ColumnIndex("UniqueID u16"), resource = table.ColumnIndex("ResName string64");
+        int label = table.ColumnIndex("Label string50"), kind = table.ColumnIndex("ItemKind.hshCstringRef");
+        return table.Entries.ToDictionary(row => Convert.ToInt32(row[id]),
+            row => new ItemRow((string)row[resource], (string)row[label], Convert.ToUInt32(row[kind])));
     }
 
     private IReadOnlyList<VillagerInfo> LoadVillagers()
