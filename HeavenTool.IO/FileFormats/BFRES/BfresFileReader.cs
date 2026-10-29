@@ -32,6 +32,21 @@ public sealed class BfresFileReader
             : throw new InvalidDataException("Expected BFRES or a SARC model archive.");
     }
 
+    // Loads only the embedded textures of a BFRES, or of every BFRES inside a SARC such as a layout icon, optionally Zstd or
+    // Yaz0 compressed. Textures in unsupported formats are left out.
+    public static IReadOnlyList<BntxTexture> LoadTextures(Stream input, CancellationToken cancellation = default)
+    {
+        var textures = new List<BntxTexture>();
+        foreach (var (_, data) in Unpack(input, "FRES"u8, "BFRES"))
+        {
+            using var reader = Open(data, 0, data.Length);
+            var loader = new BfresFileReader(reader, cancellation);
+            loader.ReadEmbeddedTextures(data);
+            textures.AddRange(loader.textures.Values);
+        }
+        return textures;
+    }
+
     // Decompresses the input and returns it when it starts with magic, or else every SARC entry that does.
     internal static List<(string Name, byte[] Data)> Unpack(Stream input, ReadOnlySpan<byte> magic, string name)
     {
@@ -71,23 +86,9 @@ public sealed class BfresFileReader
 
     private BfresDocument Parse(byte[] data)
     {
-        cancellation.ThrowIfCancellationRequested();
-        if (reader.ReadStringAt(4, 4) != "    " || reader.ReadUInt16At(12) != 0xfeff)
-            throw new NotSupportedException("Only little endian Nintendo Switch BFRES is supported.");
-        uint version = reader.ReadUInt32At(8);
-        if (version >> 16 != 9)
-            throw new NotSupportedException($"BFRES version 0x{version:X8} is not supported. This reader targets ACNH's Switch v9 layout.");
+        ReadEmbeddedTextures(data);
         long bufferInfo = reader.ReadPointerAt(176);
         gpuBase = bufferInfo == 0 ? 0 : reader.ReadPointerAt(bufferInfo + 8);
-
-        long external = reader.ReadPointerAt(184);
-        for (int i = 0, count = reader.ReadUInt16At(236); i < count; i++)
-        {
-            int offset = checked((int)reader.ReadPointerAt(external + i * 16)), length = checked((int)reader.ReadInt64At(external + i * 16 + 8));
-            if (!data.AsSpan(offset, length).StartsWith("BNTX"u8)) continue;
-            using var bntx = Open(data, offset, length);
-            ReadTextures(bntx);
-        }
 
         long modelArray = reader.ReadPointerAt(40);
         var models = new List<BfresModel>();
@@ -405,6 +406,26 @@ public sealed class BfresFileReader
 
     #region Textures
 
+    // Checks the header and reads the textures of every BNTX among the external files.
+    private void ReadEmbeddedTextures(byte[] data)
+    {
+        cancellation.ThrowIfCancellationRequested();
+        if (reader.ReadStringAt(4, 4) != "    " || reader.ReadUInt16At(12) != 0xfeff)
+            throw new NotSupportedException("Only little endian Nintendo Switch BFRES is supported.");
+        uint version = reader.ReadUInt32At(8);
+        if (version >> 16 != 9)
+            throw new NotSupportedException($"BFRES version 0x{version:X8} is not supported. This reader targets ACNH's Switch v9 layout.");
+
+        long external = reader.ReadPointerAt(184);
+        for (int i = 0, count = reader.ReadUInt16At(236); i < count; i++)
+        {
+            int offset = checked((int)reader.ReadPointerAt(external + i * 16)), length = checked((int)reader.ReadInt64At(external + i * 16 + 8));
+            if (!data.AsSpan(offset, length).StartsWith("BNTX"u8)) continue;
+            using var bntx = Open(data, offset, length);
+            ReadTextures(bntx);
+        }
+    }
+
     private void ReadTextures(BinaryReader bntx)
     {
         if (bntx.ReadUInt16At(12) != 0xfeff || bntx.ReadStringAt(32, 4) != "NX  ") throw new InvalidDataException("Invalid Switch BNTX header.");
@@ -423,12 +444,13 @@ public sealed class BfresFileReader
     {
         uint format = bntx.ReadUInt32At(at + 28);
         int channel = (int)(format >> 8), type = (int)(format & 255);
+        var astc = AstcFootprint(channel);
         int blockBytes = channel switch
         {
-            0x1a or 0x1d => 8, >= 0x1b and <= 0x20 => 16, 0x0b => 4, 0x02 => 1, 0x09 => 2,
+            0x1a or 0x1d => 8, >= 0x1b and <= 0x20 => 16, 0x0b => 4, 0x02 => 1, 0x09 => 2, _ when astc.Width > 0 => 16,
             _ => throw new NotSupportedException($"Texture format 0x{format:X} is unsupported.")
         };
-        if (type is not (1 or 2 or 6) || (channel < 0x1a && type == 2))
+        if (type is not (1 or 2 or 6) || (channel < 0x1a && type == 2) || (astc.Width > 0 && type == 2))
             throw new NotSupportedException($"Texture type 0x{format:X} is unsupported.");
         if (bntx.ReadUInt32At(at + 44) != 1 || bntx.ReadUInt32At(at + 48) != 1 || bntx.ReadByteAt(at + 92) != 1)
             throw new NotSupportedException("Only single-layer 2D textures are previewed.");
@@ -436,6 +458,7 @@ public sealed class BfresFileReader
         if (tileMode is not (0 or 1)) throw new NotSupportedException("Unsupported Tegra tile mode.");
 
         int width = bntx.ReadInt32At(at + 36), height = bntx.ReadInt32At(at + 40), blockSize = channel >= 0x1a ? 4 : 1;
+        (int blockWidth, int blockHeight) = astc.Width > 0 ? astc : (blockSize, blockSize);
         int blockHeightLog2 = (int)(bntx.ReadUInt32At(at + 52) & 7);
         // Pitch-linear surfaces have no block-linear mip layout to follow; preview the base level only.
         int mipCount = tileMode == 1 ? 1 : bntx.ReadUInt16At(at + 22);
@@ -445,11 +468,23 @@ public sealed class BfresFileReader
         for (int level = 0; level < mipCount; level++)
         {
             int offset = (int)(bntx.ReadPointerAt(mipArray + level * 8) - first);
-            int w = (Math.Max(1, width >> level) + blockSize - 1) / blockSize, h = (Math.Max(1, height >> level) + blockSize - 1) / blockSize;
-            mips[level] = Deswizzle(source.AsSpan(offset), w, h, blockBytes, tileMode, blockHeightLog2);
+            int levelWidth = Math.Max(1, width >> level), levelHeight = Math.Max(1, height >> level);
+            int w = (levelWidth + blockWidth - 1) / blockWidth, h = (levelHeight + blockHeight - 1) / blockHeight;
+            var blocks = Deswizzle(source.AsSpan(offset), w, h, blockBytes, tileMode, blockHeightLog2);
+            mips[level] = astc.Width > 0 ? AstcDecoder.Decode(blocks, levelWidth, levelHeight, blockWidth, blockHeight, type == 6) : blocks;
         }
+        // Decoded ASTC is plain RGBA8, which is what the texture then claims to be.
+        if (astc.Width > 0) format = 0x0b00 | (uint)type;
         return new BntxTexture(name, width, height, format, mips, bntx.ReadByteArrayAt(at + 88, 4));
     }
+
+    // The texel footprint of an ASTC format's blocks, or zero for other formats.
+    private static (int Width, int Height) AstcFootprint(int channel) => channel switch
+    {
+        0x2d => (4, 4), 0x2e => (5, 4), 0x2f => (5, 5), 0x30 => (6, 5), 0x31 => (6, 6), 0x32 => (8, 5), 0x33 => (8, 6),
+        0x34 => (8, 8), 0x35 => (10, 5), 0x36 => (10, 6), 0x37 => (10, 8), 0x38 => (10, 10), 0x39 => (12, 10), 0x3a => (12, 12),
+        _ => (0, 0)
+    };
 
     // w and h are in format blocks (4x4 texels for BCn, single texels otherwise).
     private static byte[] Deswizzle(ReadOnlySpan<byte> source, int w, int h, int blockBytes, int tileMode, int blockHeightLog2)
