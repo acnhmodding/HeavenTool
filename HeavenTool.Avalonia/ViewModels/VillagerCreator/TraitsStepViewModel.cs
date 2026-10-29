@@ -42,7 +42,6 @@ public partial class TraitsStepViewModel(VillagerCreatorViewModel creator) : Obs
             return new ValueOption(json, name, Swatch: swatch);
         }));
 
-        // The game files don't name styles, so each value lists villagers that have it.
         Favorites =
         [
             Vanilla("Favorite style", RowValues.Key(table, VillagerColumns.Style1)),
@@ -70,9 +69,9 @@ public partial class TraitsStepViewModel(VillagerCreatorViewModel creator) : Obs
         // Each value is shown as the name plate it draws in conversations, or as its number when the romfs has no palette.
         IReadOnlyList<ValueOption> NameColors(string key) => data.NameColors.Count == 0
             ? RowValues.VanillaOptions(data, key)
-            : RowValues.WithUsers(data, key, data.NameColors.Select((color, index) => new ValueOption(
+            : [.. data.NameColors.Select((color, index) => new ValueOption(
                 index.ToString(CultureInfo.InvariantCulture), $"Color {index}",
-                Swatch: VillagerColors.Brush(color.Plate), SwatchText: VillagerColors.Brush(color.Text))));
+                Swatch: VillagerColors.Brush(color.Plate), SwatchText: VillagerColors.Brush(color.Text)))];
     }
 
     internal void Load(VillagerProject project)

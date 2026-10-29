@@ -16,7 +16,7 @@ namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 /// One value a column can take, as its NookKit JSON, with what to show for it. With <paramref name="SwatchText"/>, the text is
 /// drawn in that color on the swatch, as a name plate.
 /// </summary>
-public sealed record ValueOption(string Json, string Text, string? Hint = null, IBrush? Swatch = null, IBrush? SwatchText = null)
+public sealed record ValueOption(string Json, string Text, IBrush? Swatch = null, IBrush? SwatchText = null)
 {
     public override string ToString() => Text;
 }
@@ -34,37 +34,20 @@ public static class RowValues
             ? number
             : 0;
 
-    /// <summary>
-    /// The values vanilla villagers use in a column, each with a few villagers that use it, since the game files name few of them.
-    /// </summary>
+    /// <summary>The values vanilla villagers use in a column, in order, shown as <paramref name="text"/> or as the value itself.</summary>
     public static IReadOnlyList<ValueOption> VanillaOptions(VillagerGameData data, string key, Func<string, string>? text = null) =>
         VanillaOptions(data, key, json => new ValueOption(json, text?.Invoke(json) ?? Unquote(json)));
 
-    /// <summary>The values vanilla villagers use in a column, each made by <paramref name="option"/> and listing a few of them.</summary>
-    public static IReadOnlyList<ValueOption> VanillaOptions(VillagerGameData data, string key, Func<string, ValueOption> option) =>
-        [.. Users(data, key)
-            .OrderBy(group => long.TryParse(group.Key, out var number) ? number : long.MaxValue)
-            .ThenBy(group => group.Key, StringComparer.Ordinal)
-            .Select(group => option(group.Key) with { Hint = Examples(group) })];
-
-    /// <summary><paramref name="options"/>, each listing a few vanilla villagers that use its value.</summary>
-    public static IReadOnlyList<ValueOption> WithUsers(VillagerGameData data, string key, IEnumerable<ValueOption> options)
-    {
-        var users = Users(data, key).ToDictionary(group => group.Key);
-        return [.. options.Select(option => users.TryGetValue(option.Json, out var group) ? option with { Hint = Examples(group) } : option)];
-    }
-
-    private static IEnumerable<IGrouping<string, VillagerInfo>> Users(VillagerGameData data, string key)
+    /// <summary>The values vanilla villagers use in a column, in order, each made by <paramref name="option"/>.</summary>
+    public static IReadOnlyList<ValueOption> VanillaOptions(VillagerGameData data, string key, Func<string, ValueOption> option)
     {
         var table = data.NmlNpcParam;
-        return data.Villagers.GroupBy(villager => BcsvPatch.Row(table, table.Entries[villager.Row])[key]?.ToJsonString() ?? "null");
-    }
-
-    private static string Examples(IEnumerable<VillagerInfo> villagers)
-    {
-        var names = villagers.Select(villager => villager.Name).ToList();
-        var shown = string.Join(", ", names.Take(4));
-        return names.Count > 4 ? $"{shown} and {names.Count - 4} more" : shown;
+        return [.. data.Villagers
+            .Select(villager => BcsvPatch.Row(table, table.Entries[villager.Row])[key]?.ToJsonString() ?? "null")
+            .Distinct()
+            .OrderBy(json => long.TryParse(json, out var number) ? number : long.MaxValue)
+            .ThenBy(json => json, StringComparer.Ordinal)
+            .Select(option)];
     }
 
     public static string Unquote(string json) => json.Length >= 2 && json[0] == '"' ? json[1..^1] : json;

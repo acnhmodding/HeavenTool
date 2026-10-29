@@ -15,11 +15,7 @@
     <DataTemplate x:DataType="vc:ChoiceField">
       <Border Classes="row">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-          <StackPanel VerticalAlignment="Center">
-            <TextBlock Classes="title" Text="{Binding Title}" />
-            <TextBlock Classes="description" Text="{Binding Selected.Hint, StringFormat='Used by {0}'}"
-              IsVisible="{Binding Selected.Hint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-          </StackPanel>
+          <TextBlock Classes="title" Text="{Binding Title}" VerticalAlignment="Center" />
           <ComboBox Grid.Column="1" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}" Width="240" VerticalAlignment="Center">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="vc:ValueOption">
