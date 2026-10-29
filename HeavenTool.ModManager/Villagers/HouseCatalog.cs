@@ -44,6 +44,9 @@ public sealed class HouseCatalog
     public IEnumerable<HousePart> WallsFor(int shape) => Walls.Where(part => part.Shape == shape);
     public IEnumerable<HousePart> RoofsFor(int shape) => Roofs.Where(part => part.Shape == shape);
 
+    /// <summary>The model file of a part, under the romfs.</summary>
+    public static string ModelPath(string romfs, HousePart part) => Path.Combine(romfs, "Model", part.ModelName + ".Nin_NX_NVN.zs");
+
     private static List<HousePart> Parts(VillagerGameData data, string table, string namesFile, bool hasShape)
     {
         BinaryCSV parts = data.Table(table);
@@ -54,7 +57,9 @@ public sealed class HouseCatalog
         var names = data.Messages("String", VillagerGameData.NameLanguage, namesFile)?.Messages
             .ToDictionary(message => message.Label, message => VillagerGameData.PlainText(message.Text)) ?? [];
 
+        // A few door rows are placeholders with no model.
         return [.. parts.Entries
+            .Where(row => ((string)row[model]).Length > 0)
             .Select(row =>
             {
                 var partId = (ushort)row[id];
