@@ -1,6 +1,8 @@
 #nullable enable
 
+using AeonSake.NintendoTools.FileFormats.Byml;
 using HeavenTool.IO.FileFormats.BCSV;
+using System.Numerics;
 
 namespace HeavenTool.ModManager.Villagers;
 
@@ -16,11 +18,22 @@ public sealed class HouseCatalog
     private const string ModelColumn = "ModelName string32";
     private const string ShapeColumn = "HouseShapeUniqueID u16";
 
+    public const string StructureParamsPath = "Param/Structure/StructureParams.byml";
+    // The param names hash to these keys: the Structure object, and its mNpcHouseCurtainColorArray.
+    private const string StructureKey = "5f4e8251";
+    private const string CurtainColorsKey = "7f0e002d";
+
     /// <summary>The house shapes vanilla villagers use. Other shapes are player houses and buildings.</summary>
     public required IReadOnlyList<int> Shapes { get; init; }
     public required IReadOnlyList<HousePart> Walls { get; init; }
     public required IReadOnlyList<HousePart> Roofs { get; init; }
     public required IReadOnlyList<HousePart> Doors { get; init; }
+
+    /// <summary>
+    /// The curtain colors as linear RGBA, by <see cref="HouseExterior.Curtain"/>; empty when StructureParams doesn't list them.
+    /// The game tints the wall model's <c>mCurtain</c> material with them.
+    /// </summary>
+    public required IReadOnlyList<Vector4> CurtainColors { get; init; }
 
     public static HouseCatalog Load(VillagerGameData data)
     {
@@ -38,7 +51,19 @@ public sealed class HouseCatalog
             Walls = Parts(data, "StructureHouseWallParam", "STR_HouseWallName.msbt", hasShape: true),
             Roofs = Parts(data, "StructureHouseRoofParam", "STR_HouseRoofName.msbt", hasShape: true),
             Doors = Parts(data, "StructureHouseDoorParam", "STR_HouseDoorName.msbt", hasShape: false),
+            CurtainColors = data.ReadParam(StructureParamsPath) is { } structure ? ReadCurtainColors(structure) : [],
         };
+    }
+
+    /// <summary>Reads the curtain colors in a StructureParams file's root node, or none when it doesn't hold them.</summary>
+    public static IReadOnlyList<Vector4> ReadCurtainColors(IBymlNode root)
+    {
+        if (root is not BymlDictionary rootDictionary || !rootDictionary.TryGetValue(StructureKey, out var body)
+            || body is not BymlDictionary structure || !structure.TryGetValue(CurtainColorsKey, out var list) || list is not BymlArray colors)
+            return [];
+        return colors.All(color => color is BymlArray { Count: 4 } channels && channels.All(channel => channel is BymlSingleValue))
+            ? [.. colors.Select(color => new Vector4([.. ((BymlArray)color).Select(channel => ((BymlSingleValue)channel).Value)]))]
+            : [];
     }
 
     public IEnumerable<HousePart> WallsFor(int shape) => Walls.Where(part => part.Shape == shape);

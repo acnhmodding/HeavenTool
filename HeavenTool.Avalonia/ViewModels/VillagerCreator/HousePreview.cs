@@ -13,8 +13,12 @@ using System.Threading.Tasks;
 
 namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 
-/// <summary>A house exterior put together from its wall, roof and door models, ready to show in a viewport.</summary>
-public sealed record HouseScene(BfresRenderer.PreparedScene Geometry, IReadOnlyDictionary<BfresMesh, TranslatedShader> Shaders, IReadOnlyList<string> Warnings);
+/// <summary>
+/// A house exterior put together from its wall, roof and door models, ready to show in a viewport. <see cref="Curtains"/> are
+/// the wall's curtain materials, which <see cref="HousePreview.PaintCurtains"/> colors.
+/// </summary>
+public sealed record HouseScene(BfresRenderer.PreparedScene Geometry, IReadOnlyDictionary<BfresMesh, TranslatedShader> Shaders,
+    IReadOnlyList<BfresMaterial> Curtains, IReadOnlyList<string> Warnings);
 
 /// <summary>
 /// Builds house previews from the romfs models. Wall and roof models share the house's origin; the door sits on the wall's
@@ -25,6 +29,9 @@ public sealed class HousePreview(string romfs)
     private const string DoorBone = "DoorModel0";
     // Snow only shows in winter, over the roof.
     private const string WinterMaterial = "mWinterSnow";
+    // The game colors the curtains behind the windows by setting this parameter of the wall's curtain material.
+    private const string CurtainMaterial = "mCurtain";
+    private const string CurtainColor = "const_color2";
 
     private readonly ConcurrentDictionary<string, Lazy<BfresModel?>> models = new();
     private readonly Lazy<SwitchShaderArchive?> shaders = new(() =>
@@ -70,7 +77,22 @@ public sealed class HousePreview(string romfs)
         {
             warnings.Add($"Couldn't load the game materials: {ex.Message}");
         }
-        return new HouseScene(geometry, programs, warnings);
+        var curtains = Visible(wallModel).Select(mesh => mesh.Material)
+            .Where(material => material.Name == CurtainMaterial && material.Parameters.ContainsKey(CurtainColor))
+            .Distinct()
+            .ToList();
+        return new HouseScene(geometry, programs, curtains, warnings);
+    }
+
+    /// <summary>
+    /// Sets the color of a scene's curtains, linear RGBA. The materials belong to the cached wall model, so this repaints every
+    /// scene built from it; a viewport showing the scene needs to refresh them.
+    /// </summary>
+    public static void PaintCurtains(HouseScene scene, Vector4 color)
+    {
+        float[] channels = [color.X, color.Y, color.Z, color.W];
+        foreach (var material in scene.Curtains)
+            for (int i = 0; i < channels.Length; i++) material.SetParameterComponent(CurtainColor, i, channels[i]);
     }
 
     private static IEnumerable<BfresMesh> Visible(BfresModel? model) =>

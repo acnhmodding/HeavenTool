@@ -15,6 +15,7 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
     private BfresRenderer? renderer;
     private CancellationTokenSource? previewLoad;
     private (HousePart Wall, HousePart Roof, HousePart Door)? shown;
+    private HouseScene? scene;
     private bool previewVisible, changingShape;
 
     [ObservableProperty] private IReadOnlyList<int> shapes = [];
@@ -86,7 +87,18 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
         if (changingShape || project == null || Shape is not { } shape || Wall == null || Roof == null || Door == null) return;
         project.House = new HouseExterior(shape, Wall.Id, Roof.Id, Door.Id, (int)Math.Clamp(Curtain ?? 0, 0, MaxCurtain),
             project.House?.DecoItem ?? HouseExterior.NoDeco);
+        ShowCurtains();
         RefreshPreview();
+    }
+
+    // Curtains are only a color, so a new one repaints the house on show instead of building it again.
+    private void ShowCurtains()
+    {
+        if (renderer == null || scene == null || project?.House is not { } house) return;
+        var colors = creator.Catalog.CurtainColors;
+        if (house.Curtain < 0 || house.Curtain >= colors.Count) return;
+        HousePreview.PaintCurtains(scene, colors[house.Curtain]);
+        foreach (var material in scene.Curtains) renderer.RefreshMaterial(material);
     }
 
     /// <summary>Starts drawing the preview, the first time the step is shown.</summary>
@@ -106,11 +118,13 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
         IsPreviewLoading = true;
         try
         {
-            var scene = await creator.Preview.BuildAsync(wall, roof, door, request.Token);
-            if (scene == null || request.IsCancellationRequested) return;
-            renderer.SetScene(scene.Geometry);
-            renderer.SetNativeShaders(scene.Shaders);
-            PreviewWarning = scene.Warnings.Count > 0 ? string.Join(Environment.NewLine, scene.Warnings) : null;
+            var built = await creator.Preview.BuildAsync(wall, roof, door, request.Token);
+            if (built == null || request.IsCancellationRequested) return;
+            scene = built;
+            ShowCurtains();
+            renderer.SetScene(built.Geometry);
+            renderer.SetNativeShaders(built.Shaders);
+            PreviewWarning = built.Warnings.Count > 0 ? string.Join(Environment.NewLine, built.Warnings) : null;
             shown = (wall, roof, door);
         }
         catch (Exception ex)

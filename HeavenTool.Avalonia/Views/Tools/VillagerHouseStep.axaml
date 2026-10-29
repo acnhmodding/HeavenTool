@@ -53,7 +53,7 @@
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Classes="title" Text="Curtains" />
-                  <TextBlock Classes="description" Text="The pattern behind the windows. Not shown in the preview." />
+                  <TextBlock Classes="description" Text="The color of the curtains behind the windows. Some walls have none." />
                 </StackPanel>
                 <NumericUpDown Grid.Column="1" Value="{Binding Curtain}" Minimum="0" Maximum="{Binding MaxCurtain}" Increment="1"
                   FormatString="0" Width="110" VerticalAlignment="Center" />
