@@ -31,6 +31,7 @@ public sealed partial class VillagerGameData
     private readonly Lazy<IReadOnlyDictionary<int, string>> itemNames;
     private readonly Lazy<IReadOnlyList<VillagerInfo>> villagers;
     private readonly Lazy<IReadOnlyList<NameColor>> nameColors;
+    private readonly Lazy<IReadOnlyDictionary<int, (string Resource, string Label)>> itemResources;
 
     public string Romfs { get; }
 
@@ -41,6 +42,7 @@ public sealed partial class VillagerGameData
         itemNames = new(LoadItemNames);
         villagers = new(LoadVillagers);
         nameColors = new(() => ReadParam(NameColor.ParamPath) is { } root ? NameColor.ReadAll(root) : []);
+        itemResources = new(LoadItemResources);
     }
 
     /// <summary>Opens a romfs folder, after checking it has the files the villager creator needs.</summary>
@@ -73,6 +75,22 @@ public sealed partial class VillagerGameData
     public IReadOnlyList<NameColor> NameColors => nameColors.Value;
 
     public SarcFile StaticParam => staticParam.Value;
+
+    /// <summary>
+    /// The layout icon archive of an item, as the closet shows it or else as the furniture menus do, or null when the romfs
+    /// has neither. Tools and a few other items have their icons elsewhere and get none.
+    /// </summary>
+    public string? ItemIconPath(int id)
+    {
+        if (!itemResources.Value.TryGetValue(id, out var item)) return null;
+        // Most icons are named by the item's resource; photos and posters by its label, and photos in each frame.
+        string[] names =
+        [
+            $"Layout_ClosetIcon_{item.Resource}", $"Layout_FtrIcon_{item.Resource}",
+            $"Layout_FtrIcon_{item.Label}", $"Layout_FtrIcon_{item.Label}_Remake_0_0",
+        ];
+        return names.Select(name => Path.Combine(Romfs, "Model", name + ".Nin_NX_NVN.zs")).FirstOrDefault(File.Exists);
+    }
 
     /// <summary>A table from <c>Bcsv/</c>, by name without extension.</summary>
     public BinaryCSV Table(string name) => tables.GetOrAdd(name, _ =>
@@ -151,6 +169,15 @@ public sealed partial class VillagerGameData
                 if (Id(message.Label) is { } id) names.TryAdd(id, single ? group : $"{group} ({PlainText(message.Text)})");
         }
         return names;
+    }
+
+    // ItemParam's resource names and labels by item ID, which name the item's models and icons.
+    private IReadOnlyDictionary<int, (string Resource, string Label)> LoadItemResources()
+    {
+        if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemParam.bcsv"))) return new Dictionary<int, (string, string)>();
+        var table = Table("ItemParam");
+        int id = table.ColumnIndex("UniqueID u16"), resource = table.ColumnIndex("ResName string64"), label = table.ColumnIndex("Label string50");
+        return table.Entries.ToDictionary(row => Convert.ToInt32(row[id]), row => ((string)row[resource], (string)row[label]));
     }
 
     private IReadOnlyList<VillagerInfo> LoadVillagers()

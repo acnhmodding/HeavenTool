@@ -56,12 +56,12 @@ public partial class TraitsStepViewModel(VillagerCreatorViewModel creator) : Obs
         ];
         Items =
         [
-            new("Default clothing", Key(VillagerColumns.Tops), data.ItemNames, signed: false),
-            new("Umbrella", Key(VillagerColumns.Umbrella), data.ItemNames, signed: false),
-            new("Rain hat", Key(VillagerColumns.RainHat), data.ItemNames, signed: false),
-            new("Raincoat", Key(VillagerColumns.RainWear), data.ItemNames, signed: false),
-            new("Photo", Key(VillagerColumns.Photo), data.ItemNames, signed: true),
-            new("Poster", Key(VillagerColumns.Poster), data.ItemNames, signed: true),
+            new("Default clothing", Key(VillagerColumns.Tops), data, signed: false),
+            new("Umbrella", Key(VillagerColumns.Umbrella), data, signed: false),
+            new("Rain hat", Key(VillagerColumns.RainHat), data, signed: false),
+            new("Raincoat", Key(VillagerColumns.RainWear), data, signed: false),
+            new("Photo", Key(VillagerColumns.Photo), data, signed: true),
+            new("Poster", Key(VillagerColumns.Poster), data, signed: true),
         ];
         Birthday =
         [

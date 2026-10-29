@@ -1,4 +1,5 @@
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using HeavenTool.IO.FileFormats.BCSV;
 using HeavenTool.ModManager.NookKit;
@@ -9,6 +10,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 
@@ -103,9 +105,10 @@ public sealed partial class NumberField(string title, string key, int minimum, i
     }
 }
 
-/// <summary>A row column that holds an item ID, shown with the item's name.</summary>
-public sealed partial class ItemField(string title, string key, IReadOnlyDictionary<int, string> names, bool signed) : ObservableObject
+/// <summary>A row column that holds an item ID, shown with the item's name and, when the romfs has one, its icon.</summary>
+public sealed partial class ItemField(string title, string key, VillagerGameData data, bool signed) : ObservableObject
 {
+    private readonly IReadOnlyDictionary<int, string> names = data.ItemNames;
     private JsonObject? row;
 
     public string Title { get; } = title;
@@ -113,6 +116,7 @@ public sealed partial class ItemField(string title, string key, IReadOnlyDiction
     public int Maximum { get; } = signed ? short.MaxValue : ushort.MaxValue;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ItemName), nameof(IsKnown))] private decimal? value;
+    [ObservableProperty] private Bitmap? icon;
 
     public bool IsKnown => Value is { } id && names.ContainsKey((int)id);
     public string ItemName => Value is { } id && names.TryGetValue((int)id, out var name) ? name : "Not a vanilla item";
@@ -127,5 +131,13 @@ public sealed partial class ItemField(string title, string key, IReadOnlyDiction
     partial void OnValueChanged(decimal? value)
     {
         if (row != null && value is { } number) row[key] = (long)Math.Clamp(number, Minimum, Maximum);
+        _ = ShowIcon(value);
+    }
+
+    private async Task ShowIcon(decimal? id)
+    {
+        var icon = id is { } number ? await ItemIcons.Load(data, (int)number) : null;
+        // The value may have changed while the icon loaded.
+        if (Value == id) Icon = icon;
     }
 }

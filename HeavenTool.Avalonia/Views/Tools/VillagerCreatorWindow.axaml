@@ -49,12 +49,15 @@
     </DataTemplate>
     <DataTemplate x:DataType="vc:ItemField">
       <Border Classes="row">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-          <StackPanel VerticalAlignment="Center">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+          <Border Classes="icon" IsVisible="{Binding Icon, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <Image Source="{Binding Icon}" RenderOptions.BitmapInterpolationMode="HighQuality" />
+          </Border>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center">
             <TextBlock Classes="title" Text="{Binding Title}" />
             <TextBlock Classes="description" Classes.unknown="{Binding !IsKnown}" Text="{Binding ItemName}" />
           </StackPanel>
-          <NumericUpDown Grid.Column="1" Value="{Binding Value}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+          <NumericUpDown Grid.Column="2" Value="{Binding Value}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
             Increment="1" FormatString="0" Width="240" VerticalAlignment="Center" />
         </Grid>
       </Border>
@@ -131,6 +134,14 @@
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <!-- A name plate as conversations draw it: the name in its text color on a rounded plate. -->
+    <Style Selector="Border.icon">
+      <Setter Property="Width" Value="44" />
+      <Setter Property="Height" Value="44" />
+      <Setter Property="Padding" Value="3" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Background" Value="{StaticResource PanelBorder}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
     <Style Selector="Border.plate">
       <Setter Property="CornerRadius" Value="10" />
       <Setter Property="Padding" Value="10,1" />
