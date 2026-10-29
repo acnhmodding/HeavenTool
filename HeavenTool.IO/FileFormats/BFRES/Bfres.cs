@@ -27,6 +27,30 @@ public sealed class BfresMesh
     public required IReadOnlyDictionary<string, ReadOnlyMemory<Vector4>> NativeAttributes { get; init; }
     public ReadOnlyMemory<Matrix4x4> BonePalette { get; init; }
     public Matrix4x4 ShapeTransform { get; init; } = Matrix4x4.Identity;
+
+    /// <summary>A copy moved by <paramref name="transform"/>, such as a part placed on a bone of another model.</summary>
+    public BfresMesh Transformed(Matrix4x4 transform)
+    {
+        var positions = new Vector3[Positions.Length];
+        for (int i = 0; i < positions.Length; i++) positions[i] = Vector3.Transform(Positions.Span[i], transform);
+        var normalTransform = Matrix4x4.Invert(transform, out var inverse) ? Matrix4x4.Transpose(inverse) : transform;
+        var normals = new Vector3[Normals.Length];
+        for (int i = 0; i < normals.Length; i++)
+        {
+            var normal = Vector3.TransformNormal(Normals.Span[i], normalTransform);
+            normals[i] = normal.LengthSquared() > 1e-12f ? Vector3.Normalize(normal) : normal;
+        }
+        var palette = new Matrix4x4[BonePalette.Length];
+        for (int i = 0; i < palette.Length; i++) palette[i] = BonePalette.Span[i] * transform;
+
+        // Native shaders read the raw vertices with the shape and bone matrices, so those move too.
+        return new BfresMesh
+        {
+            Name = Name, Material = Material, VertexSkinCount = VertexSkinCount, Positions = positions, Normals = normals,
+            Indices = Indices, TexCoords = TexCoords, NativeAttributes = NativeAttributes, BonePalette = palette,
+            ShapeTransform = ShapeTransform * transform,
+        };
+    }
 }
 
 // Mips holds the deswizzled mip chain, largest level first.

@@ -26,11 +26,15 @@ public sealed record BfresScene(IReadOnlyList<BfresAsset> Assets, BfresRenderer.
         return File.Exists(path) ? path : null;
     }
 
-    public static BfresShaderPreparation PrepareShaders(IReadOnlyList<BfresAsset> assets, SwitchShaderArchive archive, CancellationToken cancellation = default)
+    public static BfresShaderPreparation PrepareShaders(IReadOnlyList<BfresAsset> assets, SwitchShaderArchive archive, CancellationToken cancellation = default) =>
+        PrepareShaders(assets.SelectMany(a => a.Document.Models).SelectMany(m => m.Meshes), archive, cancellation);
+
+    /// <summary>Prepares the game materials of meshes put together from several models.</summary>
+    public static BfresShaderPreparation PrepareShaders(IEnumerable<BfresMesh> meshes, SwitchShaderArchive archive, CancellationToken cancellation = default)
     {
         var programs = new Dictionary<BfresMesh, TranslatedShader>();
         var errors = new Dictionary<BfresMesh, string>();
-        foreach (var mesh in assets.SelectMany(a => a.Document.Models).SelectMany(m => m.Meshes))
+        foreach (var mesh in meshes)
         {
             cancellation.ThrowIfCancellationRequested();
             try
