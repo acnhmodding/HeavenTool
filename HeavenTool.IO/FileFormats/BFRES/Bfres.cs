@@ -56,8 +56,12 @@ public sealed class BfresMesh
 // Mips holds the deswizzled mip chain, largest level first.
 public sealed record BntxTexture(string Name, int Width, int Height, uint Format, IReadOnlyList<ReadOnlyMemory<byte>> Mips, byte[] Channels);
 
+// TextureName is the texture the material asks for, which another file may hold when Texture is null.
 public sealed record BfresSampler(string Name, BntxTexture? Texture, byte WrapU, byte WrapV, ushort FilterFlags, byte BorderColor,
-    byte MaxAnisotropy, float MinLod, float MaxLod, float LodBias);
+    byte MaxAnisotropy, float MinLod, float MaxLod, float LodBias)
+{
+    public string TextureName { get; init; } = "";
+}
 
 public sealed record BfresRenderInfo(IReadOnlyList<string> Strings, IReadOnlyList<float> Floats, IReadOnlyList<int> Integers);
 

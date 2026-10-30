@@ -354,9 +354,10 @@ public sealed class BfresFileReader
         for (int i = 0; i < samplers.Length; i++)
         {
             long s = samplerArray + i * 32;
-            samplers[i] = new(samplerNames[i], textures.GetValueOrDefault(reader.ReadNameAt(textureNames + i * 8)),
+            string textureName = reader.ReadNameAt(textureNames + i * 8);
+            samplers[i] = new(samplerNames[i], textures.GetValueOrDefault(textureName),
                 reader.ReadByteAt(s), reader.ReadByteAt(s + 1), reader.ReadUInt16At(s + 6), reader.ReadByteAt(s + 4), reader.ReadByteAt(s + 5),
-                reader.ReadSingleAt(s + 8), reader.ReadSingleAt(s + 12), reader.ReadSingleAt(s + 16));
+                reader.ReadSingleAt(s + 8), reader.ReadSingleAt(s + 12), reader.ReadSingleAt(s + 16)) { TextureName = textureName };
         }
 
         var infos = new Dictionary<string, BfresRenderInfo>();
