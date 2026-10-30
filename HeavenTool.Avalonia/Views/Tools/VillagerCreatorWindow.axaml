@@ -311,7 +311,7 @@
             <tools:VillagerIdentityStep DataContext="{Binding Identity}" IsVisible="{Binding #IdentityItem.IsSelected}" />
             <tools:VillagerTraitsStep DataContext="{Binding Traits}" IsVisible="{Binding #TraitsItem.IsSelected}" />
             <tools:VillagerHouseStep x:Name="HouseStep" DataContext="{Binding House}" IsVisible="{Binding #HouseItem.IsSelected}" />
-            <tools:VillagerRoomStep DataContext="{Binding Room}" IsVisible="{Binding #RoomItem.IsSelected}" />
+            <tools:VillagerRoomStep x:Name="RoomStep" DataContext="{Binding Room}" IsVisible="{Binding #RoomItem.IsSelected}" />
             <tools:VillagerAmiiboStep DataContext="{Binding Amiibo}" IsVisible="{Binding #AmiiboItem.IsSelected}" />
             <tools:VillagerGenerateStep DataContext="{Binding Generate}" IsVisible="{Binding #GenerateItem.IsSelected}" />
           </Grid>

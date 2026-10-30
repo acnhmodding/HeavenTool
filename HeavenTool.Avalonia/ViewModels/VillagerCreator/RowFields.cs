@@ -108,13 +108,15 @@ public sealed partial class NumberField(string title, string key, int minimum, i
 
 /// <summary>
 /// A row column that holds an item ID, shown with the item's name and, when the romfs has one, its icon. The item can also be
-/// chosen by name in a picker, which <paramref name="pick"/> shows, from <paramref name="kinds"/> first.
+/// chosen by name in a picker, which <paramref name="pick"/> shows, from <paramref name="kinds"/> first. A field kept outside a row
+/// is shown with <see cref="Show"/> and reports what the user picks through <see cref="Changed"/>.
 /// </summary>
 public sealed partial class ItemField(string title, string key, VillagerGameData data, bool signed, ItemKinds kinds,
     Func<ItemPickerViewModel, Task<bool>> pick) : ObservableObject
 {
     private readonly IReadOnlyDictionary<int, string> names = data.ItemNames;
     private JsonObject? row;
+    private bool loading;
 
     public string Title { get; } = title;
     public int Minimum { get; } = signed ? short.MinValue : 0;
@@ -126,16 +128,28 @@ public sealed partial class ItemField(string title, string key, VillagerGameData
     public bool IsKnown => Value is { } id && names.ContainsKey((int)id);
     public string ItemName => Value is { } id && names.TryGetValue((int)id, out var name) ? name : "Not a vanilla item";
 
+    /// <summary>Raised with the new ID when the user types or picks another item.</summary>
+    public event Action<int>? Changed;
+
     public void Load(JsonObject source)
     {
         row = null;
-        Value = RowValues.Integer(source, key);
+        Show(RowValues.Integer(source, key));
         row = source;
+    }
+
+    /// <summary>Shows an item without raising <see cref="Changed"/>.</summary>
+    public void Show(decimal? id)
+    {
+        loading = true;
+        try { Value = id; }
+        finally { loading = false; }
     }
 
     partial void OnValueChanged(decimal? value)
     {
         if (row != null && value is { } number) row[key] = (long)Math.Clamp(number, Minimum, Maximum);
+        if (!loading && value is { } id) Changed?.Invoke((int)Math.Clamp(id, Minimum, Maximum));
         _ = ShowIcon(value);
     }
 

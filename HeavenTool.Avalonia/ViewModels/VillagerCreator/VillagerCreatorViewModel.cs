@@ -51,6 +51,7 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
     internal VillagerGameData Data { get; private set; } = null!;
     internal HouseCatalog Catalog { get; private set; } = null!;
     internal HousePreview Preview { get; private set; } = null!;
+    internal RoomPreview RoomPreview { get; private set; } = null!;
 
     /// <summary>Shows an item picker as a dialog; true when an item was chosen. The window sets it.</summary>
     internal Func<ItemPickerViewModel, Task<bool>> PickItem { get; set; } = _ => Task.FromResult(false);
@@ -102,6 +103,7 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
             Data = data;
             Catalog = catalog;
             Preview = new HousePreview(romfs);
+            RoomPreview = new RoomPreview(data);
             Donor.Initialize();
             Traits.Initialize();
             House.Initialize();
@@ -146,7 +148,11 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
     partial void OnStepIndexChanged(int value)
     {
         if (value == HouseStep) House.ShowPreview();
-        if (value == RoomStep) Room.Check();
+        if (value == RoomStep)
+        {
+            Room.Check();
+            Room.ShowPreview();
+        }
         if (value == GenerateStep) Generate.Check();
     }
 
@@ -192,5 +198,6 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
     {
         AppSettings.Saved -= OnSettingsSaved;
         House.Dispose();
+        Room.Dispose();
     }
 }

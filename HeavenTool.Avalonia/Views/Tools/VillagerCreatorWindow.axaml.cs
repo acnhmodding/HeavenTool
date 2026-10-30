@@ -14,7 +14,7 @@ namespace HeavenTool.Avalonia.Views.Tools;
 public partial class VillagerCreatorWindow : FAAppWindow
 {
     private readonly VillagerCreatorViewModel viewModel;
-    private readonly BfresViewport viewport;
+    private readonly BfresViewport houseViewport, roomViewport;
 
     public VillagerCreatorWindow()
     {
@@ -25,9 +25,12 @@ public partial class VillagerCreatorWindow : FAAppWindow
         viewModel.PickItem = picker => new ItemPickerWindow(picker).ShowDialog<bool>(this);
         DataContext = viewModel;
 
-        viewport = this.FindControl<VillagerHouseStep>("HouseStep")!.FindControl<BfresViewport>("Viewport")!;
-        viewModel.House.Attach(viewport.Renderer);
-        viewport.RenderFailed += viewModel.House.ReportRenderFailure;
+        houseViewport = this.FindControl<VillagerHouseStep>("HouseStep")!.FindControl<BfresViewport>("Viewport")!;
+        viewModel.House.Attach(houseViewport.Renderer);
+        houseViewport.RenderFailed += viewModel.House.ReportRenderFailure;
+        roomViewport = this.FindControl<VillagerRoomStep>("RoomStep")!.FindControl<BfresViewport>("Viewport")!;
+        viewModel.Room.Attach(roomViewport.Renderer);
+        roomViewport.RenderFailed += viewModel.Room.ReportRenderFailure;
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
 
         Opened += async (_, _) => await viewModel.LoadAsync();
@@ -36,9 +39,16 @@ public partial class VillagerCreatorWindow : FAAppWindow
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
-        // The preview's camera keys work on the house step, unless a text box or list wants the key.
-        if (e.Handled || viewModel.StepIndex != VillagerCreatorViewModel.HouseStep) return;
-        if (e.Source is Visual source && source.GetSelfAndVisualAncestors().Any(control => control is TextBox or ComboBox or NumericUpDown)) return;
+        // The preview's camera keys work on the house and room steps, unless a text box or list wants the key.
+        var viewport = viewModel.StepIndex switch
+        {
+            VillagerCreatorViewModel.HouseStep => houseViewport,
+            VillagerCreatorViewModel.RoomStep => roomViewport,
+            _ => null,
+        };
+        if (e.Handled || viewport == null) return;
+        if (e.Source is Visual source && source.GetSelfAndVisualAncestors()
+            .Any(control => control is TextBox or ComboBox or NumericUpDown or ListBox)) return;
         viewport.HandleNavigationKey(e);
     }
 }

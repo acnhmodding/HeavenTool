@@ -3,6 +3,7 @@
   xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
   xmlns:vc="using:HeavenTool.Avalonia.ViewModels.VillagerCreator"
   xmlns:villagers="using:HeavenTool.ModManager.Villagers"
+  xmlns:controls="using:HeavenTool.Avalonia.Controls"
   x:Class="HeavenTool.Avalonia.Views.Tools.VillagerRoomStep"
   x:DataType="vc:RoomStepViewModel">
   <UserControl.Resources>
@@ -13,41 +14,169 @@
       </StackPanel>
     </DataTemplate>
   </UserControl.Resources>
-  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-    <StackPanel Margin="28,20,28,28">
-      <TextBlock Classes="page" Text="Room" />
-      <TextBlock Classes="intro" Text="The inside of the house and the model's extra settings, each copied from a vanilla villager." />
+  <UserControl.Styles>
+    <Style Selector="ListBox.items > ListBoxItem">
+      <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style Selector="TextBlock.field">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+  </UserControl.Styles>
 
-      <StackPanel Classes="section">
-        <icons:PackIconFontAwesome6 Kind="CouchSolid" />
-        <TextBlock Text="Copy from" />
-      </StackPanel>
-      <Border Classes="card">
-        <StackPanel>
-          <Border Classes="row">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-              <StackPanel VerticalAlignment="Center">
-                <TextBlock Classes="title" Text="Room" />
-                <TextBlock Classes="description" Text="Wallpaper, flooring, music and furniture, from Param/NpcRoom." />
-              </StackPanel>
-              <ComboBox Grid.Column="1" ItemsSource="{Binding Villagers}" SelectedItem="{Binding RoomFrom}" Width="260"
-                VerticalAlignment="Center" ItemTemplate="{StaticResource VillagerItem}" />
-            </Grid>
+  <Grid ColumnDefinitions="460,*">
+    <Grid RowDefinitions="*,Auto">
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="28,20,20,20">
+          <TextBlock Classes="page" Text="Room" />
+          <TextBlock Classes="intro" Text="The inside of the house and the model's extra settings, each copied from a vanilla villager and then changed here." />
+
+          <StackPanel Classes="section">
+            <icons:PackIconFontAwesome6 Kind="CopySolid" />
+            <TextBlock Text="Copy from" />
+          </StackPanel>
+          <Border Classes="card">
+            <StackPanel>
+              <Border Classes="row">
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="title" Text="Room" />
+                  <TextBlock Classes="description" Text="Starts the room over from this villager's, from Param/NpcRoom." />
+                  <ComboBox ItemsSource="{Binding Villagers}" SelectedItem="{Binding RoomFrom}" HorizontalAlignment="Stretch"
+                    ItemTemplate="{StaticResource VillagerItem}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="row">
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="title" Text="Gmo" />
+                  <TextBlock Classes="description" Text="Settings tied to the model, from Param/Gmo. A villager of the same species fits best." />
+                  <TextBlock Classes="warning" Text="{Binding GmoWarning}"
+                    IsVisible="{Binding GmoWarning, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                  <ComboBox ItemsSource="{Binding Villagers}" SelectedItem="{Binding GmoFrom}" HorizontalAlignment="Stretch"
+                    ItemTemplate="{StaticResource VillagerItem}" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
           </Border>
+
+          <StackPanel Classes="section">
+            <icons:PackIconFontAwesome6 Kind="PaintRollerSolid" />
+            <TextBlock Text="Room" />
+          </StackPanel>
+          <Border Classes="card">
+            <StackPanel>
+              <ContentControl Content="{Binding Wallpaper}" />
+              <ContentControl Content="{Binding Flooring}" />
+              <ContentControl Content="{Binding Music}" />
+            </StackPanel>
+          </Border>
+
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Bottom" Margin="0,0,0,8">
+              <Button Command="{Binding RemoveItemCommand}" Width="36" Height="32" Padding="0" ToolTip.Tip="Remove the selected item">
+                <icons:PackIconFontAwesome6 Kind="TrashCanSolid" Width="12" Height="12" />
+              </Button>
+              <Button Command="{Binding AddItemCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <icons:PackIconFontAwesome6 Kind="PlusSolid" Width="12" Height="12" VerticalAlignment="Center" />
+                  <TextBlock Text="Add item" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+            <StackPanel Classes="section">
+              <icons:PackIconFontAwesome6 Kind="CouchSolid" />
+              <TextBlock Text="Furniture" />
+              <TextBlock Text="{Binding ItemCountText}" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource DimText}" />
+            </StackPanel>
+          </DockPanel>
+          <Border Classes="card" Padding="4">
+            <ListBox Classes="items" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" Background="Transparent">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vc:RoomItemEntry">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <Border Width="32" Height="32">
+                      <Image Source="{Binding Item.Icon}" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Summary}" FontSize="12" Foreground="{StaticResource DimText}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Border>
+
+          <DockPanel Margin="2,12,0,0" IsVisible="{Binding PreviewWarning, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="13" Height="13" Margin="0,1,8,0" VerticalAlignment="Top"
+              Foreground="{StaticResource WarningText}" />
+            <TextBlock Classes="warning" Text="{Binding PreviewWarning}" />
+          </DockPanel>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- The selected item's editor stays in view below the list. -->
+      <Border Grid.Row="1" Classes="card" Margin="28,0,20,20" IsVisible="{Binding HasSelection}">
+        <StackPanel DataContext="{Binding SelectedItem}" x:DataType="vc:RoomItemEntry">
+          <ContentControl Content="{Binding Item}" />
           <Border Classes="row">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-              <StackPanel VerticalAlignment="Center">
-                <TextBlock Classes="title" Text="Gmo" />
-                <TextBlock Classes="description" Text="Settings tied to the model, from Param/Gmo. A villager of the same species fits best." />
-                <TextBlock Classes="warning" Margin="0,4,0,0" Text="{Binding GmoWarning}"
-                  IsVisible="{Binding GmoWarning, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+              <StackPanel Grid.ColumnSpan="2">
+                <TextBlock Classes="field" Text="Placement" />
+                <ComboBox ItemsSource="{x:Static vc:RoomItemEntry.Layers}" SelectedIndex="{Binding Layer}" HorizontalAlignment="Stretch" />
               </StackPanel>
-              <ComboBox Grid.Column="1" ItemsSource="{Binding Villagers}" SelectedItem="{Binding GmoFrom}" Width="260"
-                VerticalAlignment="Center" ItemTemplate="{StaticResource VillagerItem}" />
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="field" Text="Facing" />
+                <ComboBox ItemsSource="{x:Static vc:RoomItemEntry.Facings}" SelectedIndex="{Binding Facing}" IsEnabled="{Binding !OnWall}"
+                  HorizontalAlignment="Stretch" ToolTip.Tip="Items on a wall face away from it." />
+              </StackPanel>
+              <StackPanel Grid.Row="1">
+                <TextBlock Classes="field" Text="X" ToolTip.Tip="In half tiles, 26 to 37 across the floor, left to right." />
+                <NumericUpDown Value="{Binding X}" Minimum="0" Maximum="63" Increment="1" FormatString="0" />
+              </StackPanel>
+              <StackPanel Grid.Row="1" Grid.Column="1">
+                <TextBlock Classes="field" Text="{Binding ZTitle}"
+                  ToolTip.Tip="In half tiles, 26 to 37 from the back of the floor to the front. On a wall, the row of the item's top, counting down from 22 at the ceiling." />
+                <NumericUpDown Value="{Binding Z}" Minimum="0" Maximum="63" Increment="1" FormatString="0" />
+              </StackPanel>
+              <Grid Grid.Row="1" Grid.Column="2" ColumnDefinitions="*,*" ColumnSpacing="6">
+                <StackPanel>
+                  <TextBlock Classes="field" Text="Body" />
+                  <NumericUpDown Value="{Binding Body}" Minimum="0" Maximum="31" Increment="1" FormatString="0" ShowButtonSpinner="False" />
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                  <TextBlock Classes="field" Text="Fabric" />
+                  <NumericUpDown Value="{Binding Fabric}" Minimum="0" Maximum="31" Increment="1" FormatString="0" ShowButtonSpinner="False" />
+                </StackPanel>
+              </Grid>
             </Grid>
           </Border>
         </StackPanel>
       </Border>
-    </StackPanel>
-  </ScrollViewer>
+    </Grid>
+
+    <Border Grid.Column="1" Margin="0,20,28,20" CornerRadius="6" ClipToBounds="True" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
+      <Grid Background="#1c1e23">
+        <controls:BfresViewport x:Name="Viewport" />
+        <Border IsVisible="{Binding IsPreviewLoading}" Background="#C0202226" CornerRadius="4" Padding="12,8" Margin="12"
+          HorizontalAlignment="Left" VerticalAlignment="Top">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <ProgressBar IsIndeterminate="True" Width="60" MinWidth="0" VerticalAlignment="Center" />
+            <TextBlock Text="Loading the room…" FontSize="12" VerticalAlignment="Center" />
+          </StackPanel>
+        </Border>
+        <Border IsVisible="{Binding RenderError, Converter={x:Static ObjectConverters.IsNotNull}}" Background="#E6202226"
+          BorderBrush="{StaticResource PanelBorder}" BorderThickness="1" CornerRadius="6" Padding="16,12" MaxWidth="420" Margin="16"
+          HorizontalAlignment="Center" VerticalAlignment="Center">
+          <StackPanel Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="14" Height="14" Foreground="{StaticResource ErrorText}" />
+              <TextBlock Text="3D view unavailable" FontWeight="SemiBold" />
+            </StackPanel>
+            <SelectableTextBlock Text="{Binding RenderError}" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource SecondaryText}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+  </Grid>
 </UserControl>
