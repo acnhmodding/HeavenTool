@@ -63,7 +63,8 @@ public sealed partial class ChoiceField(string title, string key, IReadOnlyList<
 
     public string Title { get; } = title;
     public ObservableCollection<ValueOption> Options { get; } = [.. options];
-    [ObservableProperty] private ValueOption? selected;
+    [ObservableProperty]
+    public partial ValueOption? Selected { get; set; }
 
     public void Load(JsonObject value)
     {
@@ -91,7 +92,8 @@ public sealed partial class NumberField(string title, string key, int minimum, i
     public string? Description { get; } = description;
     public int Minimum { get; } = minimum;
     public int Maximum { get; } = maximum;
-    [ObservableProperty] private decimal? value;
+    [ObservableProperty]
+    public partial decimal? Value { get; set; }
 
     public void Load(JsonObject source)
     {
@@ -122,8 +124,11 @@ public sealed partial class ItemField(string title, string key, VillagerGameData
     public int Minimum { get; } = signed ? short.MinValue : 0;
     public int Maximum { get; } = signed ? short.MaxValue : ushort.MaxValue;
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(ItemName), nameof(IsKnown))] private decimal? value;
-    [ObservableProperty] private Bitmap? icon;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ItemName), nameof(IsKnown))]
+    public partial decimal? Value { get; set; }
+
+    [ObservableProperty]
+    public partial Bitmap? Icon { get; set; }
 
     public bool IsKnown => Value is { } id && names.ContainsKey((int)id);
     public string ItemName => Value is { } id && names.TryGetValue((int)id, out var name) ? name : "Not a vanilla item";

@@ -19,9 +19,6 @@
   <Grid ColumnDefinitions="460,*">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
       <StackPanel Margin="28,20,20,20">
-        <TextBlock Classes="page" Text="Room" />
-        <TextBlock Classes="intro" Text="The inside of the house, starting from the donor's room. The preview leaves out the front wall to show the room." />
-
         <StackPanel Classes="section">
           <icons:PackIconFontAwesome6 Kind="PaintRollerSolid" />
           <TextBlock Text="Room" />
@@ -52,11 +49,8 @@
                 </MenuFlyout>
               </DropDownButton.Flyout>
             </DropDownButton>
-            <Button Command="{Binding AddItemCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <icons:PackIconFontAwesome6 Kind="PlusSolid" Width="12" Height="12" VerticalAlignment="Center" />
-                <TextBlock Text="Add item" />
-              </StackPanel>
+            <Button Command="{Binding AddItemCommand}" Height="32" ToolTip.Tip="Add an item">
+              <icons:PackIconFontAwesome6 Kind="PlusSolid" Width="12" Height="12" VerticalAlignment="Center" />
             </Button>
           </StackPanel>
           <StackPanel Classes="section">
@@ -88,7 +82,7 @@
                   <StackPanel IsVisible="{Binding IsSelected}">
                     <ContentControl Content="{Binding Item}" IsVisible="{Binding !IsMarker}" />
                     <TextBlock Classes="field" TextWrapping="Wrap" IsVisible="{Binding IsMarker}" Margin="44,6,0,0"
-                      Text="The game puts things the player gives this villager here. It can be moved, but not swapped for an item; removing it leaves fewer spots for gifts." />
+                      Text="The game puts things the player gives this villager here." />
                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10" Margin="0,10,0,4">
                       <StackPanel Grid.ColumnSpan="2">
                         <TextBlock Classes="field" Text="Placement" />

@@ -17,8 +17,7 @@ public partial class BCSVViewModel
     /// <summary>A matching cell, positioned by its row in the current sort and its column among the visible ones.</summary>
     private readonly record struct SearchMatch(BCSVRow Row, HeavenDataGridColumn Column, int RowPosition, int ColumnPosition)
     {
-        public int CompareTo(int row, int column) =>
-            RowPosition != row ? RowPosition.CompareTo(row) : ColumnPosition.CompareTo(column);
+        public int CompareTo(int row, int column) => RowPosition != row ? RowPosition.CompareTo(row) : ColumnPosition.CompareTo(column);
     }
 
     private readonly SearchHighlights highlights = new();
@@ -32,14 +31,28 @@ public partial class BCSVViewModel
     private HashSet<BCSVRow> hiddenRows = [];
     private string? filterKey;
 
-    [ObservableProperty] private bool isSearchOpen;
-    [ObservableProperty] private string searchText = "";
-    [ObservableProperty] private bool matchCase;
-    [ObservableProperty] private bool matchWholeCell;
-    [ObservableProperty] private string searchSummary = "";
-    [ObservableProperty] private bool isReplaceOpen;
-    [ObservableProperty] private string replaceText = "";
-    [ObservableProperty] private bool filterMatches;
+    [ObservableProperty]
+    public partial bool IsSearchOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string SearchText { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool MatchCase { get; set; }
+
+    [ObservableProperty]
+    public partial bool MatchWholeCell { get; set; }
+
+    [ObservableProperty]
+    public partial string SearchSummary { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool IsReplaceOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string ReplaceText { get; set; } = "";
+    [ObservableProperty]
+    public partial bool FilterMatches { get; set; }
 
     partial void OnIsSearchOpenChanged(bool value) => InvalidateSearch();
     partial void OnSearchTextChanged(string value) => ChangeSearch();

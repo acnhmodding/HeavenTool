@@ -36,28 +36,51 @@ public partial class BfresViewModel : ObservableObject, IDisposable
     public ObservableCollection<BfresNode> Roots { get; } = [];
     public ObservableCollection<BfresMaterialValue> Properties { get; } = [];
     public string[] LightingPresets { get; } = ["Day", "Night"];
-    [ObservableProperty] private string title = "BFRES Viewer — Heaven Tool";
-    [ObservableProperty] private bool isBusy;
-    [ObservableProperty] private bool isLoaded;
-    [ObservableProperty] private string status = "Open a model to begin.";
-    [ObservableProperty] private string? error;
-    [ObservableProperty] private string? renderError;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasWarnings), nameof(WarningSummary))] private string? warning;
-    [ObservableProperty] private bool wireframe;
-    [ObservableProperty] private bool showBones;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsDay), nameof(IsNight))] private string lighting = "Day";
-    [ObservableProperty] private bool skyFill = true;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(ExposureText))] private double exposure;
-    [ObservableProperty] private bool showScenePanel = true;
-    [ObservableProperty] private bool showMaterialPanel = true;
-    [ObservableProperty] private BfresNode? selectedNode;
-    [ObservableProperty] private string materialName = "No mesh selected";
-    [ObservableProperty] private string propertyFilter = "";
-    [ObservableProperty] private bool showAllProperties;
-    [ObservableProperty] private BfresMaterialValue? selectedProperty;
-    [ObservableProperty] private string propertySummary = "";
-    [ObservableProperty] private string? materialError;
-    [ObservableProperty] private bool hasMaterial;
+    [ObservableProperty]
+    public partial string Title { get; set; } = "BFRES Viewer";
+    [ObservableProperty]
+    public partial bool IsBusy { get; set; }
+    [ObservableProperty]
+    public partial bool IsLoaded { get; set; }
+    [ObservableProperty]
+    public partial string Status { get; set; } = "Open a model to begin.";
+    [ObservableProperty]
+    public partial string? Error { get; set; }
+    [ObservableProperty]
+    public partial string? RenderError { get; set; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasWarnings), nameof(WarningSummary))]
+    public partial string? Warning { get; set; }
+    [ObservableProperty]
+    public partial bool Wireframe { get; set; }
+    [ObservableProperty]
+    public partial bool ShowBones { get; set; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsDay), nameof(IsNight))]
+    public partial string Lighting { get; set; } = "Day";
+    [ObservableProperty]
+    public partial bool SkyFill { get; set; } = true;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ExposureText))]
+    public partial double Exposure { get; set; }
+    [ObservableProperty]
+    public partial bool ShowScenePanel { get; set; } = true;
+    [ObservableProperty]
+    public partial bool ShowMaterialPanel { get; set; } = true;
+    [ObservableProperty]
+    public partial BfresNode? SelectedNode { get; set; }
+    [ObservableProperty]
+    public partial string MaterialName { get; set; } = "No mesh selected";
+    [ObservableProperty]
+    public partial string PropertyFilter { get; set; } = "";
+    [ObservableProperty]
+    public partial bool ShowAllProperties { get; set; }
+    [ObservableProperty]
+    public partial BfresMaterialValue? SelectedProperty { get; set; }
+    [ObservableProperty]
+    public partial string PropertySummary { get; set; } = "";
+    [ObservableProperty]
+    public partial string? MaterialError { get; set; }
+    [ObservableProperty]
+    public partial bool HasMaterial { get; set; }
+
     private BfresMaterial? material;
 
     // Radio menu items set these; unchecking one leaves the choice to its sibling.
@@ -163,7 +186,7 @@ public partial class BfresViewModel : ObservableObject, IDisposable
             renderer.SetSkeletons(assets.SelectMany(a => a.Document.Models).Select(m => m.Bones));
             BuildTree();
             IsLoaded = true;
-            modelWarnings = assets.SelectMany(a => a.Document.Warnings).Distinct().ToArray();
+            modelWarnings = [.. assets.SelectMany(a => a.Document.Warnings).Distinct()];
             shaderWarnings = [];
             UpdateWarning();
             UpdateTitle();
@@ -208,7 +231,7 @@ public partial class BfresViewModel : ObservableObject, IDisposable
         // A model opened in the meantime prepares its own materials.
         if (disposed || !ReferenceEquals(snapshot, assets) || !ReferenceEquals(archive, shaderArchive)) return;
         renderer.SetNativeShaders(prepared.Programs);
-        shaderWarnings = prepared.Errors.Select(p => $"{p.Key.Name}: {p.Value}").ToArray();
+        shaderWarnings = [.. prepared.Errors.Select(p => $"{p.Key.Name}: {p.Value}")];
         UpdateWarning();
     }
 
@@ -284,7 +307,7 @@ public partial class BfresViewModel : ObservableObject, IDisposable
         Status = $"{count:N0} meshes · {Lighting}" + (renderer.FallbackDrawCount > 0 ? " · Some materials use simplified shading" : "");
     }
 
-    private void UpdateTitle() => Title = $"BFRES Viewer — {sourceName}" +
+    private void UpdateTitle() => Title = $"BFRES Viewer: {sourceName}" +
         (assets.SelectMany(a => a.Document.Models).SelectMany(m => m.Materials).Any(m => m.HasChanges) ? " *" : "");
 
     private void RefreshMaterial()
@@ -301,7 +324,7 @@ public partial class BfresViewModel : ObservableObject, IDisposable
 
     private void PopulateProperties()
     {
-        List<BfresMaterialProperty> rows = material == null ? [] : BfresMaterialProperty.Enumerate(material, materialUsage, ShowAllProperties, PropertyFilter).ToList();
+        List<BfresMaterialProperty> rows = material == null ? [] : [.. BfresMaterialProperty.Enumerate(material, materialUsage, ShowAllProperties, PropertyFilter)];
         PropertySummary = material == null ? "" : rows.Count switch
         {
             0 => "No matching properties.",
@@ -353,6 +376,7 @@ public partial class BfresViewModel : ObservableObject, IDisposable
         renderer.DrawStatusChanged -= OnRendered;
         renderer.BonePicked -= OnBonePicked;
         renderer.NativeShaderWarningsChanged -= UpdateWarning;
+        GC.SuppressFinalize(this);
     }
 }
 
@@ -362,7 +386,9 @@ public partial class BfresNode(string name, object? source) : ObservableObject
     public object? Source { get; } = source;
     public ObservableCollection<BfresNode> Children { get; } = [];
     public BfresNode? Parent { get; private set; }
-    [ObservableProperty] private bool isExpanded;
+
+    [ObservableProperty]
+    public partial bool IsExpanded { get; set; }
 
     public BfresNode Add(BfresNode child)
     {
@@ -370,8 +396,6 @@ public partial class BfresNode(string name, object? source) : ObservableObject
         Children.Add(child);
         return child;
     }
-
-
 }
 
 public sealed class BfresMaterialValue(BfresMaterialProperty property, Action<BfresMaterial> changed) : ObservableObject

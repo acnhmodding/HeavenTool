@@ -38,16 +38,26 @@ public partial class BCSVViewModel : ObservableObject
     /// <summary>The document's rows in file order; <see cref="LoadedFile"/> receives them when saving.</summary>
     public BCSVRowList Rows { get; private set; } = [];
 
-    [ObservableProperty] private bool isBusy;
-    [ObservableProperty] private bool hasUnsavedChanges;
-    [ObservableProperty] private string statusText = "Open a BCSV file to begin.";
-    [ObservableProperty] private string? errorMessage;
+    [ObservableProperty]
+    public partial bool IsBusy { get; set; }
+    [ObservableProperty]
+    public partial bool HasUnsavedChanges { get; set; }
+
+    [ObservableProperty]
+    public partial string StatusText { get; set; } = "Open a BCSV file to begin.";
+
+    [ObservableProperty]
+    public partial string? ErrorMessage { get; set; }
+
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
     /// <summary>Notes on the last change that went through but may be a mistake; any later change clears it.</summary>
-    [ObservableProperty] private string? warningMessage;
+    [ObservableProperty]
+    public partial string? WarningMessage { get; set; }
+
     public bool HasWarning => !string.IsNullOrEmpty(WarningMessage);
 
-    [ObservableProperty] private string title = "Heaven Tool";
+    [ObservableProperty]
+    public partial string Title { get; set; } = "Heaven Tool";
 
     // The grid's columns and selection can't be bound, so the view hands over the grid itself.
     public BCSVViewModel(IBCSVView view, DataGrid grid)
@@ -538,7 +548,7 @@ public partial class BCSVViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
-    private Task NewEntry() => NewEntryAsync();
+    private Task<bool> NewEntry() => NewEntryAsync();
 
     /// <summary>Fills in a row field by field, starting from the selected or last row, then adds it.</summary>
     public async Task<bool> NewEntryAsync()

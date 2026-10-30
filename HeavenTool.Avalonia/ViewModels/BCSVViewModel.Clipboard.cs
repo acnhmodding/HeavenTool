@@ -178,7 +178,7 @@ public partial class BCSVViewModel
         };
     }
 
-    private MenuItem MenuEntry(string header, ICommand command, object? parameter = null, string? gesture = null, IconKind? icon = null) => new()
+    private static MenuItem MenuEntry(string header, ICommand command, object? parameter = null, string? gesture = null, IconKind? icon = null) => new()
     {
         Header = header,
         Command = command,

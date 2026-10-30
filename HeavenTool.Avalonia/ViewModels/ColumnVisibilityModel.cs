@@ -12,5 +12,5 @@ public partial class ColumnVisibilityModel(int index, string header) : Observabl
     public bool IsListed { get; init; } = true;
 
     [ObservableProperty]
-    private bool isVisible = true;
+    public partial bool IsVisible { get; set; } = true;
 }

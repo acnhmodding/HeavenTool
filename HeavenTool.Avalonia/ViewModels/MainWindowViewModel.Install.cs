@@ -156,7 +156,7 @@ public partial class MainWindowViewModel
             card.IsProgressKnown = true;
             card.Progress = 0;
         }
-        var progress = new Progress<double>(share => { if (card != null) card.Progress = share; });
+        var progress = new Progress<double>(share => card?.Progress = share);
         await Task.Run(() => ModArchive.Extract(archive, extracted, progress, cancellation), cancellation);
 
         var variants = ModArchive.FindVariants(extracted);

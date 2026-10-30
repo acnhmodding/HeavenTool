@@ -33,16 +33,35 @@ public partial class SettingsViewModel : ObservableObject
     public IReadOnlyList<EmulatorInstall> EmulatorOptions { get; }
     public bool RstbFixOff => !InstallSkyline || !InstallAutoRstb;
 
-    [ObservableProperty] private EmulatorInstall selectedEmulator = CustomFolder;
-    [ObservableProperty] private string modFolder;
-    [ObservableProperty] private SettingStatus modFolderStatus = null!;
-    [ObservableProperty] private string libraryFolder;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(RstbFixOff))] private bool installSkyline;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(RstbFixOff))] private bool installAutoRstb;
-    [ObservableProperty] private bool showRatedMods;
-    [ObservableProperty] private string romfsFolder;
-    [ObservableProperty] private SettingStatus romfsStatus = null!;
-    [ObservableProperty] private string? error;
+    [ObservableProperty]
+    public partial EmulatorInstall SelectedEmulator { get; set; } = CustomFolder;
+
+    [ObservableProperty]
+    public partial string ModFolder { get; set; }
+
+    [ObservableProperty]
+    public partial SettingStatus ModFolderStatus { get; set; } = null!;
+
+    [ObservableProperty]
+    public partial string LibraryFolder { get; set; }
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(RstbFixOff))]
+    public partial bool InstallSkyline { get; set; }
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(RstbFixOff))]
+    public partial bool InstallAutoRstb { get; set; }
+
+    [ObservableProperty]
+    public partial bool ShowRatedMods { get; set; }
+
+    [ObservableProperty]
+    public partial string RomfsFolder { get; set; }
+
+    [ObservableProperty]
+    public partial SettingStatus RomfsStatus { get; set; } = null!;
+
+    [ObservableProperty]
+    public partial string? Error { get; set; }
 
     public SettingsViewModel(AppSettings settings, IStorageProvider storage, ILauncher launcher)
     {
@@ -50,12 +69,12 @@ public partial class SettingsViewModel : ObservableObject
         this.storage = storage;
         this.launcher = launcher;
         EmulatorOptions = [.. emulators, CustomFolder];
-        modFolder = settings.ModFolder ?? "";
-        libraryFolder = settings.LibraryFolder;
-        installSkyline = settings.InstallSkyline;
-        installAutoRstb = settings.InstallAutoRstb;
-        showRatedMods = settings.ShowRatedMods;
-        romfsFolder = settings.RomfsFolder ?? "";
+        ModFolder = settings.ModFolder ?? "";
+        LibraryFolder = settings.LibraryFolder;
+        InstallSkyline = settings.InstallSkyline;
+        InstallAutoRstb = settings.InstallAutoRstb;
+        ShowRatedMods = settings.ShowRatedMods;
+        RomfsFolder = settings.RomfsFolder ?? "";
         saveTimer.Tick += (_, _) => Save();
         UpdateModFolder();
         UpdateRomfs();

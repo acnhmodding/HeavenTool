@@ -37,20 +37,31 @@ public partial class MainWindowViewModel : ObservableObject
     public ObservableCollection<ModCardViewModel> Mods { get; } = [];
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(PageIndex), nameof(IsOnlinePage), nameof(IsInstalledPage), nameof(SearchPlaceholder), nameof(SortHint))]
-    private ModPage page;
-    [ObservableProperty] private string searchText = "";
-    [ObservableProperty] private bool isLoading;
-    [ObservableProperty] private bool hasMore;
-    [ObservableProperty] private string? message;
-    [ObservableProperty] private string? busyText;
-    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(DeployCommand))] private bool isDeploying;
-    [ObservableProperty] private string? deployStatus;
+    public partial ModPage Page { get; set; }
+    [ObservableProperty]
+    public partial string SearchText { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool IsLoading { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasMore { get; set; }
+
+    [ObservableProperty]
+    public partial string? Message { get; set; }
+
+    [ObservableProperty]
+    public partial string? BusyText { get; set; }
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(DeployCommand))]
+    public partial bool IsDeploying { get; set; }
+    [ObservableProperty]
+    public partial string? DeployStatus { get; set; }
 
     public bool IsOnlinePage => Page is ModPage.Trending or ModPage.Recent;
     public bool IsInstalledPage => Page == ModPage.Installed;
     public string SearchPlaceholder => IsOnlinePage ? "Search GameBanana..." : $"Filter {Page.ToString().ToLowerInvariant()} mods...";
 
-    private ModLibrary Library => new(AppSettings.Current.LibraryFolder);
+    private static ModLibrary Library => new(AppSettings.Current.LibraryFolder);
 
     public MainWindowViewModel()
     {
@@ -78,8 +89,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     partial void OnPageChanged(ModPage value)
     {
-        // Set the field so clearing the search doesn't reload the page a second time.
-        searchText = "";
+        SearchText = "";
         OnPropertyChanged(nameof(SearchText));
         _ = ReloadAsync();
     }

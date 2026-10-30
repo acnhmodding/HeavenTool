@@ -36,7 +36,7 @@
                     <TextBlock Text="Browse" />
                   </StackPanel>
                 </Button>
-                <Button Grid.Column="2" Command="{Binding OpenFolderCommand}" ToolTip.Tip="Open in file manager">
+                <Button Grid.Column="2" Height="32" Command="{Binding OpenFolderCommand}" ToolTip.Tip="Open in file manager">
                   <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
                 </Button>
               </Grid>

@@ -72,13 +72,21 @@ public sealed partial class RoomItemEntry : ObservableObject
     /// </summary>
     public bool IsMarker => Item.Value is { } id && data.RoomMarkers.ContainsKey((int)id);
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(OnWall), nameof(Summary), nameof(ZTitle))] private int layer;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))] private int facing;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))] private decimal? x;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))] private decimal? z;
-    [ObservableProperty] private decimal? body;
-    [ObservableProperty] private decimal? fabric;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowsHeader))] private bool isSelected;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(OnWall), nameof(Summary), nameof(ZTitle))]
+    public partial int Layer { get; set; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))]
+    public partial int Facing { get; set; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))]
+    public partial decimal? X { get; set; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))]
+    public partial decimal? Z { get; set; }
+    [ObservableProperty]
+    public partial decimal? Body { get; set; }
+    [ObservableProperty]
+    public partial decimal? Fabric { get; set; }
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowsHeader))]
+    public partial bool IsSelected { get; set; }
 
     /// <summary>Items on a wall face away from it, so they can't be turned.</summary>
     public bool OnWall => RoomItem.WallRotation((RoomLayer)Layer) != null;

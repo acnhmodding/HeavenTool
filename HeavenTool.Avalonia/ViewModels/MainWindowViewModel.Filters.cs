@@ -39,18 +39,25 @@ public partial class MainWindowViewModel
     public IReadOnlyList<SortOption> Sorts => SortList;
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(SortHint))]
-    private CategoryOption selectedCategory = CategoryOption.Any;
+    public partial CategoryOption SelectedCategory { get; set; } = CategoryOption.Any;
+
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(SortHint))]
-    private SortOption? selectedSort = SortList[0];
+    public partial SortOption? SelectedSort { get; set; } = SortList[0];
+
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(SortHint))]
-    private bool featuredOnly;
+    public partial bool FeaturedOnly { get; set; }
+
     /// <summary>The author box's text, applied on Enter or when the filters close.</summary>
-    [ObservableProperty] private string authorFilter = "";
-    [ObservableProperty] private bool isLoadingCategories;
+    [ObservableProperty]
+    public partial string AuthorFilter { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool IsLoadingCategories { get; set; }
 
     // The author the listing uses, and the member it was last matched to.
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(SortHint))]
-    private string appliedAuthor = "";
+    public partial string AppliedAuthor { get; set; } = "";
+
     private string? resolvedAuthorName;
     private long? resolvedAuthorId;
     private bool categoriesLoaded;
@@ -75,7 +82,7 @@ public partial class MainWindowViewModel
     partial void OnSelectedCategoryChanged(CategoryOption value)
     {
         // A combo box can clear its selection while its items change.
-        if (value == null!) selectedCategory = CategoryOption.Any;
+        if (value == null!) SelectedCategory = CategoryOption.Any;
         else ReloadForFilters();
     }
 

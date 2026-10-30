@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace HeavenTool.Avalonia.ViewModels;
@@ -34,8 +33,11 @@ public partial class MainWindowViewModel
     // The update found for each library mod, by folder.
     private readonly Dictionary<string, ModUpdate> updates = new(StringComparer.OrdinalIgnoreCase);
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasUpdates))] private int updateCount;
-    [ObservableProperty] private string? updateStatus;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasUpdates))]
+    public partial int UpdateCount { get; set; }
+
+    [ObservableProperty]
+    public partial string? UpdateStatus { get; set; }
 
     public bool HasUpdates => UpdateCount > 0;
 
@@ -117,9 +119,9 @@ public partial class MainWindowViewModel
     {
         var name = Path.GetFileNameWithoutExtension(fileName).ToLowerInvariant();
         if (name.EndsWith(".tar")) name = name[..^4];
-        name = Regex.Replace(name, "_[0-9a-f]{5}$", "").TrimEnd('_', '-', '.', ' ');
-        name = Regex.Replace(name, @"(?<=^|(?<!\d)[-_. ])(v?\d+([-_.]\d+)+[a-z]?|v\d+[a-z]?)(?=[-_. ]|$)", "");
-        name = Regex.Replace(name, @"v?\d+([-_.]\d+)*[a-z]?$", "");
+        name = TrailingHash().Replace(name, "").TrimEnd('_', '-', '.', ' ');
+        name = EmbeddedVersion().Replace(name, "");
+        name = TrailingVersion().Replace(name, "");
         return new string([.. name.Where(char.IsLetterOrDigit)]);
     }
 
@@ -139,5 +141,13 @@ public partial class MainWindowViewModel
         : card.ModId is { } id ? updates.Values.FirstOrDefault(update => update.Mod.ModId == id)
         : null;
 
+    #region regex definitions
     private static bool SameFolder(InstalledMod a, InstalledMod b) => string.Equals(a.Folder, b.Folder, StringComparison.OrdinalIgnoreCase);
+    [GeneratedRegex("_[0-9a-f]{5}$")]
+    private static partial Regex TrailingHash();
+    [GeneratedRegex(@"(?<=^|(?<!\d)[-_. ])(v?\d+([-_.]\d+)+[a-z]?|v\d+[a-z]?)(?=[-_. ]|$)")]
+    private static partial Regex EmbeddedVersion();
+    [GeneratedRegex(@"v?\d+([-_.]\d+)*[a-z]?$")]
+    private static partial Regex TrailingVersion();
+    #endregion
 }
