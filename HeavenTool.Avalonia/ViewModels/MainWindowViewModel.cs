@@ -313,11 +313,11 @@ public partial class MainWindowViewModel : ObservableObject
         if (Mods.Count == 0 && IsInstalledPage) await ReloadAsync();
     }
 
-    public void OpenBCSV() => new BCSVWindow().Show();
+    public static void OpenBCSV() => new BCSVWindow().Show();
 
-    public void OpenBFRES() => new BFRESWindow().Show();
+    public static void OpenBFRES() => new BFRESWindow().Show();
 
-    public void OpenVillagerCreator() => new VillagerCreatorWindow().Show();
+    public static void OpenVillagerCreator() => new VillagerCreatorWindow().Show();
 
-    public void OpenSettings() => SettingsWindow.ShowSingle();
+    public static void OpenSettings() => SettingsWindow.ShowSingle();
 }

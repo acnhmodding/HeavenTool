@@ -15,13 +15,23 @@ public partial class GenerateStepViewModel(VillagerCreatorViewModel creator) : O
     private VillagerProject? project;
     private string? defaultFolder;
 
-    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(GenerateCommand))] private string outputFolder = "";
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(GenerateCommand))]
+    public partial string OutputFolder { get; set; } = "";
+
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsValid)), NotifyCanExecuteChangedFor(nameof(GenerateCommand))]
-    private IReadOnlyList<string> problems = [];
-    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(GenerateCommand))] private bool isGenerating;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasFiles))] private IReadOnlyList<GeneratedFile> files = [];
-    [ObservableProperty] private string? error;
-    [ObservableProperty] private string modelPath = "";
+    public partial IReadOnlyList<string> Problems { get; set; } = [];
+
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(GenerateCommand))]
+    public partial bool IsGenerating { get; set; }
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasFiles))]
+    public partial IReadOnlyList<GeneratedFile> Files { get; set; } = [];
+
+    [ObservableProperty]
+    public partial string? Error { get; set; }
+
+    [ObservableProperty]
+    public partial string ModelPath { get; set; } = "";
 
     public bool IsValid => Problems.Count == 0;
     public bool HasFiles => Files.Count > 0;

@@ -19,10 +19,17 @@ public partial class TraitsStepViewModel(VillagerCreatorViewModel creator) : Obs
     // The styles a villager can like, in the order of the game's style enum (Style1 and Style2).
     private static readonly string[] Styles = ["None", "Simple", "Gorgeous", "Cool", "Cute", "Active", "Elegant"];
 
-    [ObservableProperty] private IReadOnlyList<ChoiceField> personality = [];
-    [ObservableProperty] private IReadOnlyList<ChoiceField> favorites = [];
-    [ObservableProperty] private IReadOnlyList<ItemField> items = [];
-    [ObservableProperty] private IReadOnlyList<ObservableObject> birthday = [];
+    [ObservableProperty]
+    public partial IReadOnlyList<ChoiceField> Personality { get; set; } = [];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ChoiceField> Favorites { get; set; } = [];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ItemField> Items { get; set; } = [];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ObservableObject> Birthday { get; set; } = [];
 
     internal void Initialize()
     {

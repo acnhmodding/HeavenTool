@@ -5,11 +5,7 @@
   x:Class="HeavenTool.Avalonia.Views.Tools.VillagerTraitsStep"
   x:DataType="vc:TraitsStepViewModel">
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-    <StackPanel Margin="28,20,28,28">
-      <TextBlock Classes="page" Text="Traits" />
-      <TextBlock Classes="intro"
-        Text="These come from the villager's NmlNpcParam row." />
-
+    <StackPanel Margin="28,0,28,20">
       <StackPanel Classes="section">
         <icons:PackIconFontAwesome6 Kind="FaceSmileSolid" />
         <TextBlock Text="Personality" />

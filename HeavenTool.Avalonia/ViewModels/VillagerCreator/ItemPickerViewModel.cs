@@ -34,9 +34,14 @@ public sealed partial class ItemPickerViewModel : ObservableObject
     public string Title { get; }
     public string SearchHint { get; }
 
-    [ObservableProperty] private string search = "";
-    [ObservableProperty] private IReadOnlyList<ItemChoice> results = [];
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasSelection))] private ItemChoice? selected;
+    [ObservableProperty]
+    public partial string Search { get; set; } = "";
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ItemChoice> Results { get; set; } = [];
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasSelection))]
+    public partial ItemChoice? Selected { get; set; }
 
     public bool HasSelection => Selected != null;
     public string CountText => Results.Count == 1 ? "1 item" : $"{Results.Count:N0} items";

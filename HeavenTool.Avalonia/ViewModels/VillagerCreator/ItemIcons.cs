@@ -30,7 +30,9 @@ public static class ItemIcons
         {
             using var file = File.OpenRead(path);
             // Icons are decoded to RGBA8; anything else is a texture this preview can't show.
-            if (BfresFileReader.LoadTextures(file).FirstOrDefault() is not { } texture || texture.Format >> 8 != 0x0b) return null;
+            if (BfresFileReader.LoadTextures(file).FirstOrDefault() is not { } texture || texture.Format >> 8 != 0x0b)
+                return null;
+
             int level = 0;
             while (level + 1 < texture.Mips.Count && texture.Width >> (level + 1) >= Size) level++;
             int width = Math.Max(1, texture.Width >> level), height = Math.Max(1, texture.Height >> level);

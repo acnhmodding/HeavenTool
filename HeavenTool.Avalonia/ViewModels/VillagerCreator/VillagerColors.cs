@@ -2,7 +2,6 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using System;
-using System.Collections.Generic;
 using System.Numerics;
 
 namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
@@ -43,16 +42,15 @@ public static class VillagerColors
         return new ImmutableSolidColorBrush(Color.FromArgb(Channel(rgba.W), Channel(rgba.X), Channel(rgba.Y), Channel(rgba.Z)));
     }
 
-    private static IBrush Solid(byte r, byte g, byte b) => new ImmutableSolidColorBrush(Color.FromRgb(r, g, b));
+    private static ImmutableSolidColorBrush Solid(byte r, byte g, byte b) => new(Color.FromRgb(r, g, b));
 
-    private static IBrush Rainbow() => new ImmutableLinearGradientBrush(
-        new List<ImmutableGradientStop>
-        {
+    private static ImmutableLinearGradientBrush Rainbow() => new(
+        [
             new(0, Color.FromRgb(0xD9, 0x3A, 0x3A)),
             new(.33, Color.FromRgb(0xF5, 0xD3, 0x3B)),
             new(.66, Color.FromRgb(0x4C, 0xAF, 0x50)),
             new(1, Color.FromRgb(0x3B, 0x6F, 0xD8)),
-        },
+        ],
         startPoint: new RelativePoint(0, 0, RelativeUnit.Relative),
         endPoint: new RelativePoint(1, 1, RelativeUnit.Relative));
 }

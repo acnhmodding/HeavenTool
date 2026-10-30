@@ -11,10 +11,17 @@ public partial class DonorStepViewModel(VillagerCreatorViewModel creator) : Obse
 {
     private IReadOnlyList<VillagerInfo> villagers = [];
 
-    [ObservableProperty] private string search = "";
-    [ObservableProperty] private IReadOnlyList<VillagerInfo> results = [];
-    [ObservableProperty] private VillagerInfo? selected;
-    [ObservableProperty] private string? error;
+    [ObservableProperty]
+    public partial string Search { get; set; } = "";
+
+    [ObservableProperty]
+    public partial IReadOnlyList<VillagerInfo> Results { get; set; } = [];
+
+    [ObservableProperty]
+    public partial VillagerInfo? Selected { get; set; }
+
+    [ObservableProperty]
+    public partial string? Error { get; set; }
 
     internal void Initialize()
     {

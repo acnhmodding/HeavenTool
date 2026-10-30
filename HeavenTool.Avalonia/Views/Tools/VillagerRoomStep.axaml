@@ -18,7 +18,7 @@
 
   <Grid ColumnDefinitions="460,*">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-      <StackPanel Margin="28,20,20,20">
+      <StackPanel Margin="28,0,20,20">
         <StackPanel Classes="section">
           <icons:PackIconFontAwesome6 Kind="PaintRollerSolid" />
           <TextBlock Text="Room" />

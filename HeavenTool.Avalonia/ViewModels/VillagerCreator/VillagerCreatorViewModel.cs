@@ -60,21 +60,27 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
     internal string? ProjectFolder { get; private set; }
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasProject)), NotifyCanExecuteChangedFor(nameof(NextCommand))]
-    private VillagerProject? project;
+    public partial VillagerProject? Project { get; set; }
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(StepText), nameof(IsLastStep))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsLastStep))]
     [NotifyCanExecuteChangedFor(nameof(BackCommand), nameof(NextCommand))]
-    private int stepIndex;
+    public partial int StepIndex { get; set; }
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsReady))] private bool isLoading = true;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsReady))] private string? loadError;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsReady))] private bool needsRomfs;
-    [ObservableProperty] private string title = "Villager Creator";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsReady))]
+    public partial bool IsLoading { get; set; } = true;
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsReady))]
+    public partial string? LoadError { get; set; }
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsReady))]
+    public partial bool NeedsRomfs { get; set; }
+
+    [ObservableProperty]
+    public partial string Title { get; set; } = "Villager Creator";
 
     public bool HasProject => Project != null;
     public bool IsReady => !IsLoading && !NeedsRomfs && LoadError == null;
     public bool IsLastStep => StepIndex == StepCount - 1;
-    public string StepText => $"Step {StepIndex + 1} of {StepCount}";
 
     /// <summary>Reads the game files from the romfs in Settings.</summary>
     public async Task LoadAsync()

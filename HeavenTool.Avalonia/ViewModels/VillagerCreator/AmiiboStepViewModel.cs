@@ -10,12 +10,18 @@ public partial class AmiiboStepViewModel(VillagerCreatorViewModel creator) : Obs
 {
     private VillagerProject? project;
 
-    [ObservableProperty] private bool isEnabled;
+    [ObservableProperty]
+    public partial bool IsEnabled { get; set; }
+
     // Kept while the amiibo is turned off, so turning it back on gives the same IDs.
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CharacterId), nameof(NumberingId), nameof(GameCharacterId))]
-    private AmiiboIds? ids;
-    [ObservableProperty] private int freeSlots;
-    [ObservableProperty] private string? error;
+    public partial AmiiboIds? Ids { get; set; }
+
+    [ObservableProperty]
+    public partial int FreeSlots { get; set; }
+
+    [ObservableProperty]
+    public partial string? Error { get; set; }
 
     public string CharacterId => Ids is { } value ? $"0x{value.CharacterId:X8}" : "—";
     public string NumberingId => Ids is { } value ? $"{value.NumberingId}" : "—";
@@ -35,10 +41,7 @@ public partial class AmiiboStepViewModel(VillagerCreatorViewModel creator) : Obs
 
     partial void OnIdsChanged(AmiiboIds? value) => Apply();
 
-    private void Apply()
-    {
-        if (project != null) project.Amiibo = IsEnabled ? Ids : null;
-    }
+    private void Apply() => project?.Amiibo = IsEnabled ? Ids : null;
 
     /// <summary>Picks another free slot, for when the IDs clash with another modder's villager.</summary>
     [RelayCommand]

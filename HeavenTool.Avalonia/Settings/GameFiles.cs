@@ -9,7 +9,9 @@ public static class GameFiles
     /// <summary>The romfs in <paramref name="folder"/>: the folder itself or its "romfs" subfolder.</summary>
     public static string? FindRomfs(string? folder)
     {
-        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder)) return null;
+        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder)) 
+            return null;
+
         string[] candidates = [folder, Path.Combine(folder, "romfs")];
         return candidates.FirstOrDefault(IsRomfs);
     }

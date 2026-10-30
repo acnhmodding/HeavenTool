@@ -48,5 +48,8 @@
     <Setter Property="Width"
             Value="100" />
   </Style>
+  <Style Selector="TextBox">
+      <Setter Property="BorderBrush" Value="Transparent"/>
+  </Style>
   <!-- Add Styles Here -->
 </Styles>

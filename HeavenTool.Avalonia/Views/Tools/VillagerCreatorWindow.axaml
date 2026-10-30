@@ -292,9 +292,7 @@
                   <icons:PackIconFontAwesome6 Kind="ArrowLeftSolid" Width="12" Height="12" VerticalAlignment="Center" />
                   <TextBlock Text="Back" />
                 </StackPanel>
-              </Button>
-              <TextBlock Grid.Column="1" Text="{Binding StepText}" VerticalAlignment="Center"
-                FontSize="12" Foreground="{StaticResource DimText}" />
+              </Button>          
               <Button Grid.Column="2" Classes="accent" Command="{Binding NextCommand}" MinWidth="96" HorizontalAlignment="Right"
                 IsVisible="{Binding !IsLastStep}">
                 <StackPanel Orientation="Horizontal" Spacing="8">

@@ -33,15 +33,29 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
         Items.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ItemCountText));
     }
 
-    [ObservableProperty] private ItemField? wallpaper;
-    [ObservableProperty] private ItemField? flooring;
-    [ObservableProperty] private ItemField? music;
+    [ObservableProperty]
+    public partial ItemField? Wallpaper { get; set; }
+
+    [ObservableProperty]
+    public partial ItemField? Flooring { get; set; }
+
+    [ObservableProperty]
+    public partial ItemField? Music { get; set; }
+
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(RemoveItemCommand))]
-    private RoomItemEntry? selectedItem;
-    [ObservableProperty] private bool isPreviewLoading;
-    [ObservableProperty] private string? previewWarning;
-    [ObservableProperty] private string? renderError;
-    [ObservableProperty] private IReadOnlyList<GiftSpot> giftSpots = [];
+    public partial RoomItemEntry? SelectedItem { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsPreviewLoading { get; set; }
+
+    [ObservableProperty]
+    public partial string? PreviewWarning { get; set; }
+
+    [ObservableProperty]
+    public partial string? RenderError { get; set; }
+
+    [ObservableProperty]
+    public partial IReadOnlyList<GiftSpot> GiftSpots { get; set; } = [];
 
     public ObservableCollection<RoomItemEntry> Items { get; } = [];
     public string ItemCountText => Items.Count == 1 ? "1 item" : $"{Items.Count} items";
@@ -205,5 +219,9 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
 
     private static string Capitalized(string text) => text.Length > 0 ? char.ToUpperInvariant(text[0]) + text[1..] : text;
 
-    public void Dispose() => previewLoad?.Cancel();
+    public void Dispose()
+    {
+        previewLoad?.Cancel();
+        GC.SuppressFinalize(this);
+    }
 }

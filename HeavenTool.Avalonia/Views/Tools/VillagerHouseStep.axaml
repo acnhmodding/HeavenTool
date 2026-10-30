@@ -9,10 +9,7 @@
   x:DataType="vc:HouseStepViewModel">
   <Grid ColumnDefinitions="380,*">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-      <StackPanel Margin="28,20,20,28">
-        <TextBlock Classes="page" Text="House" />
-        <TextBlock Classes="intro" Text="The outside of the villager's house. Walls and roofs only fit the shape they were made for." />
-
+      <StackPanel Margin="28,0,20,28">
         <StackPanel Classes="section">
           <icons:PackIconFontAwesome6 Kind="HouseSolid" />
           <TextBlock Text="Exterior" />

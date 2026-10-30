@@ -18,21 +18,44 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
     private HouseScene? scene;
     private bool previewVisible, changingShape;
 
-    [ObservableProperty] private IReadOnlyList<int> shapes = [];
-    [ObservableProperty] private IReadOnlyList<HousePart> walls = [];
-    [ObservableProperty] private IReadOnlyList<HousePart> roofs = [];
-    [ObservableProperty] private IReadOnlyList<HousePart> doors = [];
-    [ObservableProperty] private int? shape;
-    [ObservableProperty] private HousePart? wall;
-    [ObservableProperty] private HousePart? roof;
-    [ObservableProperty] private HousePart? door;
-    [ObservableProperty] private decimal? curtain;
-    [ObservableProperty] private bool isPreviewLoading;
-    [ObservableProperty] private string? previewWarning;
-    [ObservableProperty] private string? renderError;
+    [ObservableProperty]
+    public partial IReadOnlyList<int> Shapes { get; set; } = [];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<HousePart> Walls { get; set; } = [];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<HousePart> Roofs { get; set; } = [];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<HousePart> Doors { get; set; } = [];
+
+    [ObservableProperty]
+    public partial int? Shape { get; set; }
+
+    [ObservableProperty]
+    public partial HousePart? Wall { get; set; }
+
+    [ObservableProperty]
+    public partial HousePart? Roof { get; set; }
+
+    [ObservableProperty]
+    public partial HousePart? Door { get; set; }
+
+    [ObservableProperty]
+    public partial decimal? Curtain { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsPreviewLoading { get; set; }
+
+    [ObservableProperty]
+    public partial string? PreviewWarning { get; set; }
+
+    [ObservableProperty]
+    public partial string? RenderError { get; set; }
 
     /// <summary>The curtain patterns vanilla houses use.</summary>
-    public int MaxCurtain => 11;
+    public static int MaxCurtain => 11;
 
     internal void Initialize()
     {
@@ -142,5 +165,9 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
         }
     }
 
-    public void Dispose() => previewLoad?.Cancel();
+    public void Dispose()
+    {
+        previewLoad?.Cancel();
+        GC.SuppressFinalize(this);
+    }
 }

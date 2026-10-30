@@ -12,9 +12,14 @@ public sealed partial class TranslationViewModel(string language, string display
     public string Language { get; } = language;
     public string DisplayName { get; } = displayName;
 
-    [ObservableProperty] private string name = Text(project.Name, language);
-    [ObservableProperty] private string catchphrase = Text(project.Catchphrase, language);
-    [ObservableProperty] private string motto = Text(project.Motto, language);
+    [ObservableProperty]
+    public partial string Name { get; set; } = Text(project.Name, language);
+
+    [ObservableProperty]
+    public partial string Catchphrase { get; set; } = Text(project.Catchphrase, language);
+
+    [ObservableProperty]
+    public partial string Motto { get; set; } = Text(project.Motto, language);
 
     partial void OnNameChanged(string value) => Set(project.Name, value);
     partial void OnCatchphraseChanged(string value) => Set(project.Catchphrase, value);
@@ -34,21 +39,47 @@ public partial class IdentityStepViewModel(VillagerCreatorViewModel creator) : O
 {
     private static readonly Dictionary<string, string> LanguageNames = new()
     {
-        ["USen"] = "English (US)", ["USes"] = "Spanish (US)", ["USfr"] = "French (Canada)", ["EUen"] = "English (Europe)",
-        ["EUde"] = "German", ["EUes"] = "Spanish (Europe)", ["EUfr"] = "French (Europe)", ["EUit"] = "Italian", ["EUnl"] = "Dutch",
-        ["EUru"] = "Russian", ["JPja"] = "Japanese", ["KRko"] = "Korean", ["CNzh"] = "Chinese (Simplified)", ["TWzh"] = "Chinese (Traditional)",
+        ["USen"] = "English (US)",
+        ["USes"] = "Spanish (US)",
+        ["USfr"] = "French (Canada)",
+        ["EUen"] = "English (Europe)",
+        ["EUde"] = "German",
+        ["EUes"] = "Spanish (Europe)",
+        ["EUfr"] = "French (Europe)",
+        ["EUit"] = "Italian",
+        ["EUnl"] = "Dutch",
+        ["EUru"] = "Russian",
+        ["JPja"] = "Japanese",
+        ["KRko"] = "Korean",
+        ["CNzh"] = "Chinese (Simplified)",
+        ["TWzh"] = "Chinese (Traditional)",
     };
 
     private VillagerProject? project;
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(ModelPath))] private string label = "";
-    [ObservableProperty] private string? labelError;
-    [ObservableProperty] private decimal? uniqueId;
-    [ObservableProperty] private string? uniqueIdError;
-    [ObservableProperty] private string name = "";
-    [ObservableProperty] private string catchphrase = "";
-    [ObservableProperty] private string motto = "";
-    [ObservableProperty] private IReadOnlyList<TranslationViewModel> translations = [];
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ModelPath))]
+    public partial string Label { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string? LabelError { get; set; }
+
+    [ObservableProperty]
+    public partial decimal? UniqueId { get; set; }
+
+    [ObservableProperty]
+    public partial string? UniqueIdError { get; set; }
+
+    [ObservableProperty]
+    public partial string Name { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string Catchphrase { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string Motto { get; set; } = "";
+
+    [ObservableProperty]
+    public partial IReadOnlyList<TranslationViewModel> Translations { get; set; } = [];
 
     /// <summary>Where the game looks for the villager's model, which the creator doesn't make.</summary>
     public string ModelPath => $"romfs/Model/{VillagerLabel.ModelName(Label)}.Nin_NX_NVN.zs";
