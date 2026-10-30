@@ -39,6 +39,15 @@ public sealed class RoomPreview(VillagerGameData data)
     // The room models' shadow casters and the strip around the floor only show from outside.
     private static readonly string[] HiddenMaterials = ["mShadow", "mOutside"];
 
+    private const string SharedTextures = "RoomTexShareTexture";
+    // The room maps the placeholder materials ask for, by the shared texture the game gives them. Without them the floor reads
+    // as all edge, which the floor material shades darkest.
+    private static readonly (string Name, string From)[] SharedMaps =
+    [
+        ("mDummyFloor_FlrGrd", "RoomTexShareTextureFloor_FlrGrd"),
+        ("mDummyFloor_OclMlp", "RoomTexShareTextureFloorAO6x6_OclMlp"),
+    ];
+
     // Gift spots show as faint boxes, drawn by the preview's own shader: a flat color, mostly see-through.
     private const float SpotHeight = 4, SpotDepth = 1, SpotInset = .5f;
     private static readonly BfresMaterial SpotMaterial = new()
@@ -242,9 +251,14 @@ public sealed class RoomPreview(VillagerGameData data)
     private Dictionary<string, BntxTexture> Surface(int item, string material)
     {
         var swap = new Dictionary<string, BntxTexture>();
-        if (data.ItemResource(item) is not { Length: > 0 } resource) return swap;
-        foreach (var texture in Textures(resource))
-            if (texture.Name.LastIndexOf('_') is var split and > 0) swap.TryAdd(material + texture.Name[split..], texture);
+        if (data.ItemResource(item) is { Length: > 0 } resource)
+            foreach (var texture in Textures(resource))
+                if (texture.Name.LastIndexOf('_') is var split and > 0) swap.TryAdd(material + texture.Name[split..], texture);
+        // The maps every room shares come from one file, under names of their own.
+        var shared = Textures(SharedTextures);
+        foreach (var (name, from) in SharedMaps)
+            if (name.StartsWith(material, StringComparison.Ordinal) && shared.FirstOrDefault(texture => texture.Name == from) is { } texture)
+                swap.TryAdd(name, texture);
         return swap;
     }
 
