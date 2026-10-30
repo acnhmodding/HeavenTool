@@ -49,7 +49,7 @@ public sealed partial class BfresRenderer
         var projection = Matrix4.CreateOrthographicOffCenter(-r, r, -r, r, r, r * 3);
         // Maps clip space into the [0, 1] texture and depth range the game shaders sample with.
         shadowMatrix = view * projection * Matrix4.CreateScale(.5f) * Matrix4.CreateTranslation(.5f, .5f, .5f);
-        byte[] bytes = ParkUniforms.Context(Numerics(view), Numerics(projection), r, r * 3, 1, Numerics(shadowMatrix), 1f / ShadowSize);
+        byte[] bytes = ParkUniforms.Context(Numerics(view), Numerics(projection), r, r * 3, new(ShadowSize), Numerics(shadowMatrix), 1f / ShadowSize);
         GL.BindBuffer(BufferTarget.UniformBuffer, shadowContext);
         GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, bytes.Length, bytes);
 
@@ -64,7 +64,7 @@ public sealed partial class BfresRenderer
         foreach (var mesh in meshes)
         {
             if (hidden.Contains(mesh.Source) || mesh.Material.Profile.Translucent || !nativeMeshes.TryGetValue(mesh.Source, out var native)) continue;
-            DrawNativeMesh(mesh, native, true);
+            DrawNativeMesh(mesh, native, shadowContext);
         }
         GL.Disable(EnableCap.PolygonOffsetFill);
         GL.ColorMask(true, true, true, true);

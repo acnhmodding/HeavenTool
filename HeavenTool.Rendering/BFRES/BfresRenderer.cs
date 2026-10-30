@@ -94,7 +94,7 @@ public sealed partial class BfresRenderer
     public void SetVisible(BfresMesh mesh, bool visible)
     {
         if (visible) hidden.Remove(mesh); else hidden.Add(mesh);
-        shadowDirty = true;
+        shadowDirty = worldAoDirty = true;
         Invalidate();
     }
 
@@ -153,6 +153,7 @@ public sealed partial class BfresRenderer
             if (dirty) UploadScene();
             if (nativeDirty) UploadNativeScene();
             UpdateMaterials();
+            RenderWorldAo();
             UpdateNativeLighting();
             RenderShadowMap();
             BeginLightingFrame();
@@ -183,6 +184,7 @@ public sealed partial class BfresRenderer
                 : Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver4, aspect, near, far);
             var matrix = view * projection;
             UpdateNativeContext(view, projection, near, far);
+            RenderSsao(projection);
             SetFrameUniforms(matrix);
             transparent.Clear();
             NativeDrawCount = 0; FallbackDrawCount = 0;

@@ -39,13 +39,14 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     // Captured from the running game inside a villager's house at 4:51 PM, with the room's middle moved to the origin. The
     // room is lit by a light over its middle and the sun coming in from the side, both local lights. The house shades the
     // sun itself out, at the room's shadow strength in [17].w, which the viewer has no house to do. The fill stands in for
-    // the room's own light probes, which the viewer lacks.
+    // the room's own light probes, which the viewer lacks. The world AO strength in [4].x is the game's .27563 raised to
+    // .6, as the fill brightens the room past what the game's .28 darkens enough to show.
     public static AcnhLightingPreset Room { get; } = new("Room", new(1, .37058f, .19748f, 1), 20 * (1 - .97731f), new(.81884f, -.57403f, -.00006f), new(.92689f, .52184f, .35713f, 1), new(.36345f, .1f, .087814f, 1), 1.75632f, 1)
     {
         PreviewIndirectLight = new(3, 3, 3),
         User0 = new Dictionary<int, Vector4>
         {
-            [4] = new(.27563f, 0, 0, 0), [5] = new(1, .3f, 0, 0), [10] = new(.81884f, -.57403f, -.00006f, 0), [17] = new(0, 1, 1, .97731f),
+            [4] = new(.6f, 0, 0, 0), [5] = new(1, .3f, 0, 0), [10] = new(.81884f, -.57403f, -.00006f, 0), [17] = new(0, 1, 1, .97731f),
             [18] = new(.6f, 1, .5f, 20), [21] = default, [52] = new(.35126f, 0, 0, 0), [55] = new(1, .34932f, 0, 0),
             [61] = new(.90428f, 0, .42693f, 0), [72] = default, [73] = new(1, 1, 1, 1), [75] = new(0, 0, -1, 0), [76] = new(1, 1, 250, 0),
         },
@@ -132,14 +133,17 @@ public static class ParkUniforms
     }
 
     // shadow maps world space into the depth shadow map's [0, 1] texture and depth range; texel is its PCF tap step.
-    public static byte[] Context(Matrix4x4 view, Matrix4x4 projection, float near, float far, float aspect, Matrix4x4 shadow, float texel)
+    public static byte[] Context(Matrix4x4 view, Matrix4x4 projection, float near, float far, Vector2 screen, Matrix4x4 shadow, float texel)
     {
         var result = new byte[ContextSize];
+        float aspect = screen.X / screen.Y;
         Matrix3x4(result, 0, view); Matrix4(result, 48, view * projection); Matrix4(result, 112, projection);
         Matrix4x4.Invert(view, out var inverse); Matrix3x4(result, 176, inverse);
         Vector(result, 224, new(near, far, far / near, 1 - near / far));
         Vector(result, 240, new(1 / (far - near), near / (far - near), aspect, 1 / aspect));
         Vector(result, 256, new(far - near, 0, 0, 0));
+        // The target's size; screen-space maps such as the SSAO are looked up by pixel position times its inverse.
+        Vector(result, 288, new(screen.X, screen.Y, 1 / screen.X, 1 / screen.Y));
         Float(result, 656, .55f); Integer(result, 660, 1);
         for (int offset = 664; offset < ContextSize; offset += 4) Float(result, offset, 1);
         // Projected-shadow texture matrix; it only needs a non-zero w, since the viewer binds a white texture there.

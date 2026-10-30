@@ -83,6 +83,9 @@ public sealed partial class BfresRenderer
                 if (index >= 0) GL.UniformBlockBinding(id, index, binding);
             }
             Bind("vp_c1", 0); Bind("fp_c1", 1);
+            // Screen-space lookups divide the pixel position by the emulator's resolution scale, which is 1 here.
+            int scale = GL.GetUniformLocation(id, "fp_renderScale");
+            if (scale >= 0) { GL.UseProgram(id); GL.Uniform1(scale, 1f); }
             foreach (var resource in translated.Binary.Buffers)
             {
                 int binding = blocks.Count + 2;
@@ -154,7 +157,7 @@ public sealed partial class BfresRenderer
             {
                 if (name is not ("gsys_material" or "gsys_shape" or "gsys_skeleton"))
                 {
-                    if (name != "gsys_context" && !studioBuffers.ContainsKey(name)) studioBuffers[name] = CreateBuffer(ParkUniforms.StudioBlock(name, lighting));
+                    if (name != "gsys_context" && !studioBuffers.ContainsKey(name)) studioBuffers[name] = CreateBuffer(StudioBlock(name));
                     bindings.Add((binding, name == "gsys_context" ? nativeContext : studioBuffers[name]));
                     continue;
                 }
@@ -207,7 +210,7 @@ public sealed partial class BfresRenderer
         if (!lightingDirty) return;
         foreach (var (name, id) in studioBuffers)
         {
-            byte[] bytes = ParkUniforms.StudioBlock(name, lighting);
+            byte[] bytes = StudioBlock(name);
             GL.BindBuffer(BufferTarget.UniformBuffer, id);
             GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, bytes.Length, bytes);
         }
@@ -217,7 +220,7 @@ public sealed partial class BfresRenderer
     private void UpdateNativeContext(Matrix4 view, Matrix4 projection, float near, float far)
     {
         if (nativeContext == 0) return;
-        byte[] bytes = ParkUniforms.Context(Numerics(view), Numerics(projection), near, far, width / (float)height,
+        byte[] bytes = ParkUniforms.Context(Numerics(view), Numerics(projection), near, far, new(width, height),
             Numerics(shadowMatrix), 1f / ShadowSize);
         GL.BindBuffer(BufferTarget.UniformBuffer, nativeContext);
         GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, bytes.Length, bytes);
@@ -235,20 +238,21 @@ public sealed partial class BfresRenderer
         }
         ApplyRasterState(mesh.Material.Profile);
         GL.Enable(EnableCap.FramebufferSrgb);
-        DrawNativeMesh(mesh, native, false);
+        DrawNativeMesh(mesh, native);
         NativeDrawCount++;
     }
 
-    // The shadow pass draws from the light's context and must not sample the map it is writing.
-    private void DrawNativeMesh(GpuMesh mesh, NativeMeshGpu native, bool shadowPass)
+    // A pass drawing a map, such as the shadow map, draws from its own view's context, and must not sample the shadow map it
+    // may be writing.
+    private void DrawNativeMesh(GpuMesh mesh, NativeMeshGpu native, int passContext = 0)
     {
         GL.UseProgram(native.Program.Program);
         foreach (var (binding, buffer) in native.Bindings)
-            GL.BindBufferBase(BufferRangeTarget.UniformBuffer, binding, shadowPass && buffer == nativeContext ? shadowContext : buffer);
+            GL.BindBufferBase(BufferRangeTarget.UniformBuffer, binding, passContext != 0 && buffer == nativeContext ? passContext : buffer);
         for (int i = 0; i < native.Samplers.Count; i++)
         {
             var (texture, sampler) = native.Samplers[i];
-            if (shadowPass && texture == shadowMap) texture = DefaultNativeTexture("shadow");
+            if (passContext != 0 && texture == shadowMap) texture = DefaultNativeTexture("shadow");
             GL.ActiveTexture(TextureUnit.Texture0 + i); GL.BindTexture(TextureTarget.Texture2D, texture); GL.BindSampler(i, sampler);
         }
         GL.BindVertexArray(native.Vao);
@@ -263,6 +267,8 @@ public sealed partial class BfresRenderer
             return environmentTexture;
         }
         if (name == "gsys_depth_shadow") return ShadowMap();
+        if (occlusion && name == "gsys_user2") return WorldAoMap();
+        if (occlusion && name == "gsys_ssao") return SsaoMap();
         // Placeholder for the other shadow maps: its comparison always passes, which the game shaders read as lit.
         if (name.Contains("shadow"))
         {
@@ -334,6 +340,7 @@ public sealed partial class BfresRenderer
         nativeContext = 0;
         foreach (int texture in new[] { whiteTexture, blackTexture, shadowTexture, environmentTexture }) if (texture != 0) GL.DeleteTexture(texture);
         ReleaseShadows();
+        ReleaseOcclusion();
         whiteTexture = blackTexture = shadowTexture = environmentTexture = 0;
         nativeDirty = nativePending.Count > 0;
     }
