@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 
 namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 
+/// <summary>A kind of gift spot the room can get back, for the menu that adds one.</summary>
+public sealed record GiftSpot(string Name, IRelayCommand Add);
+
 /// <summary>
 /// The inside of the house: wallpaper, flooring, music and the items in the room, with a 3D preview. The room starts as the donor's.
 /// </summary>
@@ -37,6 +40,7 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool isPreviewLoading;
     [ObservableProperty] private string? previewWarning;
     [ObservableProperty] private string? renderError;
+    [ObservableProperty] private IReadOnlyList<GiftSpot> giftSpots = [];
 
     public ObservableCollection<RoomItemEntry> Items { get; } = [];
     public bool HasSelection => SelectedItem != null;
@@ -47,6 +51,10 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
         Wallpaper = Surface("Wallpaper", new("wallpapers", "RoomWall"));
         Flooring = Surface("Flooring", new("floorings", "RoomFloor"));
         Music = Surface("Music", new("songs", "Music"));
+        // Furniture spots first, as most rooms have those.
+        GiftSpots = [.. creator.Data.RoomMarkers
+            .OrderBy(marker => !marker.Value.StartsWith("Ftr", StringComparison.Ordinal)).ThenBy(marker => marker.Key)
+            .Select(marker => new GiftSpot(Capitalized(RoomItemEntry.MarkerKind(marker.Value)), new RelayCommand(() => Add(marker.Key))))];
     }
 
     private ItemField Surface(string title, ItemKinds kinds)
@@ -97,12 +105,16 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
     private async Task AddItem()
     {
         var picker = new ItemPickerViewModel(creator.Data, "Add an item", RoomItemEntry.Furniture, null);
-        if (!await creator.PickItem(picker) || picker.Selected is not { } choice) return;
+        if (await creator.PickItem(picker) && picker.Selected is { } choice) Add(choice.Item.Id);
+    }
+
+    private void Add(int id)
+    {
         // A new item goes in the middle of the room, or of the back wall, to be moved from there.
-        var size = creator.Data.ItemSize(choice.Item.Id);
+        var size = creator.Data.ItemSize(id);
         const int middle = (VillagerRoom.FirstCell + VillagerRoom.LastCell + 1) / 2;
         int z = size.Layer == RoomLayer.BackWall ? VillagerRoom.TopRow + 2 : middle - size.Z / 2;
-        var entry = Entry(new RoomItem(choice.Item.Id, middle - size.X / 2, z, 0, size.Layer, 0));
+        var entry = Entry(new RoomItem(id, middle - size.X / 2, z, 0, size.Layer, 0));
         Items.Add(entry);
         SelectedItem = entry;
         Commit();
@@ -179,6 +191,8 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
     // Records compare their item lists by reference, so the items are compared one by one. Music doesn't show.
     private static bool Same(VillagerRoom room, VillagerRoom? other) => other != null && room.Wallpaper == other.Wallpaper
         && room.Flooring == other.Flooring && room.Items.SequenceEqual(other.Items);
+
+    private static string Capitalized(string text) => text.Length > 0 ? char.ToUpperInvariant(text[0]) + text[1..] : text;
 
     public void Dispose() => previewLoad?.Cancel();
 }

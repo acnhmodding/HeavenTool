@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using HeavenTool.ModManager.Villagers;
 using System;
@@ -20,12 +21,26 @@ public sealed partial class RoomItemEntry : ObservableObject
     /// <summary>The ways a floor item can face, by rotation.</summary>
     public static IReadOnlyList<string> Facings { get; } = ["Front", "Right", "Back", "Left"];
 
+    // What each room marker holds a spot for, by the end of its label.
+    private static readonly Dictionary<string, string> MarkerKinds = new()
+    {
+        ["FtrFloor1x1"] = "1×1 furniture", ["FtrFloor2x1"] = "2×1 furniture", ["FtrFloor2x2"] = "2×2 furniture",
+        ["ClothFloor"] = "clothes on the floor", ["ClothWall"] = "clothes on a wall",
+        ["Insect"] = "bug", ["Fish"] = "fish", ["Music"] = "music",
+    };
+
+    /// <summary>What a room marker holds a spot for, from the end of its label, such as "2×1 furniture".</summary>
+    public static string MarkerKind(string kind) => MarkerKinds.GetValueOrDefault(kind, kind);
+
+    public static string MarkerName(string kind) => $"Gift spot · {MarkerKind(kind)}";
+
     private readonly VillagerGameData data;
     private readonly Action changed;
     // The stored bits the editor doesn't show, kept as they were.
     private readonly uint otherVariant;
     private readonly int flags;
     private bool loading = true;
+    private decimal? shownId;
 
     public RoomItemEntry(RoomItem item, VillagerGameData data, Func<ItemPickerViewModel, Task<bool>> pick, Action changed)
     {
@@ -34,8 +49,8 @@ public sealed partial class RoomItemEntry : ObservableObject
         otherVariant = item.Variant & ~0x3FFu;
         flags = item.Flags;
         Item = new ItemField("Item", "", data, false, Furniture, pick);
-        Item.Show(item.Id);
-        Item.Changed += _ => Update();
+        Item.Show(shownId = item.Id);
+        Item.Changed += OnItemChanged;
         Layer = (int)item.Layer;
         Facing = item.Rotation;
         X = item.X;
@@ -46,6 +61,12 @@ public sealed partial class RoomItemEntry : ObservableObject
     }
 
     public ItemField Item { get; }
+
+    /// <summary>
+    /// Whether this is a room marker, a gift spot the game fills itself. A marker stays a marker, and furniture can't become one,
+    /// so only where it is changes.
+    /// </summary>
+    public bool IsMarker => Item.Value is { } id && data.RoomMarkers.ContainsKey((int)id);
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(OnWall), nameof(Summary), nameof(ZTitle))] private int layer;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))] private int facing;
@@ -59,8 +80,9 @@ public sealed partial class RoomItemEntry : ObservableObject
 
     public string ZTitle => OnWall ? "Row" : "Z";
 
-    public string Name => Item.Value is { } id && data.ItemNames.TryGetValue((int)id, out var name) ? name
-        : string.IsNullOrEmpty(data.ItemResource((int)(Item.Value ?? 0))) ? $"Room marker ({Item.Value})" : $"Item {Item.Value}";
+    public string Name => Item.Value is not { } id ? "No item"
+        : data.RoomMarkers.TryGetValue((int)id, out var marker) ? MarkerName(marker)
+        : data.ItemNames.TryGetValue((int)id, out var name) ? name : $"Item {id}";
 
     public string Summary => OnWall
         ? $"{Layers[Layer]} · row {Z}, at {X}"
@@ -72,6 +94,19 @@ public sealed partial class RoomItemEntry : ObservableObject
         uint variant = otherVariant | (uint)(Body ?? 0) & 31 | ((uint)(Fabric ?? 0) & 31) << 5;
         return new RoomItem((int)(Item.Value ?? 0), (int)(X ?? 0), (int)(Z ?? 0), RoomItem.WallRotation(layer) ?? Facing & 3, layer,
             variant, flags);
+    }
+
+    private void OnItemChanged(int id)
+    {
+        // The ID box can take any number, so a marker typed into furniture, or the other way round, goes back.
+        bool wasMarker = shownId is { } shown && data.RoomMarkers.ContainsKey((int)shown);
+        if (id != shownId && (wasMarker || data.RoomMarkers.ContainsKey(id)))
+        {
+            Dispatcher.UIThread.Post(() => Item.Show(shownId));
+            return;
+        }
+        shownId = id;
+        Update();
     }
 
     partial void OnLayerChanged(int value)

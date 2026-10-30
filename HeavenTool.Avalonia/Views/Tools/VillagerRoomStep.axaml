@@ -40,6 +40,19 @@
               <Button Command="{Binding RemoveItemCommand}" Width="36" Height="32" Padding="0" ToolTip.Tip="Remove the selected item">
                 <icons:PackIconFontAwesome6 Kind="TrashCanSolid" Width="12" Height="12" />
               </Button>
+              <DropDownButton ToolTip.Tip="Add a spot where the game puts the player's gifts">
+                <icons:PackIconFontAwesome6 Kind="GiftSolid" Width="12" Height="12" />
+                <DropDownButton.Flyout>
+                  <MenuFlyout ItemsSource="{Binding GiftSpots}" Placement="BottomEdgeAlignedRight">
+                    <MenuFlyout.ItemContainerTheme>
+                      <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="vc:GiftSpot">
+                        <Setter Property="Header" Value="{Binding Name}" />
+                        <Setter Property="Command" Value="{Binding Add}" />
+                      </ControlTheme>
+                    </MenuFlyout.ItemContainerTheme>
+                  </MenuFlyout>
+                </DropDownButton.Flyout>
+              </DropDownButton>
               <Button Command="{Binding AddItemCommand}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <icons:PackIconFontAwesome6 Kind="PlusSolid" Width="12" Height="12" VerticalAlignment="Center" />
@@ -59,7 +72,11 @@
                 <DataTemplate x:DataType="vc:RoomItemEntry">
                   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                     <Border Width="32" Height="32">
-                      <Image Source="{Binding Item.Icon}" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                      <Panel>
+                        <Image Source="{Binding Item.Icon}" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                        <icons:PackIconFontAwesome6 Kind="GiftSolid" Width="16" Height="16" IsVisible="{Binding IsMarker}"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource DimText}" />
+                      </Panel>
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
@@ -82,7 +99,15 @@
       <!-- The selected item's editor stays in view below the list. -->
       <Border Grid.Row="1" Classes="card" Margin="28,0,20,20" IsVisible="{Binding HasSelection}">
         <StackPanel DataContext="{Binding SelectedItem}" x:DataType="vc:RoomItemEntry">
-          <ContentControl Content="{Binding Item}" />
+          <ContentControl Content="{Binding Item}" IsVisible="{Binding !IsMarker}" />
+          <StackPanel IsVisible="{Binding IsMarker}" Spacing="4" Margin="2,2,2,10">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <icons:PackIconFontAwesome6 Kind="GiftSolid" Width="13" Height="13" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+            </StackPanel>
+            <TextBlock Classes="field" TextWrapping="Wrap"
+              Text="The game puts things the player gives this villager here. It can be moved, but not swapped for an item; removing it leaves fewer spots for gifts." />
+          </StackPanel>
           <Border Classes="row">
             <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
               <StackPanel Grid.ColumnSpan="2">

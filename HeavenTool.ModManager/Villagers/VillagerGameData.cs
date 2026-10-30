@@ -34,6 +34,8 @@ public sealed partial class VillagerGameData
 
     public const string NameLanguage = "USen";
     public const string StaticParamArchive = "StaticParam";
+    // The ItemKind of room markers, which their labels also start with.
+    private const string RoomMarkerKind = "NnpcRoomMarker";
 
     private readonly ConcurrentDictionary<string, BinaryCSV> tables = new();
     private readonly ConcurrentDictionary<(string Archive, string Language), Lazy<SarcFile>> messageArchives = new();
@@ -44,6 +46,7 @@ public sealed partial class VillagerGameData
     private readonly Lazy<IReadOnlyDictionary<int, ItemRow>> itemParam;
     private readonly Lazy<IReadOnlyList<ItemInfo>> items;
     private readonly Lazy<IReadOnlyDictionary<uint, ItemFootprint>> itemSizes;
+    private readonly Lazy<IReadOnlyDictionary<int, string>> roomMarkers;
 
     public string Romfs { get; }
 
@@ -61,6 +64,9 @@ public sealed partial class VillagerGameData
             .OrderBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(item => item.Id)]);
         itemSizes = new(LoadItemSizes);
+        roomMarkers = new(() => itemParam.Value
+            .Where(item => item.Value.Kind == RoomMarkerKind.ToCRC32() && item.Value.Label.StartsWith(RoomMarkerKind, StringComparison.Ordinal))
+            .ToDictionary(item => item.Key, item => item.Value.Label[RoomMarkerKind.Length..]));
     }
 
     /// <summary>Opens a romfs folder, after checking it has the files the villager creator needs.</summary>
@@ -115,6 +121,12 @@ public sealed partial class VillagerGameData
 
     /// <summary>The resource name of an item, which names its model, or null when ItemParam has no such item.</summary>
     public string? ItemResource(int id) => itemParam.Value.TryGetValue(id, out var item) ? item.Resource : null;
+
+    /// <summary>
+    /// The room markers, by ID: placeholder items that hold a spot in a villager's room for the game to fill, such as with things
+    /// the player gives them. Each is named by what its label says goes there, such as <c>FtrFloor2x1</c> or <c>ClothWall</c>.
+    /// </summary>
+    public IReadOnlyDictionary<int, string> RoomMarkers => roomMarkers.Value;
 
     /// <summary>The space an item takes, from its ItemSize; one tile when the romfs doesn't say.</summary>
     public ItemFootprint ItemSize(int id) =>
