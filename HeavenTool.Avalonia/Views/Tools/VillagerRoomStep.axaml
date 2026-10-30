@@ -2,18 +2,9 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
   xmlns:vc="using:HeavenTool.Avalonia.ViewModels.VillagerCreator"
-  xmlns:villagers="using:HeavenTool.ModManager.Villagers"
   xmlns:controls="using:HeavenTool.Avalonia.Controls"
   x:Class="HeavenTool.Avalonia.Views.Tools.VillagerRoomStep"
   x:DataType="vc:RoomStepViewModel">
-  <UserControl.Resources>
-    <DataTemplate x:Key="VillagerItem" x:DataType="villagers:VillagerInfo">
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <TextBlock Text="{Binding Name}" />
-        <TextBlock Text="{Binding Label}" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource DimText}" />
-      </StackPanel>
-    </DataTemplate>
-  </UserControl.Resources>
   <UserControl.Styles>
     <Style Selector="ListBox.items > ListBoxItem">
       <Setter Property="Padding" Value="10,6" />
@@ -30,34 +21,7 @@
       <ScrollViewer HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="28,20,20,20">
           <TextBlock Classes="page" Text="Room" />
-          <TextBlock Classes="intro" Text="The inside of the house and the model's extra settings, each copied from a vanilla villager and then changed here." />
-
-          <StackPanel Classes="section">
-            <icons:PackIconFontAwesome6 Kind="CopySolid" />
-            <TextBlock Text="Copy from" />
-          </StackPanel>
-          <Border Classes="card">
-            <StackPanel>
-              <Border Classes="row">
-                <StackPanel Spacing="6">
-                  <TextBlock Classes="title" Text="Room" />
-                  <TextBlock Classes="description" Text="Starts the room over from this villager's, from Param/NpcRoom." />
-                  <ComboBox ItemsSource="{Binding Villagers}" SelectedItem="{Binding RoomFrom}" HorizontalAlignment="Stretch"
-                    ItemTemplate="{StaticResource VillagerItem}" />
-                </StackPanel>
-              </Border>
-              <Border Classes="row">
-                <StackPanel Spacing="6">
-                  <TextBlock Classes="title" Text="Gmo" />
-                  <TextBlock Classes="description" Text="Settings tied to the model, from Param/Gmo. A villager of the same species fits best." />
-                  <TextBlock Classes="warning" Text="{Binding GmoWarning}"
-                    IsVisible="{Binding GmoWarning, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                  <ComboBox ItemsSource="{Binding Villagers}" SelectedItem="{Binding GmoFrom}" HorizontalAlignment="Stretch"
-                    ItemTemplate="{StaticResource VillagerItem}" />
-                </StackPanel>
-              </Border>
-            </StackPanel>
-          </Border>
+          <TextBlock Classes="intro" Text="The inside of the house, starting from the donor's room. The preview leaves out the front wall to show the room." />
 
           <StackPanel Classes="section">
             <icons:PackIconFontAwesome6 Kind="PaintRollerSolid" />

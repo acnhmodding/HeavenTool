@@ -148,11 +148,7 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
     partial void OnStepIndexChanged(int value)
     {
         if (value == HouseStep) House.ShowPreview();
-        if (value == RoomStep)
-        {
-            Room.Check();
-            Room.ShowPreview();
-        }
+        if (value == RoomStep) Room.ShowPreview();
         if (value == GenerateStep) Generate.Check();
     }
 

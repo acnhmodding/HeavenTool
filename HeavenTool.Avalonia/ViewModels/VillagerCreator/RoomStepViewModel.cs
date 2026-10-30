@@ -12,8 +12,7 @@ using System.Threading.Tasks;
 namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 
 /// <summary>
-/// The inside of the house: wallpaper, flooring, music and the items in the room, with a 3D preview, and the vanilla villagers whose
-/// room file and Gmo file the new villager starts from.
+/// The inside of the house: wallpaper, flooring, music and the items in the room, with a 3D preview. The room starts as the donor's.
 /// </summary>
 public partial class RoomStepViewModel : ObservableObject, IDisposable
 {
@@ -30,10 +29,6 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
         Items.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ItemCountText));
     }
 
-    [ObservableProperty] private IReadOnlyList<VillagerInfo> villagers = [];
-    [ObservableProperty] private VillagerInfo? roomFrom;
-    [ObservableProperty] private VillagerInfo? gmoFrom;
-    [ObservableProperty] private string? gmoWarning;
     [ObservableProperty] private ItemField? wallpaper;
     [ObservableProperty] private ItemField? flooring;
     [ObservableProperty] private ItemField? music;
@@ -49,7 +44,6 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
 
     internal void Initialize()
     {
-        Villagers = creator.Data.Villagers;
         Wallpaper = Surface("Wallpaper", new("wallpapers", "RoomWall"));
         Flooring = Surface("Flooring", new("floorings", "RoomFloor"));
         Music = Surface("Music", new("songs", "Music"));
@@ -74,42 +68,8 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
 
     internal void Load(VillagerProject value)
     {
-        project = null;
-        RoomFrom = Find(value.RoomFrom);
-        GmoFrom = Find(value.GmoFrom);
         project = value;
-        Check();
         Show(value.Room ?? Read(value.RoomFrom));
-    }
-
-    partial void OnRoomFromChanged(VillagerInfo? value)
-    {
-        if (project == null || value == null) return;
-        // Copying another villager's room starts over from its items.
-        project.RoomFrom = value.Label;
-        project.Room = Read(value.Label);
-        Show(project.Room);
-    }
-
-    partial void OnGmoFromChanged(VillagerInfo? value)
-    {
-        if (project == null || value == null) return;
-        project.GmoFrom = value.Label;
-        Check();
-    }
-
-    /// <summary>Checks the Gmo file against the villager's species, which the label can change on another step.</summary>
-    internal void Check()
-    {
-        if (project == null || GmoFrom == null) return;
-        var species = VillagerLabel.Species(project.Label);
-        if (VillagerLabel.Species(GmoFrom.Label) == species)
-        {
-            GmoWarning = null;
-            return;
-        }
-        var name = Villagers.FirstOrDefault(villager => VillagerLabel.Species(villager.Label) == species)?.Species.ToLowerInvariant() ?? species;
-        GmoWarning = $"{GmoFrom.Name} is a {GmoFrom.Species.ToLowerInvariant()}. A Gmo file belongs to the model, so a {name} fits a {species} label best.";
     }
 
     private VillagerRoom? Read(string label) =>
@@ -219,8 +179,6 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
     // Records compare their item lists by reference, so the items are compared one by one. Music doesn't show.
     private static bool Same(VillagerRoom room, VillagerRoom? other) => other != null && room.Wallpaper == other.Wallpaper
         && room.Flooring == other.Flooring && room.Items.SequenceEqual(other.Items);
-
-    private VillagerInfo? Find(string label) => Villagers.FirstOrDefault(villager => villager.Label == label);
 
     public void Dispose() => previewLoad?.Cancel();
 }
