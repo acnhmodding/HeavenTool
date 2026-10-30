@@ -68,7 +68,7 @@ public sealed class RoomPreview(VillagerGameData data)
         Samplers = [],
     };
 
-    private readonly ConcurrentDictionary<string, Lazy<BfresModel?>> models = new();
+    private readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<BfresModel>>> models = new();
     private readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<BntxTexture>>> textures = new();
     private readonly ConcurrentDictionary<BfresMesh, TranslatedShader?> programs = new();
     private readonly Lazy<SwitchShaderArchive?> shaders = new(() =>
@@ -94,10 +94,13 @@ public sealed class RoomPreview(VillagerGameData data)
                 placed.Add((mesh, (swap.Count > 0 ? mesh.WithMaterial(mesh.Material.WithTextures(swap)) : mesh).Transformed(transform)));
         }
 
-        if (Model(FloorModel) is { } floor) Place(floor, Matrix4x4.Identity, Surface(room.Flooring, FloorMaterial));
-        if (Model(WallModel) is { } wall)
+        // A special wallpaper or flooring brings its own room pieces, which the game draws in place of the plain ones.
+        if (Special(room.Flooring, FloorModel["RoomMdl".Length..]) is { } specialFloor) Place(specialFloor, Matrix4x4.Identity, NoSwap);
+        else if (Model(FloorModel) is { } floor) Place(floor, Matrix4x4.Identity, Surface(room.Flooring, FloorMaterial));
+        var specialWall = Special(room.Wallpaper, WallModel["RoomMdl".Length..]);
+        if ((specialWall ?? Model(WallModel)) is { } wall)
         {
-            var wallpaper = Surface(room.Wallpaper, WallMaterial);
+            var wallpaper = specialWall != null ? NoSwap : Surface(room.Wallpaper, WallMaterial);
             foreach (var layer in (RoomLayer[])[RoomLayer.BackWall, RoomLayer.LeftWall, RoomLayer.RightWall])
                 for (float along = -HalfRoom + WallPiece / 2; along < HalfRoom; along += WallPiece)
                     Place(wall, Facing(layer) * Matrix4x4.CreateTranslation(WallPoint(layer, along, 0)), wallpaper);
@@ -277,10 +280,21 @@ public sealed class RoomPreview(VillagerGameData data)
         return swap;
     }
 
-    private BfresModel? Model(string name) => models.GetOrAdd(name, _ => new(() =>
+    private static readonly Dictionary<string, BntxTexture> NoSwap = [];
+
+    /// <summary>
+    /// A special wallpaper's or flooring's own room piece, such as <c>RoomSpWallHighLands00Wall</c>, or null for a plain one. The
+    /// plain pieces would read its maps wrong: a special wallpaper's mix map has no occlusion, which the plain wall takes from it.
+    /// </summary>
+    private BfresModel? Special(int item, string piece) => data.ItemResource(item) is { Length: > 0 } resource
+        ? Models(resource).FirstOrDefault(model => model.Name == resource + piece) : null;
+
+    private BfresModel? Model(string name) => Models(name).FirstOrDefault();
+
+    private IReadOnlyList<BfresModel> Models(string name) => models.GetOrAdd(name, _ => new(() =>
     {
-        if (Open(name) is not { } stream) return null;
-        using (stream) return BfresFileReader.Load(stream).SelectMany(asset => asset.Document.Models).FirstOrDefault();
+        if (Open(name) is not { } stream) return [];
+        using (stream) return [.. BfresFileReader.Load(stream).SelectMany(asset => asset.Document.Models)];
     })).Value;
 
     private IReadOnlyList<BntxTexture> Textures(string name) => textures.GetOrAdd(name, _ => new(() =>
