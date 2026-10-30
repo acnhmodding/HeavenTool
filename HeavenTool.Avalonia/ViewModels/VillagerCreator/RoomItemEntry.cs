@@ -74,9 +74,13 @@ public sealed partial class RoomItemEntry : ObservableObject
     [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))] private decimal? z;
     [ObservableProperty] private decimal? body;
     [ObservableProperty] private decimal? fabric;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowsHeader))] private bool isSelected;
 
     /// <summary>Items on a wall face away from it, so they can't be turned.</summary>
     public bool OnWall => RoomItem.WallRotation((RoomLayer)Layer) != null;
+
+    /// <summary>The row's name and summary, which the item field takes the place of while it's open.</summary>
+    public bool ShowsHeader => !IsSelected || IsMarker;
 
     public string ZTitle => OnWall ? "Row" : "Z";
 

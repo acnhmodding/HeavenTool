@@ -35,7 +35,7 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
     [ObservableProperty] private ItemField? wallpaper;
     [ObservableProperty] private ItemField? flooring;
     [ObservableProperty] private ItemField? music;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasSelection)), NotifyCanExecuteChangedFor(nameof(RemoveItemCommand))]
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(RemoveItemCommand))]
     private RoomItemEntry? selectedItem;
     [ObservableProperty] private bool isPreviewLoading;
     [ObservableProperty] private string? previewWarning;
@@ -43,7 +43,6 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
     [ObservableProperty] private IReadOnlyList<GiftSpot> giftSpots = [];
 
     public ObservableCollection<RoomItemEntry> Items { get; } = [];
-    public bool HasSelection => SelectedItem != null;
     public string ItemCountText => Items.Count == 1 ? "1 item" : $"{Items.Count} items";
 
     internal void Initialize()
@@ -118,6 +117,13 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
         Items.Add(entry);
         SelectedItem = entry;
         Commit();
+    }
+
+    // The selected row opens up into its editor.
+    partial void OnSelectedItemChanged(RoomItemEntry? oldValue, RoomItemEntry? newValue)
+    {
+        if (oldValue != null) oldValue.IsSelected = false;
+        if (newValue != null) newValue.IsSelected = true;
     }
 
     private bool CanRemoveItem() => SelectedItem != null;

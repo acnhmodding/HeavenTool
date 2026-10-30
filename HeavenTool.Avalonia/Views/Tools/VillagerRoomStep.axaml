@@ -17,60 +17,60 @@
   </UserControl.Styles>
 
   <Grid ColumnDefinitions="460,*">
-    <Grid RowDefinitions="*,Auto">
-      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="28,20,20,20">
-          <TextBlock Classes="page" Text="Room" />
-          <TextBlock Classes="intro" Text="The inside of the house, starting from the donor's room. The preview leaves out the front wall to show the room." />
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="28,20,20,20">
+        <TextBlock Classes="page" Text="Room" />
+        <TextBlock Classes="intro" Text="The inside of the house, starting from the donor's room. The preview leaves out the front wall to show the room." />
 
-          <StackPanel Classes="section">
-            <icons:PackIconFontAwesome6 Kind="PaintRollerSolid" />
-            <TextBlock Text="Room" />
+        <StackPanel Classes="section">
+          <icons:PackIconFontAwesome6 Kind="PaintRollerSolid" />
+          <TextBlock Text="Room" />
+        </StackPanel>
+        <Border Classes="card">
+          <StackPanel>
+            <ContentControl Content="{Binding Wallpaper}" />
+            <ContentControl Content="{Binding Flooring}" />
+            <ContentControl Content="{Binding Music}" />
           </StackPanel>
-          <Border Classes="card">
-            <StackPanel>
-              <ContentControl Content="{Binding Wallpaper}" />
-              <ContentControl Content="{Binding Flooring}" />
-              <ContentControl Content="{Binding Music}" />
-            </StackPanel>
-          </Border>
+        </Border>
 
-          <DockPanel>
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Bottom" Margin="0,0,0,8">
-              <Button Command="{Binding RemoveItemCommand}" Width="36" Height="32" Padding="0" ToolTip.Tip="Remove the selected item">
-                <icons:PackIconFontAwesome6 Kind="TrashCanSolid" Width="12" Height="12" />
-              </Button>
-              <DropDownButton ToolTip.Tip="Add a spot where the game puts the player's gifts">
-                <icons:PackIconFontAwesome6 Kind="GiftSolid" Width="12" Height="12" />
-                <DropDownButton.Flyout>
-                  <MenuFlyout ItemsSource="{Binding GiftSpots}" Placement="BottomEdgeAlignedRight">
-                    <MenuFlyout.ItemContainerTheme>
-                      <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="vc:GiftSpot">
-                        <Setter Property="Header" Value="{Binding Name}" />
-                        <Setter Property="Command" Value="{Binding Add}" />
-                      </ControlTheme>
-                    </MenuFlyout.ItemContainerTheme>
-                  </MenuFlyout>
-                </DropDownButton.Flyout>
-              </DropDownButton>
-              <Button Command="{Binding AddItemCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <icons:PackIconFontAwesome6 Kind="PlusSolid" Width="12" Height="12" VerticalAlignment="Center" />
-                  <TextBlock Text="Add item" />
-                </StackPanel>
-              </Button>
-            </StackPanel>
-            <StackPanel Classes="section">
-              <icons:PackIconFontAwesome6 Kind="CouchSolid" />
-              <TextBlock Text="Furniture" />
-              <TextBlock Text="{Binding ItemCountText}" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource DimText}" />
-            </StackPanel>
-          </DockPanel>
-          <Border Classes="card" Padding="4">
-            <ListBox Classes="items" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" Background="Transparent">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vc:RoomItemEntry">
-                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Bottom" Margin="0,0,0,8">
+            <Button Command="{Binding RemoveItemCommand}" Width="36" Height="32" Padding="0" ToolTip.Tip="Remove the selected item">
+              <icons:PackIconFontAwesome6 Kind="TrashCanSolid" Width="12" Height="12" />
+            </Button>
+            <DropDownButton ToolTip.Tip="Add a spot where the game puts the player's gifts">
+              <icons:PackIconFontAwesome6 Kind="GiftSolid" Width="12" Height="12" />
+              <DropDownButton.Flyout>
+                <MenuFlyout ItemsSource="{Binding GiftSpots}" Placement="BottomEdgeAlignedRight">
+                  <MenuFlyout.ItemContainerTheme>
+                    <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="vc:GiftSpot">
+                      <Setter Property="Header" Value="{Binding Name}" />
+                      <Setter Property="Command" Value="{Binding Add}" />
+                    </ControlTheme>
+                  </MenuFlyout.ItemContainerTheme>
+                </MenuFlyout>
+              </DropDownButton.Flyout>
+            </DropDownButton>
+            <Button Command="{Binding AddItemCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <icons:PackIconFontAwesome6 Kind="PlusSolid" Width="12" Height="12" VerticalAlignment="Center" />
+                <TextBlock Text="Add item" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+          <StackPanel Classes="section">
+            <icons:PackIconFontAwesome6 Kind="CouchSolid" />
+            <TextBlock Text="Furniture" />
+            <TextBlock Text="{Binding ItemCountText}" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource DimText}" />
+          </StackPanel>
+        </DockPanel>
+        <Border Classes="card" Padding="4">
+          <ListBox Classes="items" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" Background="Transparent">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vc:RoomItemEntry">
+                <StackPanel>
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" IsVisible="{Binding ShowsHeader}">
                     <Border Width="32" Height="32">
                       <Panel>
                         <Image Source="{Binding Item.Icon}" RenderOptions.BitmapInterpolationMode="HighQuality" />
@@ -83,66 +83,56 @@
                       <TextBlock Text="{Binding Summary}" FontSize="12" Foreground="{StaticResource DimText}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                   </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </Border>
 
-          <DockPanel Margin="2,12,0,0" IsVisible="{Binding PreviewWarning, Converter={x:Static ObjectConverters.IsNotNull}}">
-            <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="13" Height="13" Margin="0,1,8,0" VerticalAlignment="Top"
-              Foreground="{StaticResource WarningText}" />
-            <TextBlock Classes="warning" Text="{Binding PreviewWarning}" />
-          </DockPanel>
-        </StackPanel>
-      </ScrollViewer>
+                  <!-- The selected item opens up to show what can be changed about it. Its item field stands in for the name. -->
+                  <StackPanel IsVisible="{Binding IsSelected}">
+                    <ContentControl Content="{Binding Item}" IsVisible="{Binding !IsMarker}" />
+                    <TextBlock Classes="field" TextWrapping="Wrap" IsVisible="{Binding IsMarker}" Margin="44,6,0,0"
+                      Text="The game puts things the player gives this villager here. It can be moved, but not swapped for an item; removing it leaves fewer spots for gifts." />
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10" Margin="0,10,0,4">
+                      <StackPanel Grid.ColumnSpan="2">
+                        <TextBlock Classes="field" Text="Placement" />
+                        <ComboBox ItemsSource="{x:Static vc:RoomItemEntry.Layers}" SelectedIndex="{Binding Layer}" HorizontalAlignment="Stretch" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2">
+                        <TextBlock Classes="field" Text="Facing" />
+                        <ComboBox ItemsSource="{x:Static vc:RoomItemEntry.Facings}" SelectedIndex="{Binding Facing}" IsEnabled="{Binding !OnWall}"
+                          HorizontalAlignment="Stretch" ToolTip.Tip="Items on a wall face away from it." />
+                      </StackPanel>
+                      <StackPanel Grid.Row="1">
+                        <TextBlock Classes="field" Text="X" ToolTip.Tip="In half tiles, 26 to 37 across the floor, left to right." />
+                        <NumericUpDown Value="{Binding X}" Minimum="0" Maximum="63" Increment="1" FormatString="0" />
+                      </StackPanel>
+                      <StackPanel Grid.Row="1" Grid.Column="1">
+                        <TextBlock Classes="field" Text="{Binding ZTitle}"
+                          ToolTip.Tip="In half tiles, 26 to 37 from the back of the floor to the front. On a wall, the row of the item's top, counting down from 22 at the ceiling." />
+                        <NumericUpDown Value="{Binding Z}" Minimum="0" Maximum="63" Increment="1" FormatString="0" />
+                      </StackPanel>
+                      <Grid Grid.Row="1" Grid.Column="2" ColumnDefinitions="*,*" ColumnSpacing="6" IsVisible="{Binding !IsMarker}">
+                        <StackPanel>
+                          <TextBlock Classes="field" Text="Body" />
+                          <NumericUpDown Value="{Binding Body}" Minimum="0" Maximum="31" Increment="1" FormatString="0" ShowButtonSpinner="False" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                          <TextBlock Classes="field" Text="Fabric" />
+                          <NumericUpDown Value="{Binding Fabric}" Minimum="0" Maximum="31" Increment="1" FormatString="0" ShowButtonSpinner="False" />
+                        </StackPanel>
+                      </Grid>
+                    </Grid>
+                  </StackPanel>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
 
-      <!-- The selected item's editor stays in view below the list. -->
-      <Border Grid.Row="1" Classes="card" Margin="28,0,20,20" IsVisible="{Binding HasSelection}">
-        <StackPanel DataContext="{Binding SelectedItem}" x:DataType="vc:RoomItemEntry">
-          <ContentControl Content="{Binding Item}" IsVisible="{Binding !IsMarker}" />
-          <StackPanel IsVisible="{Binding IsMarker}" Spacing="4" Margin="2,2,2,10">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <icons:PackIconFontAwesome6 Kind="GiftSolid" Width="13" Height="13" VerticalAlignment="Center" />
-              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-            </StackPanel>
-            <TextBlock Classes="field" TextWrapping="Wrap"
-              Text="The game puts things the player gives this villager here. It can be moved, but not swapped for an item; removing it leaves fewer spots for gifts." />
-          </StackPanel>
-          <Border Classes="row">
-            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-              <StackPanel Grid.ColumnSpan="2">
-                <TextBlock Classes="field" Text="Placement" />
-                <ComboBox ItemsSource="{x:Static vc:RoomItemEntry.Layers}" SelectedIndex="{Binding Layer}" HorizontalAlignment="Stretch" />
-              </StackPanel>
-              <StackPanel Grid.Column="2">
-                <TextBlock Classes="field" Text="Facing" />
-                <ComboBox ItemsSource="{x:Static vc:RoomItemEntry.Facings}" SelectedIndex="{Binding Facing}" IsEnabled="{Binding !OnWall}"
-                  HorizontalAlignment="Stretch" ToolTip.Tip="Items on a wall face away from it." />
-              </StackPanel>
-              <StackPanel Grid.Row="1">
-                <TextBlock Classes="field" Text="X" ToolTip.Tip="In half tiles, 26 to 37 across the floor, left to right." />
-                <NumericUpDown Value="{Binding X}" Minimum="0" Maximum="63" Increment="1" FormatString="0" />
-              </StackPanel>
-              <StackPanel Grid.Row="1" Grid.Column="1">
-                <TextBlock Classes="field" Text="{Binding ZTitle}"
-                  ToolTip.Tip="In half tiles, 26 to 37 from the back of the floor to the front. On a wall, the row of the item's top, counting down from 22 at the ceiling." />
-                <NumericUpDown Value="{Binding Z}" Minimum="0" Maximum="63" Increment="1" FormatString="0" />
-              </StackPanel>
-              <Grid Grid.Row="1" Grid.Column="2" ColumnDefinitions="*,*" ColumnSpacing="6">
-                <StackPanel>
-                  <TextBlock Classes="field" Text="Body" />
-                  <NumericUpDown Value="{Binding Body}" Minimum="0" Maximum="31" Increment="1" FormatString="0" ShowButtonSpinner="False" />
-                </StackPanel>
-                <StackPanel Grid.Column="1">
-                  <TextBlock Classes="field" Text="Fabric" />
-                  <NumericUpDown Value="{Binding Fabric}" Minimum="0" Maximum="31" Increment="1" FormatString="0" ShowButtonSpinner="False" />
-                </StackPanel>
-              </Grid>
-            </Grid>
-          </Border>
-        </StackPanel>
-      </Border>
-    </Grid>
+        <DockPanel Margin="2,12,0,0" IsVisible="{Binding PreviewWarning, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="13" Height="13" Margin="0,1,8,0" VerticalAlignment="Top"
+            Foreground="{StaticResource WarningText}" />
+          <TextBlock Classes="warning" Text="{Binding PreviewWarning}" />
+        </DockPanel>
+      </StackPanel>
+    </ScrollViewer>
 
     <Border Grid.Column="1" Margin="0,20,28,20" CornerRadius="6" ClipToBounds="True" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
       <Grid Background="#1c1e23">
