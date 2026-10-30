@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HeavenTool.ModManager.Villagers;
 using HeavenTool.Rendering.BFRES;
+using HeavenTool.Shaders;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -69,6 +70,8 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
         renderer = value;
         // The room has its own floor, which the viewport's ground would cut through.
         renderer.ShowGround = false;
+        renderer.SetLighting(AcnhLightingPreset.Room);
+        renderer.SetExposure(AcnhLightingPreset.RoomExposure);
     }
 
     public void ReportRenderFailure(Exception error) => RenderError = error.Message;

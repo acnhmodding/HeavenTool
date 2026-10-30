@@ -36,6 +36,15 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
             { [10] = new(0, .01f, .037229f, .99907f), [11] = new(0, 0, -1, -.8174f), [12] = new(.0060504f, 1, 0, 0) },
     };
 
+    // A house interior, tuned by eye: the game shuts the sun out of rooms and lights them from all round, which a soft light
+    // from overhead and a stronger fill stand in for. Shown brighter than the island, as the game shows rooms.
+    public static AcnhLightingPreset Room { get; } = Day with
+    {
+        Name = "Room", DirectColor = new(1, .95f, .85f, 1), DirectIntensity = 8, DirectDirection = new(.199f, -.896f, -.398f),
+        SkyColor = new(1, .95f, .9f, 1), GroundColor = new(.75f, .75f, .8f, 1), HemisphereIntensity = 1, PreviewIndirectLight = new(4, 4, 4),
+    };
+    public const float RoomExposure = .16f;
+
     // Viewer approximation for missing sky-derived indirect illumination; not a game uniform value.
     public Vector3 PreviewIndirectLight { get; init; }
     // Time-of-day gsys_user0 rows: [10] a sky direction, [17].w shadow strength, [21] fog colour, and
