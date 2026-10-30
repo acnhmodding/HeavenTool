@@ -10,9 +10,13 @@ namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 /// <summary>One item in the room list, with what the editor below the list changes about it.</summary>
 public sealed partial class RoomItemEntry : ObservableObject
 {
-    /// <summary>What a room can hold, for the item picker.</summary>
-    public static readonly ItemKinds Furniture = new("furniture and wall items",
-        "Ftr", "Rug", "Poster", "Bromide", "Picture", "Sculpture", "Gyroid", "Fossil", "Dishes");
+    /// <summary>
+    /// What a room can hold, for the item picker: the kinds vanilla rooms have, such as clothes hung on a wall and fish on a
+    /// table, with art, gyroids and bugs beside them.
+    /// </summary>
+    public static readonly ItemKinds Furniture = new("room items",
+        "Ftr", "Rug", "Poster", "Bromide", "Picture", "Sculpture", "Gyroid", "Fossil", "DoorDeco", "Dishes", "Drink", "Music",
+        "Tops", "OnePiece", "Shoes", "Helmet", "Fish", "Insect", "FishToy", "InsectToy", "Shovel", "FishingRod", "Ocarina");
 
     /// <summary>The names of <see cref="RoomLayer"/>, in order.</summary>
     public static IReadOnlyList<string> Layers { get; } =

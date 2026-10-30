@@ -13,27 +13,28 @@ namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 /// <summary>The kinds of item a field holds in vanilla villagers, by ItemKind name, and how to call them.</summary>
 public sealed record ItemKinds(string Description, params string[] Names);
 
-/// <summary>Picks a vanilla item by name, label or ID, from the kinds the field takes or from every item.</summary>
+/// <summary>
+/// Picks a vanilla item by name, label or ID, from the kinds the field takes. Other kinds aren't offered, as the game may not
+/// handle them where the field puts them.
+/// </summary>
 public sealed partial class ItemPickerViewModel : ObservableObject
 {
     private readonly IReadOnlyList<ItemChoice> choices;
-    private readonly HashSet<uint> kinds;
 
     public ItemPickerViewModel(VillagerGameData data, string title, ItemKinds itemKinds, int? current)
     {
         Title = title;
-        OnlyKindsText = $"Only {itemKinds.Description}";
-        kinds = [.. itemKinds.Names.Select(name => name.ToCRC32())];
-        choices = [.. data.Items.Select(item => new ItemChoice(data, item))];
+        SearchHint = $"Search {itemKinds.Description} by name, label or ID";
+        var kinds = itemKinds.Names.Select(name => name.ToCRC32()).ToHashSet();
+        choices = [.. data.Items.Where(item => kinds.Contains(item.Kind)).Select(item => new ItemChoice(data, item))];
         Filter();
         Selected = choices.FirstOrDefault(choice => choice.Item.Id == current);
     }
 
     public string Title { get; }
-    public string OnlyKindsText { get; }
+    public string SearchHint { get; }
 
     [ObservableProperty] private string search = "";
-    [ObservableProperty] private bool onlyKinds = true;
     [ObservableProperty] private IReadOnlyList<ItemChoice> results = [];
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasSelection))] private ItemChoice? selected;
 
@@ -41,17 +42,16 @@ public sealed partial class ItemPickerViewModel : ObservableObject
     public string CountText => Results.Count == 1 ? "1 item" : $"{Results.Count:N0} items";
 
     partial void OnSearchChanged(string value) => Filter();
-    partial void OnOnlyKindsChanged(bool value) => Filter();
     partial void OnResultsChanged(IReadOnlyList<ItemChoice> value) => OnPropertyChanged(nameof(CountText));
 
     private void Filter()
     {
         var text = Search.Trim();
         var id = int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : -1;
-        Results = [.. choices.Where(choice => (!OnlyKinds || kinds.Contains(choice.Item.Kind)) && (text.Length == 0
+        Results = [.. choices.Where(choice => text.Length == 0
             || choice.Item.Id == id
             || choice.Item.Name.Contains(text, StringComparison.CurrentCultureIgnoreCase)
-            || choice.Item.Label.Contains(text, StringComparison.OrdinalIgnoreCase)))];
+            || choice.Item.Label.Contains(text, StringComparison.OrdinalIgnoreCase))];
     }
 }
 
