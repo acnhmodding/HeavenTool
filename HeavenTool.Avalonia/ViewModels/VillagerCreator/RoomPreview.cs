@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -38,6 +39,26 @@ public sealed class RoomPreview(VillagerGameData data)
     // The room models' shadow casters and the strip around the floor only show from outside.
     private static readonly string[] HiddenMaterials = ["mShadow", "mOutside"];
 
+    // Gift spots show as faint boxes, drawn by the preview's own shader: a flat color, mostly see-through.
+    private const float SpotHeight = 4, SpotDepth = 1, SpotInset = .5f;
+    private static readonly BfresMaterial SpotMaterial = new()
+    {
+        Name = "GiftSpot", ShaderArchive = "Park_UBER", ShadingModel = "park_uber",
+        AttributeAssignments = new Dictionary<string, string>(), SamplerAssignments = new Dictionary<string, string>(),
+        ShaderOptions = new Dictionary<string, string> { ["material_diffuse_color"] = "100" },
+        OriginalParameters = new Dictionary<string, BfresShaderParameter>
+        {
+            ["const_color0"] = new(15, MemoryMarshal.AsBytes<float>([.12f, .3f, .4f, 1]).ToArray()),
+            ["material_force_alpha"] = new(12, MemoryMarshal.AsBytes<float>([.3f]).ToArray()),
+        },
+        RenderInfos = new Dictionary<string, BfresRenderInfo>
+        {
+            ["gsys_render_state_mode"] = new(["translucent"], [], []),
+            ["gsys_render_state_blend_mode"] = new(["color"], [], []),
+        },
+        Samplers = [],
+    };
+
     private readonly ConcurrentDictionary<string, Lazy<BfresModel?>> models = new();
     private readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<BntxTexture>>> textures = new();
     private readonly ConcurrentDictionary<BfresMesh, TranslatedShader?> programs = new();
@@ -56,8 +77,8 @@ public sealed class RoomPreview(VillagerGameData data)
     private RoomScene? Build(VillagerRoom room, CancellationToken cancellation)
     {
         var warnings = new List<string>();
-        // Each placed mesh, with the model's own mesh its game shader is translated from.
-        var placed = new List<(BfresMesh Source, BfresMesh Mesh)>();
+        // Each placed mesh, with the model's own mesh its game shader is translated from, which gift spots don't have.
+        var placed = new List<(BfresMesh? Source, BfresMesh Mesh)>();
         void Place(BfresModel model, Matrix4x4 transform, IReadOnlyDictionary<string, BntxTexture> swap)
         {
             foreach (var mesh in model.Meshes.Where(mesh => !HiddenMaterials.Contains(mesh.Material.Name)))
@@ -81,7 +102,13 @@ public sealed class RoomPreview(VillagerGameData data)
         {
             cancellation.ThrowIfCancellationRequested();
             var resource = data.ItemResource(item.Id);
-            // Room markers stand in for things the game puts there itself, and have no model.
+            // Room markers hold spots for things the game puts there itself, and have no model.
+            if (data.RoomMarkers.ContainsKey(item.Id))
+            {
+                var spot = data.ItemSize(item.Id);
+                placed.Add((null, Spot(spot, item.OnWall).Transformed(Placement(item, spot, floorItems).Transform)));
+                continue;
+            }
             if (string.IsNullOrEmpty(resource)) continue;
             if (Model(resource) is not { } model)
             {
@@ -104,11 +131,11 @@ public sealed class RoomPreview(VillagerGameData data)
         {
             if (shaders.Value is { } archive)
             {
-                var sources = placed.Select(piece => piece.Source).Distinct().Where(source => !programs.ContainsKey(source)).ToList();
+                var sources = placed.Select(piece => piece.Source).OfType<BfresMesh>().Distinct().Where(source => !programs.ContainsKey(source)).ToList();
                 var prepared = BfresScene.PrepareShaders(sources, archive, cancellation).Programs;
                 foreach (var source in sources) programs.TryAdd(source, prepared.GetValueOrDefault(source));
                 foreach (var (source, mesh) in placed)
-                    if (programs.GetValueOrDefault(source) is { } program) translated[mesh] = program;
+                    if (source != null && programs.GetValueOrDefault(source) is { } program) translated[mesh] = program;
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -136,6 +163,39 @@ public sealed class RoomPreview(VillagerGameData data)
             floor = floorItems.LastOrDefault(under => under.Area.Contains(area.MiddleX, area.MiddleZ)).Top;
         var position = new Vector3(Edge(0) + area.MiddleX * Cell, floor, Edge(0) + area.MiddleZ * Cell);
         return (Matrix4x4.CreateRotationY(item.Rotation * MathF.PI / 2) * Matrix4x4.CreateTranslation(position), floor);
+    }
+
+    /// <summary>
+    /// A gift spot's box, placed like a model: a low block on the floor, from the floor up, or a thin panel hanging from its middle
+    /// on a wall. It's a little smaller than its cells, so spots side by side stay apart.
+    /// </summary>
+    private static BfresMesh Spot(ItemFootprint size, bool onWall)
+    {
+        float width = size.X * Cell / 2 - SpotInset, depth = size.Z * Cell / 2 - SpotInset;
+        var (min, max) = onWall
+            ? (new Vector3(-width, -depth, 0), new Vector3(width, depth, SpotDepth))
+            : (new Vector3(-width, 0, -depth), new Vector3(width, SpotHeight, depth));
+        var positions = new List<Vector3>();
+        var normals = new List<Vector3>();
+        var indices = new List<uint>();
+        foreach (var normal in (Vector3[])[Vector3.UnitX, -Vector3.UnitX, Vector3.UnitY, -Vector3.UnitY, Vector3.UnitZ, -Vector3.UnitZ])
+        {
+            // Two axes across the face, each corner taken from the min or max side.
+            var (u, v) = normal.X != 0 ? (Vector3.UnitY, Vector3.UnitZ) : normal.Y != 0 ? (Vector3.UnitZ, Vector3.UnitX) : (Vector3.UnitX, Vector3.UnitY);
+            uint first = (uint)positions.Count;
+            foreach (var (a, b) in (ReadOnlySpan<(float, float)>)[(0, 0), (1, 0), (1, 1), (0, 1)])
+            {
+                var side = (normal + u * (a * 2 - 1) + v * (b * 2 - 1) + Vector3.One) / 2;
+                positions.Add(min + (max - min) * side);
+                normals.Add(normal);
+            }
+            indices.AddRange([first, first + 1, first + 2, first, first + 2, first + 3]);
+        }
+        return new BfresMesh
+        {
+            Name = "GiftSpot", Material = SpotMaterial, Positions = positions.ToArray(), Normals = normals.ToArray(),
+            Indices = indices.ToArray(), NativeAttributes = new Dictionary<string, ReadOnlyMemory<Vector4>>(),
+        };
     }
 
     // The cells an item covers on the floor, from its corner, turned with it.
