@@ -86,7 +86,8 @@ public static class VillagerGenerator
             tables,
             [
                 PackPatch.FromByml(HouseExterior.PathFor(label), VillagerGameData.StaticParamArchive, house.Write(donorHouse, label)),
-                PackPatch.FromByml(RoomPath(label), VillagerGameData.StaticParamArchive, HouseExterior.Rekey(room, label)),
+                PackPatch.FromByml(RoomPath(label), VillagerGameData.StaticParamArchive,
+                    project.Room?.Write(room, label) ?? HouseExterior.Rekey(room, label)),
                 // Gmo files all share one root key, so the copy needs no changes.
                 PackPatch.FromByml(GmoPath(label), VillagerGameData.StaticParamArchive, gmo),
             ]);

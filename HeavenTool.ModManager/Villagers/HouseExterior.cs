@@ -55,7 +55,7 @@ public sealed record HouseExterior(int Shape, int Wall, int Roof, int Door, int 
     public static BymlDictionary Rekey(IBymlNode root, string label) =>
         new() { [RootKey(label)] = BymlJson.FromJson(BymlJson.ToJson(Body(root))) };
 
-    private static BymlDictionary Body(IBymlNode root) =>
+    internal static BymlDictionary Body(IBymlNode root) =>
         root is BymlDictionary { Count: 1 } dictionary && dictionary.Values.Single() is BymlDictionary body
             ? body
             : throw new InvalidDataException("A villager house or room file must hold a single dictionary.");

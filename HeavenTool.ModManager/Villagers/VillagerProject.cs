@@ -32,8 +32,11 @@ public sealed class VillagerProject
 
     public HouseExterior? House { get; set; }
 
-    /// <summary>The villager whose room (wallpaper, flooring, music and furniture) is copied.</summary>
+    /// <summary>The villager whose room file the new one starts from. Its other values, such as where the villager crafts, are kept.</summary>
     public string RoomFrom { get; set; } = "";
+
+    /// <summary>The room's wallpaper, flooring, music and furniture, or null to keep <see cref="RoomFrom"/>'s as they are.</summary>
+    public VillagerRoom? Room { get; set; }
 
     /// <summary>The villager whose Gmo file is copied. It belongs to the model, so a villager of the same species fits best.</summary>
     public string GmoFrom { get; set; } = "";
@@ -65,6 +68,7 @@ public sealed class VillagerProject
             Row = BcsvPatch.Row(table, row),
             House = data.ReadParam(HouseExterior.PathFor(donor.Label)) is { } house ? HouseExterior.Read(house) : null,
             RoomFrom = donor.Label,
+            Room = data.ReadParam(VillagerGenerator.RoomPath(donor.Label)) is { } room ? VillagerRoom.Read(room) : null,
             GmoFrom = donor.Label,
             Amiibo = AmiiboGenerator.PickFree(data.AmiiboData),
         };

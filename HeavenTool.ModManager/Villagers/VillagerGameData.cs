@@ -3,6 +3,7 @@
 using AeonSake.NintendoTools.FileFormats.Byml;
 using AeonSake.NintendoTools.FileFormats.Msbt;
 using AeonSake.NintendoTools.FileFormats.Sarc;
+using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
@@ -14,6 +15,9 @@ public sealed record VillagerInfo(string Label, string Name, string Species, int
 
 /// <summary>A vanilla item with its English name. <paramref name="Kind"/> is the CRC32 of its ItemKind, such as <c>Tops</c>.</summary>
 public sealed record ItemInfo(int Id, string Name, string Label, uint Kind);
+
+/// <summary>The floor space an item takes, in half tiles, before it's turned. On a wall, <paramref name="Z"/> is its height.</summary>
+public readonly record struct ItemFootprint(int X, int Z);
 
 /// <summary>
 /// The game files the villager creator reads, loaded from the romfs on first use and cached. Everything here is read-only:
@@ -36,6 +40,7 @@ public sealed partial class VillagerGameData
     private readonly Lazy<IReadOnlyList<NameColor>> nameColors;
     private readonly Lazy<IReadOnlyDictionary<int, ItemRow>> itemParam;
     private readonly Lazy<IReadOnlyList<ItemInfo>> items;
+    private readonly Lazy<IReadOnlyDictionary<uint, ItemFootprint>> itemSizes;
 
     public string Romfs { get; }
 
@@ -52,6 +57,7 @@ public sealed partial class VillagerGameData
             .Select(item => new ItemInfo(item.Key, ItemNames[item.Key], item.Value.Label, item.Value.Kind))
             .OrderBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(item => item.Id)]);
+        itemSizes = new(LoadItemSizes);
     }
 
     /// <summary>Opens a romfs folder, after checking it has the files the villager creator needs.</summary>
@@ -103,6 +109,13 @@ public sealed partial class VillagerGameData
         ];
         return names.Select(name => Path.Combine(Romfs, "Model", name + ".Nin_NX_NVN.zs")).FirstOrDefault(File.Exists);
     }
+
+    /// <summary>The resource name of an item, which names its model, or null when ItemParam has no such item.</summary>
+    public string? ItemResource(int id) => itemParam.Value.TryGetValue(id, out var item) ? item.Resource : null;
+
+    /// <summary>The space an item takes, from its ItemSize; one tile when the romfs doesn't say.</summary>
+    public ItemFootprint ItemSize(int id) =>
+        itemParam.Value.TryGetValue(id, out var item) && itemSizes.Value.TryGetValue(item.Size, out var size) ? size : new(2, 2);
 
     /// <summary>A table from <c>Bcsv/</c>, by name without extension.</summary>
     public BinaryCSV Table(string name) => tables.GetOrAdd(name, _ =>
@@ -183,8 +196,8 @@ public sealed partial class VillagerGameData
         return names;
     }
 
-    // An item's resource name and label, which name its models and icons, and its kind.
-    private sealed record ItemRow(string Resource, string Label, uint Kind);
+    // An item's resource name and label, which name its models and icons, its kind and the CRC32 of its ItemSize label.
+    private sealed record ItemRow(string Resource, string Label, uint Kind, uint Size);
 
     private IReadOnlyDictionary<int, ItemRow> LoadItemParam()
     {
@@ -192,8 +205,18 @@ public sealed partial class VillagerGameData
         var table = Table("ItemParam");
         int id = table.ColumnIndex("UniqueID u16"), resource = table.ColumnIndex("ResName string64");
         int label = table.ColumnIndex("Label string50"), kind = table.ColumnIndex("ItemKind.hshCstringRef");
+        int size = table.ColumnIndex("ItemSize.hshCstringRef");
         return table.Entries.ToDictionary(row => Convert.ToInt32(row[id]),
-            row => new ItemRow((string)row[resource], (string)row[label], Convert.ToUInt32(row[kind])));
+            row => new ItemRow((string)row[resource], (string)row[label], Convert.ToUInt32(row[kind]), Convert.ToUInt32(row[size])));
+    }
+
+    // ItemParam names an item's size by the CRC32 of its row's label here, such as 2_0x1_0.
+    private IReadOnlyDictionary<uint, ItemFootprint> LoadItemSizes()
+    {
+        if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemSize.bcsv"))) return new Dictionary<uint, ItemFootprint>();
+        var table = Table("ItemSize");
+        int label = table.ColumnIndex("Label string32"), x = table.ColumnIndex("HalfUnitSizeX u8"), z = table.ColumnIndex("HalfUnitSizeZ u8");
+        return table.Entries.ToDictionary(row => ((string)row[label]).ToCRC32(), row => new ItemFootprint(Convert.ToInt32(row[x]), Convert.ToInt32(row[z])));
     }
 
     private IReadOnlyList<VillagerInfo> LoadVillagers()
