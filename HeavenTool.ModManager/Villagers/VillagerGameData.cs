@@ -16,8 +16,11 @@ public sealed record VillagerInfo(string Label, string Name, string Species, int
 /// <summary>A vanilla item with its English name. <paramref name="Kind"/> is the CRC32 of its ItemKind, such as <c>Tops</c>.</summary>
 public sealed record ItemInfo(int Id, string Name, string Label, uint Kind);
 
-/// <summary>The floor space an item takes, in half tiles, before it's turned. On a wall, <paramref name="Z"/> is its height.</summary>
-public readonly record struct ItemFootprint(int X, int Z);
+/// <summary>
+/// The space an item takes, in half tiles, before it's turned. <paramref name="Layer"/> is where an item of that size goes: on the
+/// floor, on the back wall, where <paramref name="Z"/> is its height, or under everything as a rug.
+/// </summary>
+public readonly record struct ItemFootprint(int X, int Z, RoomLayer Layer);
 
 /// <summary>
 /// The game files the villager creator reads, loaded from the romfs on first use and cached. Everything here is read-only:
@@ -115,7 +118,7 @@ public sealed partial class VillagerGameData
 
     /// <summary>The space an item takes, from its ItemSize; one tile when the romfs doesn't say.</summary>
     public ItemFootprint ItemSize(int id) =>
-        itemParam.Value.TryGetValue(id, out var item) && itemSizes.Value.TryGetValue(item.Size, out var size) ? size : new(2, 2);
+        itemParam.Value.TryGetValue(id, out var item) && itemSizes.Value.TryGetValue(item.Size, out var size) ? size : new(2, 2, RoomLayer.Floor);
 
     /// <summary>A table from <c>Bcsv/</c>, by name without extension.</summary>
     public BinaryCSV Table(string name) => tables.GetOrAdd(name, _ =>
@@ -216,7 +219,10 @@ public sealed partial class VillagerGameData
         if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemSize.bcsv"))) return new Dictionary<uint, ItemFootprint>();
         var table = Table("ItemSize");
         int label = table.ColumnIndex("Label string32"), x = table.ColumnIndex("HalfUnitSizeX u8"), z = table.ColumnIndex("HalfUnitSizeZ u8");
-        return table.Entries.ToDictionary(row => ((string)row[label]).ToCRC32(), row => new ItemFootprint(Convert.ToInt32(row[x]), Convert.ToInt32(row[z])));
+        static RoomLayer Layer(string name) =>
+            name.EndsWith("_Wall", StringComparison.Ordinal) ? RoomLayer.BackWall : name.EndsWith("_Rug", StringComparison.Ordinal) ? RoomLayer.Rug : RoomLayer.Floor;
+        return table.Entries.ToDictionary(row => ((string)row[label]).ToCRC32(),
+            row => new ItemFootprint(Convert.ToInt32(row[x]), Convert.ToInt32(row[z]), Layer((string)row[label])));
     }
 
     private IReadOnlyList<VillagerInfo> LoadVillagers()

@@ -69,7 +69,8 @@ public sealed partial class BfresRenderer
         return new(prepared, any ? (min + max) / 2 : Vector3.Zero, any ? Math.Max((max - min).Length / 2, .001f) : 1);
     }
 
-    public void SetScene(PreparedScene scene)
+    /// <summary>Shows a scene. <paramref name="keepCamera"/> leaves the camera where it is, for a scene that changed a little.</summary>
+    public void SetScene(PreparedScene scene, bool keepCamera = false)
     {
         pending = scene;
         selectedMesh = null;
@@ -79,7 +80,15 @@ public sealed partial class BfresRenderer
         nativePending = new Dictionary<BfresMesh, HeavenTool.Shaders.TranslatedShader>();
         nativeDirty = true;
         SetNativeShaderWarnings([]);
-        FrameScene();
+        if (keepCamera) Invalidate(); else FrameScene();
+    }
+
+    /// <summary>Turns the camera around the scene: <paramref name="yaw"/> 0 looks from +Z, and a positive pitch from above.</summary>
+    public void SetOrbit(float yaw, float pitch)
+    {
+        this.yaw = yaw;
+        this.pitch = pitch;
+        Invalidate();
     }
 
     public void SetVisible(BfresMesh mesh, bool visible)

@@ -51,6 +51,14 @@ public sealed class BfresMesh
             ShapeTransform = ShapeTransform * transform,
         };
     }
+
+    /// <summary>A copy drawn with another material, such as one with textures from another file.</summary>
+    public BfresMesh WithMaterial(BfresMaterial material) => new()
+    {
+        Name = Name, Material = material, VertexSkinCount = VertexSkinCount, Positions = Positions, Normals = Normals,
+        Indices = Indices, TexCoords = TexCoords, NativeAttributes = NativeAttributes, BonePalette = BonePalette,
+        ShapeTransform = ShapeTransform,
+    };
 }
 
 // Mips holds the deswizzled mip chain, largest level first.
@@ -101,6 +109,18 @@ public sealed class BfresMaterial
     }
 
     public void ResetParameters() => edited = null;
+
+    /// <summary>
+    /// A copy whose samplers take their texture from <paramref name="textures"/>, by the texture name they ask for, when it has
+    /// one. Game files keep some textures apart from the model, such as furniture colors and room wallpapers.
+    /// </summary>
+    public BfresMaterial WithTextures(IReadOnlyDictionary<string, BntxTexture> textures) => new()
+    {
+        Name = Name, ShaderArchive = ShaderArchive, ShadingModel = ShadingModel, AttributeAssignments = AttributeAssignments,
+        SamplerAssignments = SamplerAssignments, ShaderOptions = ShaderOptions, OriginalParameters = OriginalParameters,
+        RenderInfos = RenderInfos,
+        Samplers = [.. Samplers.Select(sampler => textures.TryGetValue(sampler.TextureName, out var texture) ? sampler with { Texture = texture } : sampler)],
+    };
 
     public bool IsParkUber => ShaderArchive is "Park_UBER" or "Park_UBER_All" && ShadingModel == "park_uber";
 
