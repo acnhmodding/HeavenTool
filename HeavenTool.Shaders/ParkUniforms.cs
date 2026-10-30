@@ -36,14 +36,29 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
             { [10] = new(0, .01f, .037229f, .99907f), [11] = new(0, 0, -1, -.8174f), [12] = new(.0060504f, 1, 0, 0) },
     };
 
-    // A house interior, tuned by eye: the game shuts the sun out of rooms and lights them from all round, which a soft light
-    // from overhead and a stronger fill stand in for. Shown brighter than the island, as the game shows rooms.
-    public static AcnhLightingPreset Room { get; } = Day with
+    // Captured from the running game inside a villager's house at 4:51 PM, with the room's middle moved to the origin. The
+    // room is lit by a light over its middle and the sun coming in from the side, both local lights. The house shades the
+    // sun itself out, at the room's shadow strength in [17].w, which the viewer has no house to do. The fill stands in for
+    // the room's own light probes, which the viewer lacks.
+    public static AcnhLightingPreset Room { get; } = new("Room", new(1, .37058f, .19748f, 1), 20 * (1 - .97731f), new(.81884f, -.57403f, -.00006f), new(.92689f, .52184f, .35713f, 1), new(.36345f, .1f, .087814f, 1), 1.75632f, 1)
     {
-        Name = "Room", DirectColor = new(1, .95f, .85f, 1), DirectIntensity = 8, DirectDirection = new(.199f, -.896f, -.398f),
-        SkyColor = new(1, .95f, .9f, 1), GroundColor = new(.75f, .75f, .8f, 1), HemisphereIntensity = 1, PreviewIndirectLight = new(4, 4, 4),
+        PreviewIndirectLight = new(3, 3, 3),
+        User0 = new Dictionary<int, Vector4>
+        {
+            [4] = new(.27563f, 0, 0, 0), [5] = new(1, .3f, 0, 0), [10] = new(.81884f, -.57403f, -.00006f, 0), [17] = new(0, 1, 1, .97731f),
+            [18] = new(.6f, 1, .5f, 20), [21] = default, [52] = new(.35126f, 0, 0, 0), [55] = new(1, .34932f, 0, 0),
+            [61] = new(.90428f, 0, .42693f, 0), [72] = default, [73] = new(1, 1, 1, 1), [75] = new(0, 0, -1, 0), [76] = new(1, 1, 250, 0),
+        },
+        Environment = new Dictionary<int, Vector4> { [10] = default, [11] = new(0, 0, -1, -1), [12] = new(.01f, 1, 0, 0) },
+        LocalLights =
+        [
+            new(new(0, 28, 0), new(6, 3, 1.2f), 30, 20),
+            new(new(-44.623f, 32.151f, 0), new(27.995f, 18.858f, 18.782f), 105.13f, 64.114f) { Direction = new(.75623f, -.6543f, 0), Cone = .91078f },
+        ],
     };
-    public const float RoomExposure = .16f;
+    // Matched by eye against the same room in the game, a little under it, as the game evens out its pale rooms where one
+    // exposure for all would wash them out.
+    public const float RoomExposure = .7f;
 
     // Viewer approximation for missing sky-derived indirect illumination; not a game uniform value.
     public Vector3 PreviewIndirectLight { get; init; }
@@ -52,6 +67,19 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     public IReadOnlyDictionary<int, Vector4> User0 { get; init; } = new Dictionary<int, Vector4>();
     // Time-of-day gsys_environment rows that only the vertex programs read.
     public IReadOnlyDictionary<int, Vector4> Environment { get; init; } = new Dictionary<int, Vector4>();
+    // The gsys_user1 light list, at most seven lights, all within the light grid around the origin.
+    public IReadOnlyList<AcnhLocalLight> LocalLights { get; init; } = [];
+}
+
+/// <summary>
+/// A light of the game's local light list, at full strength out to <paramref name="Start"/> and gone <paramref name="Length"/>
+/// further on.
+/// </summary>
+public sealed record AcnhLocalLight(Vector3 Position, Vector3 Color, float Start, float Length)
+{
+    // A spot light's direction, and the half-angle of its cone in radians. A light with no cone shines all round.
+    public Vector3 Direction { get; init; }
+    public float Cone { get; init; }
 }
 
 public static class ParkUniforms
@@ -158,7 +186,18 @@ public static class ParkUniforms
             Vector(result, 81 * 16, new(1, .8f, 0, 0));
             Vector(result, 89 * 16, new(1, 0, 0, 0));
             foreach (var (row, value) in (lighting ?? AcnhLightingPreset.Day).User0) Vector(result, row * 16, value);
+            if (lighting?.LocalLights.Count > 0)
+            {
+                // The light grid: its first corner, far corner and middle, then the cell size and the cell counts, as integers.
+                Vector(result, 11 * 16, new(-LightGridHalf, -1, -LightGridHalf, 0));
+                Vector(result, 12 * 16, new(LightGridHalf, 99, LightGridHalf, 0));
+                Vector(result, 13 * 16, new(0, -1, 0, 0));
+                Vector(result, 14 * 16, new(LightGridCell, 100, LightGridCell, 0));
+                foreach (var (at, count) in new[] { (0, LightGridCells), (4, 1), (8, LightGridCells), (12, LightGridCells) })
+                    Integer(result, 15 * 16 + at, count);
+            }
         }
+        if (name == "gsys_user1" && lighting?.LocalLights is { Count: > 0 } lights) LocalLights(result, lights);
         if (name == "gsys_environment")
         {
             Vector(result, 16, new(.2f, .22f, .26f, 1));
@@ -178,6 +217,31 @@ public static class ParkUniforms
         }
         if (lighting != null && name == "gsys_user0") Float(result, 16 * 16 + 12, lighting.EnvironmentTintIntensity);
         return result;
+    }
+
+    // The game's local light grid: 16 by 16 cells of one tile, as it lays it out around a house's room.
+    private const int LightGridCells = 16;
+    private const float LightGridCell = 10, LightGridHalf = LightGridCells * LightGridCell / 2;
+
+    // gsys_user1: each grid cell's light count and up to seven light indices, then, per light, its color, its position,
+    // its spot direction and its falloff start, each in a table of its own.
+    private static void LocalLights(byte[] target, IReadOnlyList<AcnhLocalLight> lights)
+    {
+        int count = Math.Min(lights.Count, 7);
+        // The lights fade out by themselves, so every cell lists them all.
+        for (int cell = 0; cell < LightGridCells * LightGridCells; cell++)
+        {
+            Integer(target, cell * 32, count);
+            for (int i = 0; i < count; i++) Integer(target, cell * 32 + 4 + i * 4, i);
+        }
+        for (int i = 0; i < count; i++)
+        {
+            var light = lights[i];
+            Vector(target, 0x2000 + i * 16, new(light.Color, light.Cone > 0 ? 1 : 0));
+            Vector(target, 0x4000 + i * 16, new(light.Position, 1 / light.Length));
+            Vector(target, 0x6000 + i * 16, new(light.Direction, light.Cone));
+            Vector(target, 0x8000 + i * 16, new(light.Start));
+        }
     }
 
     public static void Float(byte[] target, int at, float value) => BinaryPrimitives.WriteSingleLittleEndian(target.AsSpan(at, 4), value);
