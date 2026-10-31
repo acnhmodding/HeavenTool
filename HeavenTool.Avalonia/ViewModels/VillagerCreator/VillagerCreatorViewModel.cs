@@ -201,5 +201,6 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
         AppSettings.Saved -= OnSettingsSaved;
         House.Dispose();
         Room.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
