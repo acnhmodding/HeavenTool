@@ -106,6 +106,7 @@ public sealed partial class BfresRenderer
     {
         ReleaseLightingTarget();
         ReleaseGrading();
+        ReleaseProbe();
         if (toneProgram != 0) GL.DeleteProgram(toneProgram);
         if (toneVao != 0) GL.DeleteVertexArray(toneVao);
         toneProgram = toneVao = 0;

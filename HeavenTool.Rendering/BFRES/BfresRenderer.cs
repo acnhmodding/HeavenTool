@@ -11,7 +11,8 @@ namespace HeavenTool.Rendering.BFRES;
 public sealed partial class BfresRenderer
 {
     public sealed record PreparedMesh(BfresMesh Source, float[] Vertices, Vector3 Center);
-    public sealed record PreparedScene(IReadOnlyList<PreparedMesh> Meshes, Vector3 Center, float Radius);
+    /// <summary>A scene ready to upload. <see cref="CaptureOnly"/> meshes are drawn only into the environment probe, and don't count toward framing.</summary>
+    public sealed record PreparedScene(IReadOnlyList<PreparedMesh> Meshes, Vector3 Center, float Radius, IReadOnlySet<BfresMesh>? CaptureOnly = null);
     private sealed record GpuMesh(BfresMesh Source, int Vao, int VertexBuffer, int IndexBuffer, int Count, MaterialGpu Material, Vector3 Center);
     private readonly List<GpuMesh> meshes = [];
     private readonly Dictionary<BntxTexture, int> textures = [];
@@ -38,7 +39,7 @@ public sealed partial class BfresRenderer
 
     public BfresRenderer() => transparentOrder = CompareTransparent;
 
-    public static PreparedScene PrepareScene(IReadOnlyList<BfresMesh> scene, CancellationToken cancellation)
+    public static PreparedScene PrepareScene(IReadOnlyList<BfresMesh> scene, CancellationToken cancellation, IReadOnlySet<BfresMesh>? captureOnly = null)
     {
         cancellation.ThrowIfCancellationRequested();
         var prepared = new List<PreparedMesh>(scene.Count);
@@ -49,15 +50,19 @@ public sealed partial class BfresRenderer
             var positions = source.Positions.Span;
             var normals = source.Normals.Span;
             var uv = source.TexCoords.Span;
+            bool framed = captureOnly?.Contains(source) != true;
             var vertices = new float[checked(positions.Length * 8)];
             Vector3 meshMin = new(float.MaxValue), meshMax = new(float.MinValue);
             for (int i = 0; i < positions.Length; i++)
             {
                 if ((i & 4095) == 0) cancellation.ThrowIfCancellationRequested();
                 var p = positions[i];
-                min = Vector3.ComponentMin(min, new(p.X, p.Y, p.Z));
-                max = Vector3.ComponentMax(max, new(p.X, p.Y, p.Z));
-                any = true;
+                if (framed)
+                {
+                    min = Vector3.ComponentMin(min, new(p.X, p.Y, p.Z));
+                    max = Vector3.ComponentMax(max, new(p.X, p.Y, p.Z));
+                    any = true;
+                }
                 meshMin = Vector3.ComponentMin(meshMin, new(p.X, p.Y, p.Z));
                 meshMax = Vector3.ComponentMax(meshMax, new(p.X, p.Y, p.Z));
                 vertices[i * 8] = p.X; vertices[i * 8 + 1] = p.Y; vertices[i * 8 + 2] = p.Z;
@@ -66,7 +71,7 @@ public sealed partial class BfresRenderer
             }
             prepared.Add(new(source, vertices, positions.Length > 0 ? (meshMin + meshMax) / 2 : Vector3.Zero));
         }
-        return new(prepared, any ? (min + max) / 2 : Vector3.Zero, any ? Math.Max((max - min).Length / 2, .001f) : 1);
+        return new(prepared, any ? (min + max) / 2 : Vector3.Zero, any ? Math.Max((max - min).Length / 2, .001f) : 1, captureOnly);
     }
 
     /// <summary>Shows a scene. <paramref name="keepCamera"/> leaves the camera where it is, for a scene that changed a little.</summary>
@@ -91,10 +96,13 @@ public sealed partial class BfresRenderer
         Invalidate();
     }
 
+    // Whether the camera's passes draw a mesh: neither hidden nor only there for the environment probe.
+    private bool Shown(BfresMesh mesh) => !hidden.Contains(mesh) && pending.CaptureOnly?.Contains(mesh) != true;
+
     public void SetVisible(BfresMesh mesh, bool visible)
     {
         if (visible) hidden.Remove(mesh); else hidden.Add(mesh);
-        shadowDirty = worldAoDirty = true;
+        shadowDirty = worldAoDirty = probeDirty = true;
         Invalidate();
     }
 
@@ -156,6 +164,7 @@ public sealed partial class BfresRenderer
             RenderWorldAo();
             UpdateNativeLighting();
             RenderShadowMap();
+            RenderEnvironmentProbe();
             BeginLightingFrame();
             GL.Viewport(0, 0, width, height);
             GL.Disable(EnableCap.FramebufferSrgb);
@@ -191,7 +200,7 @@ public sealed partial class BfresRenderer
             FallbackDrawCount = 0;
             foreach (var mesh in meshes)
             {
-                if (hidden.Contains(mesh.Source) || mesh.Source.Material.IsShadowOnly) continue;
+                if (!Shown(mesh.Source) || mesh.Source.Material.IsShadowOnly) continue;
                 if (mesh.Material.Profile.Translucent) transparent.Add(mesh);
                 else DrawSceneMesh(mesh);
             }

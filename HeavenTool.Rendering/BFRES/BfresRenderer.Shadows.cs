@@ -69,7 +69,7 @@ public sealed partial class BfresRenderer
         GL.PolygonOffset(2, 4);
         foreach (var mesh in meshes)
         {
-            if (hidden.Contains(mesh.Source) || !mesh.Source.Material.CastsDynamicShadow
+            if (!Shown(mesh.Source) || !mesh.Source.Material.CastsDynamicShadow
                 || !nativeShadowMeshes.TryGetValue(mesh.Source, out var native)) continue;
             DrawNativeMesh(mesh, native, shadowContext);
         }

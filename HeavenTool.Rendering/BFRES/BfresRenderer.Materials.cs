@@ -17,7 +17,7 @@ public sealed partial class BfresRenderer
     public void RefreshMaterial(BfresMaterial material)
     {
         changedMaterials.Add(material);
-        shadowDirty = worldAoDirty = true;
+        shadowDirty = worldAoDirty = probeDirty = true;
         Invalidate();
     }
 

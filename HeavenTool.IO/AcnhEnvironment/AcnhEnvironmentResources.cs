@@ -24,10 +24,11 @@ public sealed class AcnhEnvironmentResources
     // The villager room's EnvRoom grading, and the agl program that bakes it.
     public AcnhColorCorrection RoomColorCorrection { get; }
     public SwitchProcessShaderProgram ColorCorrectionMap { get; }
+    public AcnhPanoramaEnvironment Panorama { get; }
 
     private AcnhEnvironmentResources(AcnhEnvironmentPalettes palettes, AcnhSunOrbit sunOrbit, AcnhStageEnvironment outdoorStage,
         AcnhStageEnvironment roomStage, AcnhRoomLightParameters villagerRoomLight, AcnhSkyScatterParameters skyScatter,
-        AcnhColorCorrection roomColorCorrection, SwitchProcessShaderProgram colorCorrectionMap)
+        AcnhColorCorrection roomColorCorrection, SwitchProcessShaderProgram colorCorrectionMap, AcnhPanoramaEnvironment panorama)
     {
         Palettes = palettes;
         SunOrbit = sunOrbit;
@@ -37,6 +38,7 @@ public sealed class AcnhEnvironmentResources
         SkyScatter = skyScatter;
         RoomColorCorrection = roomColorCorrection;
         ColorCorrectionMap = colorCorrectionMap;
+        Panorama = panorama;
     }
 
     public static AcnhEnvironmentResources Load(string romfs) => Read(OpenStaticParam(romfs), romfs);
@@ -49,7 +51,8 @@ public sealed class AcnhEnvironmentResources
         if (roomLights.Length < 2) throw new InvalidDataException("Missing room light parameters.");
 
         return new(AcnhEnvironmentPalettes.Read(read), AcnhSunOrbit.Load(romfs), ReadStage(read, "Stage"), ReadStage(read, "Stage_Inside"),
-            roomLights[1], AcnhSkyScatterParameters.Read(read), AcnhColorCorrection.Load(romfs, "envroom"), AcnhColorCorrection.LoadMapProgram(romfs));
+            roomLights[1], AcnhSkyScatterParameters.Read(read), AcnhColorCorrection.Load(romfs, "envroom"), AcnhColorCorrection.LoadMapProgram(romfs),
+            AcnhPanoramaEnvironment.Read(read, romfs));
     }
 
     private static AcnhRoomLightParameters ReadRoomLight(IBymlNode entry)

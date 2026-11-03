@@ -137,6 +137,8 @@ public sealed class BfresMaterial
 
     public bool IsShadowOnly => RenderFlag("gsys_dynamic_depth_shadow_only") || RenderFlag("gsys_static_depth_shadow_only");
     public bool CastsDynamicShadow => RenderFlag("gsys_dynamic_depth_shadow") || RenderFlag("gsys_dynamic_depth_shadow_only");
+    // Drawn into the environment cube the game captures (710398f890).
+    public bool InEnvironmentCapture => RenderFlag("gsys_cube_map") || RenderFlag("gsys_cube_map_only");
     public bool CastsStaticShadow => RenderFlag("gsys_static_depth_shadow") || RenderFlag("gsys_static_depth_shadow_only");
 
     private bool RenderFlag(string name)

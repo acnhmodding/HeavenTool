@@ -28,6 +28,9 @@ public static class AcnhSceneLighting
             LocalLights = inside ? RoomLights(resources.VillagerRoomLight, palette) : [],
             // The villager room's EnvRoom grading; the outdoor Env grading is disabled.
             ColorGrading = inside && resources.RoomColorCorrection.Filters is { } filters ? new(resources.ColorCorrectionMap, filters) : null,
+            // envinside.baglcube's capture height and clip range. CubeMapMgr (71014e5f0c) moves the capture at run time, so
+            // its authored (40, 20, 40) is not kept; the room's middle is the origin here.
+            EnvironmentProbe = inside ? new(new(0, 20, 0), 1, 10000, resources.Panorama) : null,
         };
     }
 

@@ -20,8 +20,8 @@ public sealed record RoomScene(BfresRenderer.PreparedScene Geometry, IReadOnlyDi
 
 /// <summary>
 /// Builds room previews from the romfs models: the floor and the back and side walls of a 6×6 room, with its wallpaper and
-/// flooring, and the items in it. The front wall is left out so the room can be seen into. Models, textures and translated
-/// game shaders load once and are reused.
+/// flooring, and the items in it. The front wall and the ceiling are left out so the room can be seen into, but the environment
+/// probe still sees them, as the game's does. Models, textures and translated game shaders load once and are reused.
 /// </summary>
 public sealed class RoomPreview(VillagerGameData data)
 {
@@ -34,6 +34,8 @@ public sealed class RoomPreview(VillagerGameData data)
 
     private const string FloorModel = "RoomMdlFloor6x6";
     private const string WallModel = "RoomMdlWall";
+    // Authored at the top of the walls; the game paints it with the wallpaper.
+    private const string CeilingModel = "RoomMdlCeling6x6";
     private const string FloorMaterial = "mDummyFloor";
     private const string WallMaterial = "mDummyWall";
     // Keep authored shadow-only meshes for the light pass; only the outside floor strip is excluded from the scene.
@@ -99,10 +101,15 @@ public sealed class RoomPreview(VillagerGameData data)
 
         // Each placed mesh, with the model's own mesh its game shader is translated from, which gift spots don't have.
         var placed = new List<(BfresMesh? Source, BfresMesh Mesh)>();
-        void Place(BfresModel model, Matrix4x4 transform, IReadOnlyDictionary<string, BntxTexture> swap)
+        var captureOnly = new HashSet<BfresMesh>();
+        void Place(BfresModel model, Matrix4x4 transform, IReadOnlyDictionary<string, BntxTexture> swap, bool unseen = false)
         {
-            foreach (var mesh in model.Meshes.Where(mesh => !HiddenMaterials.Contains(mesh.Material.Name)))
-                placed.Add((mesh, (swap.Count > 0 ? mesh.WithMaterial(mesh.Material.WithTextures(swap)) : mesh).Transformed(transform)));
+            foreach (var mesh in model.Meshes.Where(mesh => !HiddenMaterials.Contains(mesh.Material.Name) && (!unseen || mesh.Material.InEnvironmentCapture)))
+            {
+                var piece = (swap.Count > 0 ? mesh.WithMaterial(mesh.Material.WithTextures(swap)) : mesh).Transformed(transform);
+                placed.Add((mesh, piece));
+                if (unseen) captureOnly.Add(piece);
+            }
         }
 
         // A special wallpaper or flooring brings its own room pieces, which the game draws in place of the plain ones.
@@ -112,9 +119,12 @@ public sealed class RoomPreview(VillagerGameData data)
         if ((specialWall ?? Model(WallModel)) is { } wall)
         {
             var wallpaper = specialWall != null ? NoSwap : Surface(room.Wallpaper, WallMaterial);
-            foreach (var layer in (RoomLayer[])[RoomLayer.BackWall, RoomLayer.LeftWall, RoomLayer.RightWall])
+            foreach (var layer in (RoomLayer[])[RoomLayer.BackWall, RoomLayer.LeftWall, RoomLayer.RightWall, RoomLayer.FrontWall])
                 for (float along = -HalfRoom + WallPiece / 2; along < HalfRoom; along += WallPiece)
-                    Place(wall, Facing(layer) * Matrix4x4.CreateTranslation(WallPoint(layer, along, 0)), wallpaper);
+                    Place(wall, Facing(layer) * Matrix4x4.CreateTranslation(WallPoint(layer, along, 0)), wallpaper, layer == RoomLayer.FrontWall);
+            var specialCeiling = Special(room.Wallpaper, CeilingModel["RoomMdl".Length..]);
+            if ((specialCeiling ?? Model(CeilingModel)) is { } ceiling)
+                Place(ceiling, Matrix4x4.Identity, specialCeiling != null ? NoSwap : Surface(room.Wallpaper, WallMaterial), unseen: true);
         }
         cancellation.ThrowIfCancellationRequested();
 
@@ -148,7 +158,7 @@ public sealed class RoomPreview(VillagerGameData data)
             warnings.Add($"No model to show for {string.Join(", ", missing.Distinct())}.");
 
         var meshes = placed.Select(piece => piece.Mesh).ToList();
-        var geometry = BfresRenderer.PrepareScene(meshes, cancellation);
+        var geometry = BfresRenderer.PrepareScene(meshes, cancellation, captureOnly);
         var translated = new Dictionary<BfresMesh, BfresMeshShaders>();
         try
         {

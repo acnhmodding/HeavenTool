@@ -219,7 +219,7 @@ public sealed partial class BfresRenderer
         GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
         foreach (var mesh in meshes)
         {
-            if (hidden.Contains(mesh.Source) || mesh.Source.Material.IsShadowOnly || mesh.Material.Profile.Translucent
+            if (!Shown(mesh.Source) || mesh.Source.Material.IsShadowOnly || mesh.Material.Profile.Translucent
                 || !nativeDepthMeshes.TryGetValue(mesh.Source, out var native)) continue;
             DrawNativeMesh(mesh, native, context == nativeContext ? 0 : context);
         }

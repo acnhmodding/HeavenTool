@@ -1,3 +1,4 @@
+using HeavenTool.IO.AcnhEnvironment;
 using HeavenTool.IO.FileFormats.BFRES;
 using System.Buffers.Binary;
 using System.Numerics;
@@ -69,6 +70,8 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     public IReadOnlyList<AcnhLocalLight> LocalLights { get; init; } = [];
     // The color-grading volume ToneMapping samples; none leaves the tone-mapped color as is.
     public AcnhColorGrading? ColorGrading { get; init; }
+    // The environment cube the game captures and turns into gsys_cube_map's panorama; none keeps the studio panorama.
+    public AcnhEnvironmentProbe? EnvironmentProbe { get; init; }
 }
 
 /// <summary>
@@ -81,6 +84,9 @@ public sealed record AcnhLocalLight(Vector3 Position, Vector3 Color, float Start
     public Vector3 Direction { get; init; }
     public float Cone { get; init; }
 }
+
+/// <summary>Where the environment cube is captured from, its clip range, and the panorama it is filtered into.</summary>
+public sealed record AcnhEnvironmentProbe(Vector3 Position, float Near, float Far, AcnhPanoramaEnvironment Panorama);
 
 /// <summary>agl's color_correction_map program and the filter block it bakes into the grading volume.</summary>
 public sealed record AcnhColorGrading(SwitchProcessShaderProgram Map, byte[] Filters);

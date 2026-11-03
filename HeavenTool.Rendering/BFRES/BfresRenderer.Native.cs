@@ -30,7 +30,9 @@ public sealed partial class BfresRenderer
     private readonly Dictionary<BfresMesh, NativeMeshGpu> nativeMeshes = [];
     private readonly Dictionary<BfresMesh, NativeMeshGpu> nativeDepthMeshes = [];
     private readonly Dictionary<BfresMesh, NativeMeshGpu> nativeShadowMeshes = [];
-    private IEnumerable<KeyValuePair<BfresMesh, NativeMeshGpu>> AllNativeMeshes => nativeMeshes.Concat(nativeDepthMeshes).Concat(nativeShadowMeshes);
+    private readonly Dictionary<BfresMesh, NativeMeshGpu> nativeCubeMeshes = [];
+    private IEnumerable<KeyValuePair<BfresMesh, NativeMeshGpu>> AllNativeMeshes =>
+        nativeMeshes.Concat(nativeDepthMeshes).Concat(nativeShadowMeshes).Concat(nativeCubeMeshes);
     // Studio blocks depend only on the lighting preset, so every mesh shares one buffer per block name.
     private readonly Dictionary<string, int> studioBuffers = [];
     private IReadOnlyDictionary<BfresMesh, BfresMeshShaders> nativePending = new Dictionary<BfresMesh, BfresMeshShaders>();
@@ -42,7 +44,7 @@ public sealed partial class BfresRenderer
     {
         ArgumentNullException.ThrowIfNull(value);
         lighting = value;
-        lightingDirty = shadowDirty = true;
+        lightingDirty = shadowDirty = probeDirty = true;
         Invalidate();
     }
     public int NativeDrawCount { get; private set; }
@@ -61,7 +63,7 @@ public sealed partial class BfresRenderer
     {
         nativePending = shaders;
         nativeDirty = true;
-        shadowDirty = worldAoDirty = true;
+        shadowDirty = worldAoDirty = probeDirty = true;
         SetNativeShaderWarnings([]);
         Invalidate();
     }
@@ -75,7 +77,7 @@ public sealed partial class BfresRenderer
         EnableParallelCompile();
         foreach (var mesh in meshes)
             if (nativePending.TryGetValue(mesh.Source, out var shaders))
-                foreach (var translated in new[] { shaders.Material, shaders.ZOnly, shaders.DepthShadow })
+                foreach (var translated in new[] { shaders.Material, shaders.ZOnly, shaders.DepthShadow, shaders.CubeMap })
                     if (translated != null) StartGlProgram(translated);
         foreach (var mesh in meshes)
         {
@@ -83,6 +85,7 @@ public sealed partial class BfresRenderer
             UploadNativePass(mesh, shaders.Material, nativeMeshes, "Material (using simplified shading)", warnings);
             UploadNativePass(mesh, shaders.ZOnly, nativeDepthMeshes, "Z-only", warnings);
             UploadNativePass(mesh, shaders.DepthShadow, nativeShadowMeshes, "Depth-shadow", warnings);
+            UploadNativePass(mesh, shaders.CubeMap, nativeCubeMeshes, "Cube-map", warnings);
         }
         nativeDirty = false;
         SetNativeShaderWarnings(warnings);
@@ -341,7 +344,10 @@ public sealed partial class BfresRenderer
             GL.BindBufferBase(BufferRangeTarget.UniformBuffer, binding, passContext != 0 && buffer == nativeContext ? passContext : buffer);
         foreach (var (unit, bound, sampler) in native.Samplers)
         {
-            int texture = passContext != 0 && bound == shadowMap ? DefaultNativeTexture("shadow") : bound;
+            // The environment probe's capture reads the shadow map, but not the camera's screen-space occlusion.
+            int texture = passContext == shadowContext && bound == shadowMap ? DefaultNativeTexture("shadow")
+                : passContext != 0 && passContext == probeContext && bound != 0 && bound == ssaoMaps[1] ? DefaultNativeTexture("white")
+                : EnvironmentTexture(bound, passContext);
             GL.ActiveTexture(TextureUnit.Texture0 + unit);
             GL.BindTexture(TextureTarget.Texture2D, texture);
             GL.BindSampler(unit, sampler);
@@ -435,6 +441,7 @@ public sealed partial class BfresRenderer
         nativeMeshes.Clear();
         nativeDepthMeshes.Clear();
         nativeShadowMeshes.Clear();
+        nativeCubeMeshes.Clear();
         foreach (int buffer in studioBuffers.Values) GL.DeleteBuffer(buffer);
         studioBuffers.Clear();
         foreach (var p in nativePrograms.Values) { GL.DeleteBuffer(p.VertexConstants); GL.DeleteBuffer(p.FragmentConstants); }

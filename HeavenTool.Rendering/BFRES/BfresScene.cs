@@ -47,7 +47,8 @@ public sealed record BfresScene(IReadOnlyList<BfresAsset> Assets, BfresRenderer.
                 var prepared = new BfresMeshShaders(
                     PreparePass(model, mesh, BfresShaderPass.Material, failures, cancellation),
                     PreparePass(model, mesh, BfresShaderPass.ZOnly, failures, cancellation),
-                    PreparePass(model, mesh, BfresShaderPass.DepthShadow, failures, cancellation));
+                    PreparePass(model, mesh, BfresShaderPass.DepthShadow, failures, cancellation),
+                    mesh.Material.InEnvironmentCapture ? PreparePass(model, mesh, BfresShaderPass.CubeMap, failures, cancellation) : null);
 
                 if (prepared.Material != null || prepared.ZOnly != null || prepared.DepthShadow != null) programs.Add(mesh, prepared);
                 if (failures.Count > 0) errors[mesh] = string.Join("; ", failures);
@@ -75,6 +76,6 @@ public sealed record BfresScene(IReadOnlyList<BfresAsset> Assets, BfresRenderer.
     }
 }
 
-public sealed record BfresMeshShaders(TranslatedShader? Material, TranslatedShader? ZOnly, TranslatedShader? DepthShadow);
+public sealed record BfresMeshShaders(TranslatedShader? Material, TranslatedShader? ZOnly, TranslatedShader? DepthShadow, TranslatedShader? CubeMap = null);
 
 public sealed record BfresShaderPreparation(IReadOnlyDictionary<BfresMesh, BfresMeshShaders> Programs, IReadOnlyDictionary<BfresMesh, string> Errors);
