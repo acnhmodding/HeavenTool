@@ -89,6 +89,9 @@ public sealed class BfresViewport : OpenGlControlBase, ICustomHitTest
         {
             double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
             Renderer.Render(Math.Max(1, (int)(Bounds.Width * scale)), Math.Max(1, (int)(Bounds.Height * scale)), fb, (float)scale);
+            // The compositor takes the image once the GPU is done with it, which after an upload can be later than the
+            // repaint below, and the window then keeps the old image until something else repaints it.
+            if (Renderer.UploadedScene) GL.Finish();
             renderedVersion++;
             if (!presentationPending)
             {

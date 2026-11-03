@@ -135,6 +135,9 @@ public sealed partial class BfresRenderer
         pendingFrame = null;
     }
 
+    /// <summary>Whether the last frame uploaded the scene, which leaves the GPU much more to finish than drawing it does.</summary>
+    public bool UploadedScene { get; private set; }
+
     /// <summary>Renders into a host framebuffer, in physical pixels. Never swaps the host's buffers.</summary>
     public void Render(int pixelWidth, int pixelHeight, int framebuffer, float scale = 1)
     {
@@ -150,6 +153,7 @@ public sealed partial class BfresRenderer
             GL.ColorMask(true, true, true, true);
             EnsureOutputTarget();
             if (program == 0) InitializeRenderer();
+            UploadedScene = dirty || nativeDirty;
             if (dirty) UploadScene();
             if (nativeDirty) UploadNativeScene();
             UpdateMaterials();
