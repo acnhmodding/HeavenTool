@@ -192,8 +192,9 @@ public static class ParkUniforms
             Vector(result, 51 * 16, new(7.2f, 1.05f, 1, 1.4e8f));
             Vector(result, 60 * 16, new(.02f, .02f, 1, 0));
             Vector(result, 65 * 16, new(0, 1, 0, 0));
+            // x: where local lights start fading out across the light grid, the game's 32 in a room, past its walls.
             // y/z: start and length of the shadow distance fade around [87]; start it out of reach.
-            Vector(result, 66 * 16, new(-1, 100000, 1, 0));
+            Vector(result, 66 * 16, new(32, 100000, 1, 0));
             Vector(result, 77 * 16, new(.75f, .3f, 240, .15f));
             Vector(result, 81 * 16, new(1, .8f, 0, 0));
             Vector(result, 89 * 16, new(1, 0, 0, 0));
