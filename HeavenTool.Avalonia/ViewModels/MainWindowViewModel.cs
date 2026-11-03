@@ -313,11 +313,16 @@ public partial class MainWindowViewModel : ObservableObject
         if (Mods.Count == 0 && IsInstalledPage) await ReloadAsync();
     }
 
-    public static void OpenBCSV() => new BCSVWindow().Show();
+    // Bind ICommand properties explicitly; XAML's generated wrappers for these static methods contain invalid IL.
+    [RelayCommand]
+    private static void OpenBCSV() => new BCSVWindow().Show();
 
-    public static void OpenBFRES() => new BFRESWindow().Show();
+    [RelayCommand]
+    private static void OpenBFRES() => new BFRESWindow().Show();
 
-    public static void OpenVillagerCreator() => new VillagerCreatorWindow().Show();
+    [RelayCommand]
+    private static void OpenVillagerCreator() => new VillagerCreatorWindow().Show();
 
-    public static void OpenSettings() => SettingsWindow.ShowSingle();
+    [RelayCommand]
+    private static void OpenSettings() => SettingsWindow.ShowSingle();
 }

@@ -186,13 +186,13 @@
           <Separator Grid.Row="2" Margin="0,10"/>
           <StackPanel Grid.Row="3" Spacing="5">
             <TextBlock HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold">Modding Tools</TextBlock>
-            <Button HorizontalAlignment="Stretch" Command="{Binding OpenBCSV}">BCSV Editor</Button>
-            <Button HorizontalAlignment="Stretch" Command="{Binding OpenBFRES}">BFRES Viewer</Button>
-            <Button HorizontalAlignment="Stretch" Command="{Binding OpenVillagerCreator}">Villager Creator</Button>
+            <Button HorizontalAlignment="Stretch" Command="{Binding OpenBCSVCommand}">BCSV Editor</Button>
+            <Button HorizontalAlignment="Stretch" Command="{Binding OpenBFRESCommand}">BFRES Viewer</Button>
+            <Button HorizontalAlignment="Stretch" Command="{Binding OpenVillagerCreatorCommand}">Villager Creator</Button>
           </StackPanel>
 
           <Separator Grid.Row="4" Margin="0,10"/>
-          <Button Grid.Row="5" Content="Settings" HorizontalAlignment="Stretch" Command="{Binding OpenSettings}"/>
+          <Button Grid.Row="5" Content="Settings" HorizontalAlignment="Stretch" Command="{Binding OpenSettingsCommand}"/>
         </Grid>
       </SplitView.Pane>
 
