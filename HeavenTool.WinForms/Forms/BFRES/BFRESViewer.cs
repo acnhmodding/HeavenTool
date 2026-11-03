@@ -477,7 +477,7 @@ public partial class BFRESViewer : Form
     private void ChangeExposure(int step)
     {
         exposureHalfStops = Math.Clamp(exposureHalfStops + step, -8, 8);
-        viewport.Renderer.SetExposure(.06f * MathF.Pow(2, exposureHalfStops * .5f));
+        viewport.Renderer.SetExposure(MathF.Pow(2, exposureHalfStops * .5f));
         exposureItem.Text = $"Exposure: {exposureHalfStops * .5f:+0.0;-0.0;0} EV";
     }
 

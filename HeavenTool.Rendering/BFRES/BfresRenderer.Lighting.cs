@@ -8,10 +8,10 @@ public sealed partial class BfresRenderer
     // Lit frames render into a multisampled HDR target, resolved into hdrColor before tone mapping.
     private int hdrFramebuffer, hdrSamples, hdrDepth, resolveFramebuffer, resolveDepth, hdrColor, toneProgram, toneVao, toneExposure;
     private int hdrWidth, hdrHeight;
-    private float previewExposure = .06f;
+    private float previewExposure = 1;
     public void SetExposure(float value)
     {
-        if (!float.IsFinite(value) || value < .00375f || value > .96f) throw new ArgumentOutOfRangeException(nameof(value));
+        if (!float.IsFinite(value) || value < .0625f || value > 16f) throw new ArgumentOutOfRangeException(nameof(value));
         previewExposure = value; Invalidate();
     }
     private void BeginLightingFrame()
@@ -68,7 +68,12 @@ public sealed partial class BfresRenderer
                     void main() {
                         vec4 source=texture(frame,uv);
                         vec3 x=max(source.rgb,vec3(0))*exposure;
-                        vec3 mapped=clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.0,1.0);
+                        // Park_Proc ToneMapping, cExponentialLuminance: exponential on luminance, blended toward
+                        // per-channel 1-exp(-x) as the pixel brightens. mSaturateBias 0 leaves saturation as is.
+                        float luminance=dot(x,vec3(.298912,.586611,.114478)), k=1.0-exp(-luminance);
+                        vec3 byLuminance=luminance>0.0?x*(k/luminance):x;
+                        vec3 mapped=clamp(mix(byLuminance,1.0-exp(-x),k*k),0.0,1.0);
+                        // The game's color-grading volume is not recovered; encode for display in its place.
                         mapped=pow(mapped,vec3(1.0/2.2));
                         color=vec4(mix(vec3(.11,.12,.14),mapped,clamp(source.a,0.0,1.0)),1);
                     }
@@ -77,7 +82,7 @@ public sealed partial class BfresRenderer
             GL.UseProgram(toneProgram); GL.Uniform1(GL.GetUniformLocation(toneProgram, "frame"), 0);
         }
         GL.UseProgram(toneProgram);
-        // Fixed preview exposure, shared by Day/Night. The game's post-processing is not reconstructed.
+        // The game exposes by exp(mExpose); ToneMapping.byml ships mExpose 0, so scenes at game scale use 1.
         GL.Uniform1(toneExposure, previewExposure);
         GL.ActiveTexture(TextureUnit.Texture0); GL.BindTexture(TextureTarget.Texture2D, hdrColor); GL.BindSampler(0, 0);
         GL.BindVertexArray(toneVao); GL.DrawArrays(PrimitiveType.Triangles, 0, 3);

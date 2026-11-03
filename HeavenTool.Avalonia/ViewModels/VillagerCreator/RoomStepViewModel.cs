@@ -87,7 +87,6 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
         // The game darkens a room's floor under its furniture and along its walls by what stands over it.
         renderer.AmbientOcclusion = true;
         renderer.SetLighting(AcnhLightingPreset.Room);
-        renderer.SetExposure(AcnhLightingPreset.RoomExposure);
     }
 
     public void ReportRenderFailure(Exception error) => RenderError = error.Message;

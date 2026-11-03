@@ -109,7 +109,7 @@ public partial class BfresViewModel : ObservableObject, IDisposable
     }
     partial void OnLightingChanged(string value) { ApplyLighting(); UpdateStatus(); RefreshMaterial(); }
     partial void OnSkyFillChanged(bool value) => ApplyLighting();
-    partial void OnExposureChanged(double value) => renderer.SetExposure(.06f * MathF.Pow(2, (float)value));
+    partial void OnExposureChanged(double value) => renderer.SetExposure(MathF.Pow(2, (float)value));
     partial void OnPropertyFilterChanged(string value) => PopulateProperties();
     partial void OnShowAllPropertiesChanged(bool value) => PopulateProperties();
     partial void OnSelectedNodeChanged(BfresNode? value)

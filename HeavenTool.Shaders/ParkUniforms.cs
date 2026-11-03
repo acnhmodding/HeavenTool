@@ -57,10 +57,6 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
             new(new(-44.623f, 32.151f, 0), new(27.995f, 18.858f, 18.782f), 105.13f, 64.114f) { Direction = new(.75623f, -.6543f, 0), Cone = .91078f },
         ],
     };
-    // Matched by eye against the same room in the game, a little under it, as the game evens out its pale rooms where one
-    // exposure for all would wash them out.
-    public const float RoomExposure = .7f;
-
     // Viewer approximation for missing sky-derived indirect illumination; not a game uniform value.
     public Vector3 PreviewIndirectLight { get; init; }
     // Time-of-day gsys_user0 rows: [10] a sky direction, [17].w shadow strength, [21] fog colour, and
