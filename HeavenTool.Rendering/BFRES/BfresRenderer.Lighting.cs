@@ -73,9 +73,10 @@ public sealed partial class BfresRenderer
                         float luminance=dot(x,vec3(.298912,.586611,.114478)), k=1.0-exp(-luminance);
                         vec3 byLuminance=luminance>0.0?x*(k/luminance):x;
                         vec3 mapped=clamp(mix(byLuminance,1.0-exp(-x),k*k),0.0,1.0);
-                        // HDR_COLOR_CORRECTION: the grading volume at texel centers. The display encode stands in for the game's output.
+                        // HDR_COLOR_CORRECTION: the grading volume at texel centers.
                         if(graded) mapped=texture(grading,mapped*.875+.0625).rgb;
-                        mapped=pow(mapped,vec3(1.0/2.2));
+                        // ToneMapping writes linear color; the game's sRGB target applies the piecewise encode on store.
+                        mapped=mix(mapped*12.92,1.055*pow(mapped,vec3(1.0/2.4))-.055,step(.0031308,mapped));
                         color=vec4(mix(vec3(.11,.12,.14),mapped,clamp(source.a,0.0,1.0)),1);
                     }
                     """);
