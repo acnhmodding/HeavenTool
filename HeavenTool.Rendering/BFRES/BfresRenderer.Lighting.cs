@@ -6,7 +6,7 @@ public sealed partial class BfresRenderer
 {
     private const int Samples = 4;
     // Lit frames render into a multisampled HDR target, resolved into hdrColor before tone mapping.
-    private int hdrFramebuffer, hdrSamples, hdrDepth, resolveFramebuffer, resolveDepth, hdrColor, toneProgram, toneVao, toneExposure;
+    private int hdrFramebuffer, hdrSamples, hdrDepth, resolveFramebuffer, resolveDepth, hdrColor, toneProgram, toneVao, toneExposure, toneGraded;
     private int hdrWidth, hdrHeight;
     private float previewExposure = 1;
     public void SetExposure(float value)
@@ -64,7 +64,7 @@ public sealed partial class BfresRenderer
                     """, """
                     #version 330 core
                     in vec2 uv; out vec4 color;
-                    uniform sampler2D frame; uniform float exposure;
+                    uniform sampler2D frame; uniform sampler3D grading; uniform float exposure; uniform bool graded;
                     void main() {
                         vec4 source=texture(frame,uv);
                         vec3 x=max(source.rgb,vec3(0))*exposure;
@@ -73,15 +73,19 @@ public sealed partial class BfresRenderer
                         float luminance=dot(x,vec3(.298912,.586611,.114478)), k=1.0-exp(-luminance);
                         vec3 byLuminance=luminance>0.0?x*(k/luminance):x;
                         vec3 mapped=clamp(mix(byLuminance,1.0-exp(-x),k*k),0.0,1.0);
-                        // The game's color-grading volume is not recovered; encode for display in its place.
+                        // HDR_COLOR_CORRECTION: the grading volume at texel centers. The display encode stands in for the game's output.
+                        if(graded) mapped=texture(grading,mapped*.875+.0625).rgb;
                         mapped=pow(mapped,vec3(1.0/2.2));
                         color=vec4(mix(vec3(.11,.12,.14),mapped,clamp(source.a,0.0,1.0)),1);
                     }
                     """);
-            toneVao = GL.GenVertexArray(); toneExposure = GL.GetUniformLocation(toneProgram, "exposure");
-            GL.UseProgram(toneProgram); GL.Uniform1(GL.GetUniformLocation(toneProgram, "frame"), 0);
+            toneVao = GL.GenVertexArray(); toneExposure = GL.GetUniformLocation(toneProgram, "exposure"); toneGraded = GL.GetUniformLocation(toneProgram, "graded");
+            GL.UseProgram(toneProgram); GL.Uniform1(GL.GetUniformLocation(toneProgram, "frame"), 0); GL.Uniform1(GL.GetUniformLocation(toneProgram, "grading"), 1);
         }
+        bool graded = PrepareGrading();
         GL.UseProgram(toneProgram);
+        GL.Uniform1(toneGraded, graded ? 1 : 0);
+        GL.ActiveTexture(TextureUnit.Texture1); GL.BindTexture(TextureTarget.Texture3D, graded ? gradingTexture : 0); GL.BindSampler(1, 0);
         // The game exposes by exp(mExpose); ToneMapping.byml ships mExpose 0, so scenes at game scale use 1.
         GL.Uniform1(toneExposure, previewExposure);
         GL.ActiveTexture(TextureUnit.Texture0); GL.BindTexture(TextureTarget.Texture2D, hdrColor); GL.BindSampler(0, 0);
@@ -100,6 +104,7 @@ public sealed partial class BfresRenderer
     private void ReleaseLighting()
     {
         ReleaseLightingTarget();
+        ReleaseGrading();
         if (toneProgram != 0) GL.DeleteProgram(toneProgram);
         if (toneVao != 0) GL.DeleteVertexArray(toneVao);
         toneProgram = toneVao = 0;

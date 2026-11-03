@@ -67,6 +67,8 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     public IReadOnlyDictionary<int, Vector4> Environment { get; init; } = new Dictionary<int, Vector4>();
     // The gsys_user1 light list, at most seven lights, all within the light grid around the origin.
     public IReadOnlyList<AcnhLocalLight> LocalLights { get; init; } = [];
+    // The color-grading volume ToneMapping samples; none leaves the tone-mapped color as is.
+    public AcnhColorGrading? ColorGrading { get; init; }
 }
 
 /// <summary>
@@ -79,6 +81,9 @@ public sealed record AcnhLocalLight(Vector3 Position, Vector3 Color, float Start
     public Vector3 Direction { get; init; }
     public float Cone { get; init; }
 }
+
+/// <summary>agl's color_correction_map program and the filter block it bakes into the grading volume.</summary>
+public sealed record AcnhColorGrading(SwitchProcessShaderProgram Map, byte[] Filters);
 
 public static class ParkUniforms
 {

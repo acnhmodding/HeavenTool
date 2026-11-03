@@ -56,7 +56,7 @@ public sealed partial class VillagerGameData
     {
         Romfs = romfs;
         staticParam = new(() => ReadSarc(Path.Combine(Romfs, "Pack", StaticParamArchive + ".pack")));
-        environment = new(() => AcnhEnvironmentResources.Read(ReadParam, AcnhSunOrbit.Load(Romfs)));
+        environment = new(() => AcnhEnvironmentResources.Read(ReadParam, Romfs));
         itemNames = new(LoadItemNames);
         villagers = new(LoadVillagers);
         nameColors = new(() => ReadParam(NameColor.ParamPath) is { } root ? NameColor.ReadAll(root) : []);

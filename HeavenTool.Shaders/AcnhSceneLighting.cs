@@ -26,6 +26,8 @@ public static class AcnhSceneLighting
             User0 = User0(baseline, palette, stage, resources.SkyScatter, resources.SunOrbit.SkyDirection(hour, inside), inside),
             Environment = baseline.Environment,
             LocalLights = inside ? RoomLights(resources.VillagerRoomLight, palette) : [],
+            // The villager room's EnvRoom grading; the outdoor Env grading is disabled.
+            ColorGrading = inside && resources.RoomColorCorrection.Filters is { } filters ? new(resources.ColorCorrectionMap, filters) : null,
         };
     }
 
