@@ -100,7 +100,7 @@ public sealed class AcnhColorCorrection
 
     private static uint Crc(string name) => name.ToCRC32();
 
-    private static SarcFile OpenArchive(byte[] data)
+    internal static SarcFile OpenArchive(byte[] data)
     {
         if (data.AsSpan().StartsWith("Yaz0"u8))
         {
@@ -113,11 +113,11 @@ public sealed class AcnhColorCorrection
         return new SarcFileReader().Read(stream);
     }
 
-    private static byte[] Entry(SarcFile archive, string name) =>
+    internal static byte[] Entry(SarcFile archive, string name) =>
         archive.Files.SingleOrDefault(file => file.Name == name)?.Data ?? throw new InvalidDataException($"Missing {name}.");
 
     /// <summary>A sead curve; only the Hermit2D (x, y, tangent) kind is recovered.</summary>
-    private sealed class Curve(int used, int type, float[] values)
+    internal sealed class Curve(int used, int type, float[] values)
     {
         // sead's Hermit2D (71037e8910): flat outside the keys, unscaled tangents within a segment.
         public float Evaluate(float x)
@@ -140,7 +140,7 @@ public sealed class AcnhColorCorrection
     }
 
     // AAMP v2: offsets count 4-byte words from the entry that holds them; parameters are looked up by CRC32 name.
-    private sealed class Aamp(byte[] data)
+    internal sealed class Aamp(byte[] data)
     {
         public int Int(int offset) => BinaryPrimitives.ReadInt32LittleEndian(Span(offset, 4));
 
@@ -154,7 +154,7 @@ public sealed class AcnhColorCorrection
 
         public Dictionary<uint, (int Type, int Data)> Parameters(int obj)
         {
-            if (obj < 0) throw new InvalidDataException("Missing color-correction object.");
+            if (obj < 0) throw new InvalidDataException("Missing AAMP object.");
             int first = obj + BinaryPrimitives.ReadUInt16LittleEndian(Span(obj + 4, 2)) * 4, count = BinaryPrimitives.ReadUInt16LittleEndian(Span(obj + 6, 2));
             var parameters = new Dictionary<uint, (int, int)>();
             for (int i = 0; i < count; i++)
@@ -166,12 +166,20 @@ public sealed class AcnhColorCorrection
             return parameters;
         }
 
-        private int Data(Dictionary<uint, (int Type, int Data)> p, string name, int type)
+        private int Data(Dictionary<uint, (int Type, int Data)> p, string name, int type) => Data(p, Crc(name), type, name);
+
+        private int Data(Dictionary<uint, (int Type, int Data)> p, uint hash, int type, string? name = null)
         {
-            if (!p.TryGetValue(Crc(name), out var value)) throw new InvalidDataException($"Missing color-correction parameter {name}.");
-            if (value.Type != type) throw new InvalidDataException($"Unexpected type for color-correction parameter {name}.");
+            name ??= $"{hash:x8}";
+            if (!p.TryGetValue(hash, out var value)) throw new InvalidDataException($"Missing AAMP parameter {name}.");
+            if (value.Type != type) throw new InvalidDataException($"Unexpected type for AAMP parameter {name}.");
             return value.Data;
         }
+
+        public float Float(Dictionary<uint, (int Type, int Data)> p, string name) => Float(Data(p, name, 1));
+        // Some parameters are only known by their CRC32 name.
+        public float Float(Dictionary<uint, (int Type, int Data)> p, uint hash) => Float(Data(p, hash, 1));
+        public int Int(Dictionary<uint, (int Type, int Data)> p, uint hash) => Int(Data(p, hash, 2));
 
         public bool Bool(Dictionary<uint, (int Type, int Data)> p, string name) => Span(Data(p, name, 0), 1)[0] != 0;
         public int Int(Dictionary<uint, (int Type, int Data)> p, string name) => Int(Data(p, name, 2));

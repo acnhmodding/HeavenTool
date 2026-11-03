@@ -12,8 +12,6 @@ public sealed partial class BfresRenderer
     private const int WorldAoSize = 512;
     // How far the heights spread when blurred, in world units: the reach of the darkening around a model.
     private const float WorldAoSpread = 2.5f;
-    // How far around a point the screen-space pass looks for what stands over it, in world units, and how dark it gets.
-    private const float SsaoRadius = 4, SsaoStrength = 2.5f;
     private bool occlusion;
     // The world map is drawn once per scene, like the shadow map: heights from above into worldAoDepth, then blurred across
     // into worldAoMaps[0] and down into worldAoMaps[1], which the shaders sample.
@@ -22,10 +20,6 @@ public sealed partial class BfresRenderer
     private bool worldAoDirty = true;
     // gsys_user0 rows [0] and [1], which take a world position to the world map's texture coordinates.
     private System.Numerics.Vector4 worldAoU, worldAoV;
-    // The screen-space map is drawn every frame at half the frame's size, as the game does: the depth the camera sees into
-    // ssaoDepth, its occlusion into ssaoMaps[1], blurred across into ssaoMaps[0] and back.
-    private int ssaoDepth, ssaoDepthFramebuffer, ssaoProgram, ssaoWidth, ssaoHeight;
-    private readonly int[] ssaoMaps = new int[2], ssaoFramebuffers = new int[2];
     private int blurProgram, blurVao;
 
     /// <summary>
@@ -83,17 +77,6 @@ public sealed partial class BfresRenderer
         return worldAoMaps[1];
     }
 
-    // Its size follows the frame's, so it is laid out when the frame is drawn.
-    private int SsaoMap()
-    {
-        if (ssaoMaps[1] != 0) return ssaoMaps[1];
-        ssaoDepth = GL.GenTexture();
-        ssaoDepthFramebuffer = GL.GenFramebuffer();
-        for (int i = 0; i < 2; i++) { ssaoMaps[i] = GL.GenTexture(); ssaoFramebuffers[i] = GL.GenFramebuffer(); }
-        ssaoWidth = ssaoHeight = 0;
-        return ssaoMaps[1];
-    }
-
     private void RenderWorldAo()
     {
         if (!occlusion || !worldAoDirty || worldAoMaps[1] == 0) return;
@@ -115,96 +98,7 @@ public sealed partial class BfresRenderer
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, outputFramebuffer);
     }
 
-    // Draws after the frame's camera context is up to date, and leaves the frame's target bound as it found it.
-    private void RenderSsao(Matrix4 projection)
-    {
-        if (!occlusion || ssaoMaps[1] == 0) return;
-        int w = Math.Max(1, width / 2), h = Math.Max(1, height / 2);
-        if (ssaoWidth != w || ssaoHeight != h)
-        {
-            ssaoWidth = w;
-            ssaoHeight = h;
-            GL.BindTexture(TextureTarget.Texture2D, ssaoDepth);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.DepthComponent32f, w, h, 0, PixelFormat.DepthComponent, PixelType.Float, IntPtr.Zero);
-            TextureParameters(TextureMinFilter.Nearest);
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssaoDepthFramebuffer);
-            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D, ssaoDepth, 0);
-            GL.DrawBuffer(DrawBufferMode.None);
-            GL.ReadBuffer(ReadBufferMode.None);
-            for (int i = 0; i < 2; i++)
-            {
-                GL.BindTexture(TextureTarget.Texture2D, ssaoMaps[i]);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, w, h, 0, PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
-                // The shaders read the map a level down, already softened.
-                TextureParameters(i == 1 ? TextureMinFilter.LinearMipmapLinear : TextureMinFilter.Linear);
-                if (i == 1) GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
-                GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssaoFramebuffers[i]);
-                GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, ssaoMaps[i], 0);
-            }
-        }
-        DrawDepth(ssaoDepthFramebuffer, w, h, nativeContext);
-
-        if (ssaoProgram == 0)
-        {
-            ssaoProgram = CreateProgram(FullScreenVertexShader, """
-                #version 330 core
-                in vec2 uv; out vec4 color;
-                uniform sampler2D depth; uniform mat4 projection, unprojection; uniform float radius, strength;
-                vec3 ViewPosition(vec2 at) {
-                    vec4 position=unprojection*vec4(vec3(at,texture(depth,at).r)*2.0-1.0,1.0);
-                    return position.xyz/position.w;
-                }
-                void main() {
-                    // Derivatives first, while every pixel is still running.
-                    vec3 position=ViewPosition(uv), normal=normalize(cross(dFdx(position),dFdy(position)));
-                    if (texture(depth,uv).r>=1.0) { color=vec4(1); return; }
-                    if (dot(normal,position)>0.0) normal=-normal;
-                    vec3 tangent=normalize(cross(normal,abs(normal.y)<.99 ? vec3(0,1,0) : vec3(1,0,0))), bitangent=cross(normal,tangent);
-                    // A turn of the sample spiral for each pixel, which the blur after evens out.
-                    float turn=6.2831853*fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));
-                    float occluded=0.0;
-                    for (int i=0; i<16; i++) {
-                        float along=(float(i)+.5)/16.0, angle=float(i)*2.3999632+turn;
-                        vec2 disc=vec2(cos(angle),sin(angle))*sqrt(along);
-                        vec3 probe=position+(tangent*disc.x+bitangent*disc.y+normal*sqrt(1.0-along))*radius*mix(.1,1.0,along*along);
-                        vec4 clip=projection*vec4(probe,1.0);
-                        float seen=ViewPosition(clip.xy/clip.w*.5+.5).z;
-                        // What is far in front of the point is something else, and leaves it be.
-                        occluded+=step(probe.z+radius*.02,seen)*smoothstep(0.0,1.0,radius/abs(position.z-seen));
-                    }
-                    color=vec4(clamp(1.0-strength*occluded/16.0,0.0,1.0));
-                }
-                """);
-            GL.UseProgram(ssaoProgram);
-            GL.Uniform1(GL.GetUniformLocation(ssaoProgram, "depth"), 0);
-        }
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssaoFramebuffers[1]);
-        GL.Disable(EnableCap.DepthTest);
-        GL.Disable(EnableCap.FramebufferSrgb);
-        GL.UseProgram(ssaoProgram);
-        var unprojection = projection.Inverted();
-        GL.UniformMatrix4(GL.GetUniformLocation(ssaoProgram, "projection"), false, ref projection);
-        GL.UniformMatrix4(GL.GetUniformLocation(ssaoProgram, "unprojection"), false, ref unprojection);
-        GL.Uniform1(GL.GetUniformLocation(ssaoProgram, "radius"), SsaoRadius);
-        GL.Uniform1(GL.GetUniformLocation(ssaoProgram, "strength"), SsaoStrength);
-        GL.ActiveTexture(TextureUnit.Texture0);
-        GL.BindSampler(0, 0);
-        GL.BindTexture(TextureTarget.Texture2D, ssaoDepth);
-        GL.BindVertexArray(BlurVao());
-        GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
-        // About two pixels either way.
-        Blur(ssaoMaps[1], ssaoMaps[0], ssaoFramebuffers, w, h, 2f / w, null);
-        GL.BindTexture(TextureTarget.Texture2D, ssaoMaps[1]);
-        GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
-
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, hdrFramebuffer);
-        GL.Viewport(0, 0, width, height);
-        GL.Enable(EnableCap.DepthTest);
-        GL.DepthMask(true);
-        GL.PolygonMode(TriangleFace.FrontAndBack, wireframe ? PolygonMode.Line : PolygonMode.Fill);
-    }
-
-    // Camera/world-AO depth excludes authored shadow-only geometry and uses each material's Z-only variant.
+    // World-AO depth excludes authored shadow-only geometry and uses each material's Z-only variant.
     private void DrawDepth(int framebuffer, int w, int h, int context)
     {
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer);
@@ -279,18 +173,15 @@ public sealed partial class BfresRenderer
 
     private void ReleaseOcclusion()
     {
-        foreach (int texture in worldAoMaps.Concat(ssaoMaps).Append(worldAoDepth).Append(ssaoDepth)) if (texture != 0) GL.DeleteTexture(texture);
-        foreach (int framebuffer in worldAoFramebuffers.Concat(ssaoFramebuffers).Append(worldAoDepthFramebuffer).Append(ssaoDepthFramebuffer))
-            if (framebuffer != 0) GL.DeleteFramebuffer(framebuffer);
+        ReleaseSsao();
+        foreach (int texture in worldAoMaps.Append(worldAoDepth)) if (texture != 0) GL.DeleteTexture(texture);
+        foreach (int framebuffer in worldAoFramebuffers.Append(worldAoDepthFramebuffer)) if (framebuffer != 0) GL.DeleteFramebuffer(framebuffer);
         if (worldAoContext != 0) GL.DeleteBuffer(worldAoContext);
-        foreach (int id in new[] { ssaoProgram, blurProgram }) if (id != 0) GL.DeleteProgram(id);
+        if (blurProgram != 0) GL.DeleteProgram(blurProgram);
         if (blurVao != 0) GL.DeleteVertexArray(blurVao);
         Array.Clear(worldAoMaps);
         Array.Clear(worldAoFramebuffers);
-        Array.Clear(ssaoMaps);
-        Array.Clear(ssaoFramebuffers);
-        worldAoDepth = worldAoDepthFramebuffer = worldAoContext = ssaoDepth = ssaoDepthFramebuffer = ssaoProgram = blurProgram = blurVao = 0;
-        ssaoWidth = ssaoHeight = 0;
+        worldAoDepth = worldAoDepthFramebuffer = worldAoContext = blurProgram = blurVao = 0;
         worldAoDirty = true;
     }
 }

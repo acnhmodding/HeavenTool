@@ -72,6 +72,8 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     public AcnhColorGrading? ColorGrading { get; init; }
     // The environment cube the game captures and turns into gsys_cube_map's panorama; none keeps the studio panorama.
     public AcnhEnvironmentProbe? EnvironmentProbe { get; init; }
+    // agl's screen-space AO passes and the stage's settings for them; none leaves gsys_ssao white.
+    public AcnhScreenOcclusion? ScreenOcclusion { get; init; }
 }
 
 /// <summary>
@@ -90,6 +92,9 @@ public sealed record AcnhEnvironmentProbe(Vector3 Position, float Near, float Fa
 
 /// <summary>agl's color_correction_map program and the filter block it bakes into the grading volume.</summary>
 public sealed record AcnhColorGrading(SwitchProcessShaderProgram Map, byte[] Filters);
+
+/// <summary>agl's SSAO programs, and the stage's ssao_parameter they are drawn with.</summary>
+public sealed record AcnhScreenOcclusion(AcnhAmbientOcclusion Passes, AcnhSsaoParameters Settings);
 
 public static class ParkUniforms
 {

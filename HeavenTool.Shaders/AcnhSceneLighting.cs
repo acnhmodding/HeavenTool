@@ -32,6 +32,7 @@ public static class AcnhSceneLighting
             // envinside.baglcube's capture height and clip range. CubeMapMgr (71014e5f0c) moves the capture at run time, so
             // its authored (40, 20, 40) is not kept; the room's middle is the origin here.
             EnvironmentProbe = inside ? new(new(0, 20, 0), 1, 10000, resources.Panorama) : null,
+            ScreenOcclusion = new(resources.AmbientOcclusion, inside ? resources.AmbientOcclusion.Inside : resources.AmbientOcclusion.Outside),
         };
     }
 

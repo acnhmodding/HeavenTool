@@ -22,7 +22,7 @@ public sealed partial class BfresRenderer
         """;
 
     private int normalizedLinearDepth, cameraDepthCopy, cameraDepthFramebuffer, normalizedDepthFramebuffer;
-    private int normalizedDepthProgram, normalizedDepthVao, normalizedDepthWidth, normalizedDepthHeight;
+    private int normalizedDepthProgram, normalizedDepthVao, normalizedDepthWidth, normalizedDepthHeight, cameraDepthWidth, cameraDepthHeight;
 
     private int NormalizedLinearDepthMap()
     {
@@ -40,12 +40,9 @@ public sealed partial class BfresRenderer
     private void RenderNormalizedLinearDepth(Matrix4 projection, float near, float far)
     {
         if (normalizedLinearDepth == 0) return;
+        CopyCameraDepth();
         EnsureNormalizedDepthTargets();
         EnsureNormalizedDepthProgram();
-
-        GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, hdrFramebuffer);
-        GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, cameraDepthFramebuffer);
-        GL.BlitFramebuffer(0, 0, width, height, 0, 0, width, height, ClearBufferMask.DepthBufferBit, BlitFramebufferFilter.Nearest);
 
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, normalizedDepthFramebuffer);
         GL.Viewport(0, 0, width, height);
@@ -72,15 +69,23 @@ public sealed partial class BfresRenderer
         GL.PolygonMode(TriangleFace.FrontAndBack, wireframe ? PolygonMode.Line : PolygonMode.Fill);
     }
 
-    private void EnsureNormalizedDepthTargets()
+    // A single-sampled copy of the frame's depth so far, which the SSAO passes also read.
+    private void CopyCameraDepth()
+    {
+        EnsureCameraDepthCopy();
+        GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, hdrFramebuffer);
+        GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, cameraDepthFramebuffer);
+        GL.BlitFramebuffer(0, 0, width, height, 0, 0, width, height, ClearBufferMask.DepthBufferBit, BlitFramebufferFilter.Nearest);
+    }
+
+    private void EnsureCameraDepthCopy()
     {
         if (cameraDepthCopy == 0)
         {
             cameraDepthCopy = GL.GenTexture();
             cameraDepthFramebuffer = GL.GenFramebuffer();
-            normalizedDepthFramebuffer = GL.GenFramebuffer();
         }
-        if (normalizedDepthWidth == width && normalizedDepthHeight == height) return;
+        if (cameraDepthWidth == width && cameraDepthHeight == height) return;
 
         GL.BindTexture(TextureTarget.Texture2D, cameraDepthCopy);
         // Depth blits must match the multisampled HDR target's depth format.
@@ -91,6 +96,14 @@ public sealed partial class BfresRenderer
         GL.DrawBuffer(DrawBufferMode.None);
         GL.ReadBuffer(ReadBufferMode.None);
         CheckFramebufferComplete("Opaque camera depth");
+        cameraDepthWidth = width;
+        cameraDepthHeight = height;
+    }
+
+    private void EnsureNormalizedDepthTargets()
+    {
+        if (normalizedDepthFramebuffer == 0) normalizedDepthFramebuffer = GL.GenFramebuffer();
+        if (normalizedDepthWidth == width && normalizedDepthHeight == height) return;
 
         // Resize the existing texture object: native sampler bindings keep its identity across viewport changes.
         GL.BindTexture(TextureTarget.Texture2D, normalizedLinearDepth);
@@ -130,6 +143,6 @@ public sealed partial class BfresRenderer
         normalizedLinearDepth = cameraDepthCopy = 0;
         cameraDepthFramebuffer = normalizedDepthFramebuffer = 0;
         normalizedDepthProgram = normalizedDepthVao = 0;
-        normalizedDepthWidth = normalizedDepthHeight = 0;
+        normalizedDepthWidth = normalizedDepthHeight = cameraDepthWidth = cameraDepthHeight = 0;
     }
 }

@@ -193,7 +193,7 @@ public sealed partial class BfresRenderer
                 : Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver4, aspect, near, far);
             var matrix = view * projection;
             UpdateNativeContext(view, projection, near, far);
-            RenderSsao(projection);
+            RenderSsao(projection, near, far);
             SetFrameUniforms(matrix);
             transparent.Clear();
             NativeDrawCount = 0;

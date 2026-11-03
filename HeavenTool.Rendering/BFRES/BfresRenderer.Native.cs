@@ -330,6 +330,7 @@ public sealed partial class BfresRenderer
             return;
         }
         ApplyRasterState(mesh.Material.Profile);
+        MatchPrepassedDepth(mesh);
         GL.Enable(EnableCap.FramebufferSrgb);
         DrawNativeMesh(mesh, native);
         NativeDrawCount++;
