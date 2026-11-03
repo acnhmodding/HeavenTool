@@ -3,6 +3,7 @@ using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HeavenTool.Avalonia.Settings;
+using HeavenTool.IO.AcnhEnvironment;
 using HeavenTool.IO.FileFormats.BFRES;
 using HeavenTool.Rendering.BFRES;
 using HeavenTool.Shaders;
@@ -26,16 +27,17 @@ public partial class BfresViewModel : ObservableObject, IDisposable
     // Game materials load with each model, from the romfs in Settings or the model's own.
     private SwitchShaderArchive? shaderArchive;
     private string? shaderArchivePath;
+    private AcnhEnvironmentResources? environment;
+    private string? environmentRomfs;
     private IReadOnlyList<BfresAsset> assets = [];
     private string sourceName = "";
-    private string[] modelWarnings = [], shaderWarnings = [];
+    private string[] modelWarnings = [], shaderWarnings = [], environmentWarnings = [];
     private (int Native, int Fallback) drawCounts;
     private readonly Dictionary<BfresBone, BfresNode> boneNodes = new(ReferenceEqualityComparer.Instance);
     private IReadOnlySet<(string Name, int Component)>? materialUsage;
 
     public ObservableCollection<BfresNode> Roots { get; } = [];
     public ObservableCollection<BfresMaterialValue> Properties { get; } = [];
-    public string[] LightingPresets { get; } = ["Day", "Night"];
     [ObservableProperty]
     public partial string Title { get; set; } = "BFRES Viewer";
     [ObservableProperty]
@@ -54,10 +56,12 @@ public partial class BfresViewModel : ObservableObject, IDisposable
     public partial bool Wireframe { get; set; }
     [ObservableProperty]
     public partial bool ShowBones { get; set; }
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsDay), nameof(IsNight))]
-    public partial string Lighting { get; set; } = "Day";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(TimeText))]
+    public partial double TimeOfDay { get; set; } = 720;
     [ObservableProperty]
-    public partial bool SkyFill { get; set; } = true;
+    public partial bool HasGameEnvironment { get; set; }
+    [ObservableProperty]
+    public partial bool SkyFill { get; set; }
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ExposureText))]
     public partial double Exposure { get; set; }
     [ObservableProperty]
@@ -83,13 +87,12 @@ public partial class BfresViewModel : ObservableObject, IDisposable
 
     private BfresMaterial? material;
 
-    // Radio menu items set these; unchecking one leaves the choice to its sibling.
-    public bool IsDay { get => Lighting == "Day"; set { if (value) Lighting = "Day"; } }
-    public bool IsNight { get => Lighting == "Night"; set { if (value) Lighting = "Night"; } }
+    public string TimeText => $"{(int)TimeOfDay / 60:00}:{(int)TimeOfDay % 60:00}";
 
     public string ExposureText => Exposure == 0 ? "0 EV" : Exposure.ToString("+0.0;-0.0", CultureInfo.InvariantCulture) + " EV";
     public bool HasWarnings => !string.IsNullOrEmpty(Warning);
-    public string WarningSummary => (modelWarnings.Length + shaderWarnings.Length + renderer.NativeShaderWarnings.Count) switch { 1 => "1 warning", var n => $"{n} warnings" };
+    public string WarningSummary => AllWarnings.Count() switch { 1 => "1 warning", var n => $"{n} warnings" };
+    private IEnumerable<string> AllWarnings => modelWarnings.Concat(shaderWarnings).Concat(environmentWarnings).Concat(renderer.NativeShaderWarnings);
 
     public BfresViewModel(BfresRenderer renderer, IStorageProvider storage)
     {
@@ -103,11 +106,11 @@ public partial class BfresViewModel : ObservableObject, IDisposable
 
     partial void OnWireframeChanged(bool value) => renderer.Wireframe = value;
     partial void OnShowBonesChanged(bool value) => renderer.ShowBones = value;
-    partial void OnLightingChanging(string value)
+    partial void OnTimeOfDayChanging(double value)
     {
-        if (value is not ("Day" or "Night")) throw new ArgumentException("Unknown lighting preset.", nameof(value));
+        if (!double.IsFinite(value) || value is < 0 or > 1439) throw new ArgumentOutOfRangeException(nameof(value));
     }
-    partial void OnLightingChanged(string value) { ApplyLighting(); UpdateStatus(); RefreshMaterial(); }
+    partial void OnTimeOfDayChanged(double value) { ApplyLighting(); UpdateStatus(); }
     partial void OnSkyFillChanged(bool value) => ApplyLighting();
     partial void OnExposureChanged(double value) => renderer.SetExposure(MathF.Pow(2, (float)value));
     partial void OnPropertyFilterChanged(string value) => PopulateProperties();
@@ -122,9 +125,9 @@ public partial class BfresViewModel : ObservableObject, IDisposable
 
     private void ApplyLighting()
     {
-        var preset = Lighting == "Night" ? AcnhLightingPreset.Night : AcnhLightingPreset.Day;
-        if (!SkyFill) preset = preset with { PreviewIndirectLight = System.Numerics.Vector3.Zero };
-        renderer.SetLighting(preset);
+        var preset = environment != null ? AcnhSceneLighting.Evaluate(environment, (float)TimeOfDay / 60) : AcnhLightingPreset.Day;
+        var fill = SkyFill ? AcnhLightingPreset.Day.PreviewIndirectLight : System.Numerics.Vector3.Zero;
+        renderer.SetLighting(preset with { PreviewIndirectLight = fill });
     }
 
     [RelayCommand] private void FrameAll() => renderer.FrameScene();
@@ -132,7 +135,6 @@ public partial class BfresViewModel : ObservableObject, IDisposable
     [RelayCommand] private void ToggleBones() => ShowBones = !ShowBones;
     [RelayCommand] private void ResetExposure() => Exposure = 0;
     [RelayCommand] private void ChangeExposure(string steps) => Exposure = Math.Clamp(Exposure + double.Parse(steps, CultureInfo.InvariantCulture), -4, 4);
-    [RelayCommand] private void SetLighting(string preset) => Lighting = preset;
     [RelayCommand] private void DismissError() => Error = null;
 
     private static readonly string[] ModelPatterns = ["*.bfres", "*.sbfres", "*.zs", "*.szs", "*.sarc"];
@@ -201,6 +203,7 @@ public partial class BfresViewModel : ObservableObject, IDisposable
                     request.Token.ThrowIfCancellationRequested();
                     (shaderArchive, shaderArchivePath) = (archive, shaderPath);
                 }
+                await LoadEnvironmentAsync(shaderArchivePath, request.Token);
                 await PrepareShadersAsync(request.Token);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -220,6 +223,33 @@ public partial class BfresViewModel : ObservableObject, IDisposable
         (GameFiles.FindRomfs(AppSettings.Current.RomfsFolder) is { } romfs ? BfresScene.FindRomfsShaderArchive(romfs) : null)
         ?? (modelPath != null ? BfresScene.FindShaderArchive(modelPath) : null);
 
+    private async Task LoadEnvironmentAsync(string? archivePath, CancellationToken cancellation)
+    {
+        string? romfs = archivePath == null ? GameFiles.FindRomfs(AppSettings.Current.RomfsFolder)
+            : Path.GetDirectoryName(Path.GetDirectoryName(archivePath));
+        if (romfs == environmentRomfs && environment != null) return;
+        environment = null;
+        HasGameEnvironment = false;
+        environmentWarnings = [];
+        try
+        {
+            if (romfs != null)
+            {
+                var loaded = await Task.Run(() => AcnhEnvironmentResources.Load(romfs), cancellation);
+                cancellation.ThrowIfCancellationRequested();
+                environment = loaded;
+                environmentRomfs = romfs;
+                HasGameEnvironment = true;
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            environmentWarnings = [$"Couldn't load the game's time-of-day lighting: {ex.Message}"];
+        }
+        ApplyLighting();
+        UpdateWarning();
+    }
+
     private async Task PrepareShadersAsync(CancellationToken cancellation)
     {
         if (shaderArchive == null || assets.Count == 0) return;
@@ -235,7 +265,7 @@ public partial class BfresViewModel : ObservableObject, IDisposable
         UpdateWarning();
     }
 
-    private void UpdateWarning() => Warning = string.Join(Environment.NewLine, modelWarnings.Concat(shaderWarnings).Concat(renderer.NativeShaderWarnings));
+    private void UpdateWarning() => Warning = string.Join(Environment.NewLine, AllWarnings);
 
     private CancellationTokenSource BeginRequest(ref CancellationTokenSource? slot, string status)
     {
@@ -304,7 +334,9 @@ public partial class BfresViewModel : ObservableObject, IDisposable
         // Without a 3D view there are no draw counts to report.
         if (RenderError != null) { Status = "3D view unavailable."; return; }
         int count = renderer.NativeDrawCount + renderer.FallbackDrawCount;
-        Status = $"{count:N0} meshes · {Lighting}" + (renderer.FallbackDrawCount > 0 ? " · Some materials use simplified shading" : "");
+        string lighting = HasGameEnvironment ? TimeText : "Preview lighting";
+        string fallback = renderer.FallbackDrawCount > 0 ? " · Some materials use simplified shading" : "";
+        Status = $"{count:N0} meshes · {lighting}{fallback}";
     }
 
     private void UpdateTitle() => Title = $"BFRES Viewer: {sourceName}" +

@@ -108,7 +108,7 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
             });
             Data = data;
             Catalog = catalog;
-            Preview = new HousePreview(romfs);
+            Preview = new HousePreview(romfs, () => data.Environment);
             RoomPreview = new RoomPreview(data);
             Donor.Initialize();
             Traits.Initialize();

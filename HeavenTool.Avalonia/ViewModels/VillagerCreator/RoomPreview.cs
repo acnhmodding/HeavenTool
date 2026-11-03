@@ -15,8 +15,8 @@ using System.Threading.Tasks;
 namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 
 /// <summary>A villager's room put together from the room models and its items, ready to show in a viewport.</summary>
-public sealed record RoomScene(BfresRenderer.PreparedScene Geometry, IReadOnlyDictionary<BfresMesh, TranslatedShader> Shaders,
-    IReadOnlyList<string> Warnings);
+public sealed record RoomScene(BfresRenderer.PreparedScene Geometry, IReadOnlyDictionary<BfresMesh, BfresMeshShaders> Shaders,
+    IReadOnlyList<string> Warnings, AcnhLightingPreset? Lighting);
 
 /// <summary>
 /// Builds room previews from the romfs models: the floor and the back and side walls of a 6×6 room, with its wallpaper and
@@ -36,8 +36,8 @@ public sealed class RoomPreview(VillagerGameData data)
     private const string WallModel = "RoomMdlWall";
     private const string FloorMaterial = "mDummyFloor";
     private const string WallMaterial = "mDummyWall";
-    // The room models' shadow casters and the strip around the floor only show from outside.
-    private static readonly string[] HiddenMaterials = ["mShadow", "mOutside"];
+    // Keep authored shadow-only meshes for the light pass; only the outside floor strip is excluded from the scene.
+    private static readonly string[] HiddenMaterials = ["mOutside"];
 
     private const string SharedTextures = "RoomTexShareTexture";
     // The room maps the placeholder materials ask for, by the shared texture the game gives them. Without them the floor reads
@@ -70,7 +70,8 @@ public sealed class RoomPreview(VillagerGameData data)
 
     private readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<BfresModel>>> models = new();
     private readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<BntxTexture>>> textures = new();
-    private readonly ConcurrentDictionary<BfresMesh, TranslatedShader?> programs = new();
+    private readonly ConcurrentDictionary<BfresMesh, BfresMeshShaders?> programs = new();
+    private readonly ConcurrentDictionary<BfresMesh, string> shaderErrors = new();
     private readonly Lazy<SwitchShaderArchive?> shaders = new(() =>
         BfresScene.FindRomfsShaderArchive(data.Romfs) is { } path ? SwitchShaderArchive.Load(path) : null);
 
@@ -86,6 +87,16 @@ public sealed class RoomPreview(VillagerGameData data)
     private RoomScene? Build(VillagerRoom room, CancellationToken cancellation)
     {
         var warnings = new List<string>();
+        AcnhLightingPreset? lighting = null;
+        try
+        {
+            lighting = AcnhSceneLighting.Evaluate(data.Environment, 12, inside: true);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            warnings.Add($"Couldn't load the game's noon room lighting: {ex.Message}");
+        }
+
         // Each placed mesh, with the model's own mesh its game shader is translated from, which gift spots don't have.
         var placed = new List<(BfresMesh? Source, BfresMesh Mesh)>();
         void Place(BfresModel model, Matrix4x4 transform, IReadOnlyDictionary<string, BntxTexture> swap)
@@ -108,7 +119,7 @@ public sealed class RoomPreview(VillagerGameData data)
         cancellation.ThrowIfCancellationRequested();
 
         var missing = new List<string>();
-        var floorItems = new List<(Footprint Area, float Top)>();
+        var floorItems = new List<(Footprint Area, float RideHeight)>();
         // Items on furniture stand on what's under them, so the floor goes first.
         foreach (var item in room.Items.OrderBy(item => item.Layer == RoomLayer.OnFurniture))
         {
@@ -118,7 +129,7 @@ public sealed class RoomPreview(VillagerGameData data)
             if (data.RoomMarkers.ContainsKey(item.Id))
             {
                 var spot = data.ItemSize(item.Id);
-                placed.Add((null, Spot(spot, item.OnWall).Transformed(Placement(item, spot, floorItems).Transform)));
+                placed.Add((null, Spot(spot, item.OnWall).Transformed(Placement(item, spot, floorItems))));
                 continue;
             }
             if (string.IsNullOrEmpty(resource)) continue;
@@ -129,52 +140,57 @@ public sealed class RoomPreview(VillagerGameData data)
             }
 
             var size = data.ItemSize(item.Id);
-            var (transform, top) = Placement(item, size, floorItems);
-            Place(model, transform, Remake(resource, item.Variant));
-            if (item.Layer == RoomLayer.Floor) floorItems.Add((Area(item, size), top + Top(model)));
+            Place(model, Placement(item, size, floorItems), Remake(resource, item.Variant));
+            if (item.Layer == RoomLayer.Floor)
+                floorItems.Add((Area(item, size), data.ItemRideHeight(item.Id)));
         }
         if (missing.Count > 0)
             warnings.Add($"No model to show for {string.Join(", ", missing.Distinct())}.");
 
         var meshes = placed.Select(piece => piece.Mesh).ToList();
         var geometry = BfresRenderer.PrepareScene(meshes, cancellation);
-        var translated = new Dictionary<BfresMesh, TranslatedShader>();
+        var translated = new Dictionary<BfresMesh, BfresMeshShaders>();
         try
         {
             if (shaders.Value is { } archive)
             {
-                var sources = placed.Select(piece => piece.Source).OfType<BfresMesh>().Distinct().Where(source => !programs.ContainsKey(source)).ToList();
-                var prepared = BfresScene.PrepareShaders(sources, archive, cancellation).Programs;
-                foreach (var source in sources) programs.TryAdd(source, prepared.GetValueOrDefault(source));
+                var sources = placed.Select(piece => piece.Source).OfType<BfresMesh>().Distinct().ToList();
+                var unprepared = sources.Where(source => !programs.ContainsKey(source)).ToList();
+                var prepared = BfresScene.PrepareShaders(unprepared, archive, cancellation);
+                foreach (var source in unprepared) programs.TryAdd(source, prepared.Programs.GetValueOrDefault(source));
+                foreach (var error in prepared.Errors) shaderErrors.TryAdd(error.Key, error.Value);
+
                 foreach (var (source, mesh) in placed)
                     if (source != null && programs.GetValueOrDefault(source) is { } program) translated[mesh] = program;
+                foreach (var source in sources)
+                    if (shaderErrors.TryGetValue(source, out var error)) warnings.Add($"{source.Name}: {error}");
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             warnings.Add($"Couldn't load the game materials: {ex.Message}");
         }
-        return new RoomScene(geometry, translated, warnings);
+        return new RoomScene(geometry, translated, warnings, lighting);
     }
 
-    /// <summary>Where an item's model goes, and the height it stands at.</summary>
-    private static (Matrix4x4 Transform, float Floor) Placement(RoomItem item, ItemFootprint size, List<(Footprint Area, float Top)> floorItems)
+    /// <summary>Where an item's model goes.</summary>
+    private static Matrix4x4 Placement(RoomItem item, ItemFootprint size, List<(Footprint Area, float RideHeight)> floorItems)
     {
         if (item.OnWall)
         {
             // Wall models hang from their middle, and rows count down from the ceiling.
             float along = Edge(item.X) + size.X * Cell / 2;
             float height = (VillagerRoom.TopRow + 8 - item.Z - size.Z / 2f) * Cell;
-            return (Facing(item.Layer) * Matrix4x4.CreateTranslation(WallPoint(item.Layer, along, height)), 0);
+            return Facing(item.Layer) * Matrix4x4.CreateTranslation(WallPoint(item.Layer, along, height));
         }
 
         var area = Area(item, size);
         float floor = 0;
         // An item on furniture stands on the floor item under its middle.
         if (item.Layer == RoomLayer.OnFurniture)
-            floor = floorItems.LastOrDefault(under => under.Area.Contains(area.MiddleX, area.MiddleZ)).Top;
+            floor = floorItems.LastOrDefault(under => under.Area.Contains(area.MiddleX, area.MiddleZ)).RideHeight;
         var position = new Vector3(Edge(0) + area.MiddleX * Cell, floor, Edge(0) + area.MiddleZ * Cell);
-        return (Matrix4x4.CreateRotationY(item.Rotation * MathF.PI / 2) * Matrix4x4.CreateTranslation(position), floor);
+        return Matrix4x4.CreateRotationY(item.Rotation * MathF.PI / 2) * Matrix4x4.CreateTranslation(position);
     }
 
     /// <summary>
@@ -236,15 +252,6 @@ public sealed class RoomPreview(VillagerGameData data)
         RoomLayer.RightWall => new(HalfRoom, height, along),
         _ => new(along, height, -HalfRoom),
     };
-
-    // The highest point of a model, which is about where things stand on it.
-    private static float Top(BfresModel model)
-    {
-        float top = 0;
-        foreach (var mesh in model.Meshes.Where(mesh => !HiddenMaterials.Contains(mesh.Material.Name)))
-            foreach (var position in mesh.Positions.Span) top = MathF.Max(top, position.Y);
-        return top;
-    }
 
     /// <summary>
     /// A wallpaper's or flooring's textures, keyed by the names the room model's placeholder material asks for. A

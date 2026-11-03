@@ -12,12 +12,28 @@ public sealed partial class BfresRenderer
     private sealed record NativeProgramGpu(int Program, TranslatedShader Source, int VertexConstants, int FragmentConstants, List<(int Binding, string Name)> Blocks);
     // Buffers holds the blocks this mesh owns; Bindings resolves every block binding, shared ones included.
     private sealed record NativeMeshGpu(int Vao, int Vbo, NativeProgramGpu Program, Dictionary<string, int> Buffers,
-        (int Binding, int Buffer)[] Bindings, List<(int Texture, int Sampler)> Samplers);
-    private readonly Dictionary<string, NativeProgramGpu> nativePrograms = [];
+        (int Binding, int Buffer)[] Bindings, List<(int Unit, int Texture, int Sampler)> Samplers);
+    // Constants and binding metadata belong to the archive program, even when two programs have identical code.
+    private readonly Dictionary<(SwitchShadingModel Model, int Index), NativeProgramGpu> nativePrograms = [];
+    // Archive programs with the same code share one GL program, as compiling is most of a scene's load time. Its block
+    // bindings and texture units follow from the GLSL names alone, so they hold for every archive program using it, and
+    // it outlives the scene so a reload or another model reuses it.
+    private sealed class GlProgram(int id, int vertex, int fragment)
+    {
+        public int Id = id, Vertex = vertex, Fragment = fragment;
+        public string? Error;
+    }
+    private readonly Dictionary<(string Vertex, string Fragment), GlProgram> glPrograms = [];
+    // Maxwell has 18 constant buffers and 32 texture slots a stage; the fragment stage's come after the vertex stage's.
+    private const int ConstantBuffers = 18, TextureSlots = 32;
+    private bool? parallelCompile;
     private readonly Dictionary<BfresMesh, NativeMeshGpu> nativeMeshes = [];
+    private readonly Dictionary<BfresMesh, NativeMeshGpu> nativeDepthMeshes = [];
+    private readonly Dictionary<BfresMesh, NativeMeshGpu> nativeShadowMeshes = [];
+    private IEnumerable<KeyValuePair<BfresMesh, NativeMeshGpu>> AllNativeMeshes => nativeMeshes.Concat(nativeDepthMeshes).Concat(nativeShadowMeshes);
     // Studio blocks depend only on the lighting preset, so every mesh shares one buffer per block name.
     private readonly Dictionary<string, int> studioBuffers = [];
-    private IReadOnlyDictionary<BfresMesh, TranslatedShader> nativePending = new Dictionary<BfresMesh, TranslatedShader>();
+    private IReadOnlyDictionary<BfresMesh, BfresMeshShaders> nativePending = new Dictionary<BfresMesh, BfresMeshShaders>();
     private bool nativeDirty;
     private int nativeContext, whiteTexture, blackTexture, shadowTexture, environmentTexture;
     private AcnhLightingPreset lighting = AcnhLightingPreset.Day;
@@ -41,9 +57,11 @@ public sealed partial class BfresRenderer
         NativeShaderWarnings = warnings;
         NativeShaderWarningsChanged?.Invoke();
     }
-    public void SetNativeShaders(IReadOnlyDictionary<BfresMesh, TranslatedShader> shaders)
+    public void SetNativeShaders(IReadOnlyDictionary<BfresMesh, BfresMeshShaders> shaders)
     {
-        nativePending = shaders; nativeDirty = true;
+        nativePending = shaders;
+        nativeDirty = true;
+        shadowDirty = worldAoDirty = true;
         SetNativeShaderWarnings([]);
         Invalidate();
     }
@@ -53,65 +71,138 @@ public sealed partial class BfresRenderer
         ReleaseNativeScene();
         var warnings = new List<string>();
         nativeContext = CreateBuffer(new byte[ParkUniforms.BufferSize]);
+        // Every program starts compiling before any is waited on, so the driver can compile them side by side.
+        EnableParallelCompile();
+        foreach (var mesh in meshes)
+            if (nativePending.TryGetValue(mesh.Source, out var shaders))
+                foreach (var translated in new[] { shaders.Material, shaders.ZOnly, shaders.DepthShadow })
+                    if (translated != null) StartGlProgram(translated);
         foreach (var mesh in meshes)
         {
-            if (!nativePending.TryGetValue(mesh.Source, out var translated)) continue;
-            try { nativeMeshes.Add(mesh.Source, CreateNativeMesh(mesh, translated)); }
-            catch (Exception ex)
-            {
-                warnings.Add($"{mesh.Source.Name}: Game shader could not be uploaded; using simplified shading. {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"{mesh.Source.Name}: {ex}");
-            }
+            if (!nativePending.TryGetValue(mesh.Source, out var shaders)) continue;
+            UploadNativePass(mesh, shaders.Material, nativeMeshes, "Material (using simplified shading)", warnings);
+            UploadNativePass(mesh, shaders.ZOnly, nativeDepthMeshes, "Z-only", warnings);
+            UploadNativePass(mesh, shaders.DepthShadow, nativeShadowMeshes, "Depth-shadow", warnings);
         }
         nativeDirty = false;
         SetNativeShaderWarnings(warnings);
     }
 
-    private NativeProgramGpu CreateNativeProgram(TranslatedShader translated)
+    private void UploadNativePass(GpuMesh mesh, TranslatedShader? translated, Dictionary<BfresMesh, NativeMeshGpu> target, string pass, List<string> warnings)
     {
-        if (nativePrograms.TryGetValue(translated.Key, out var cached)) return cached;
-        GL.GetInteger(GetPName.MaxUniformBlockSize, out int maxBlockSize);
-        if (maxBlockSize < ParkUniforms.BufferSize) throw new NotSupportedException("Native shader translation requires 64 KiB uniform blocks.");
-        int id = 0, vertexConstants = 0, fragmentConstants = 0;
+        if (translated == null) return;
         try
         {
-            id = CreateProgram(translated.Vertex, translated.Fragment);
-            var blocks = new List<(int, string)>();
-            void Bind(string name, int binding)
+            target.Add(mesh.Source, CreateNativeMesh(mesh, translated));
+        }
+        catch (Exception ex)
+        {
+            warnings.Add($"{mesh.Source.Name}: {pass} shader could not be uploaded. {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"{mesh.Source.Name} ({pass}): {ex}");
+        }
+    }
+
+    private void EnableParallelCompile()
+    {
+        if (parallelCompile != null) return;
+        parallelCompile = false;
+        for (int i = 0, count = GL.GetInteger(GetPName.NumExtensions); i < count; i++)
+            if (GL.GetString(StringNameIndexed.Extensions, i) == "GL_ARB_parallel_shader_compile") parallelCompile = true;
+        // As many compiler threads as the driver will use.
+        if (parallelCompile == true) GL.Arb.MaxShaderCompilerThreads(uint.MaxValue);
+    }
+
+    // Compiles and links without asking for the result, which would wait for it.
+    private GlProgram StartGlProgram(TranslatedShader translated)
+    {
+        var key = (translated.Vertex, translated.Fragment);
+        if (glPrograms.TryGetValue(key, out var program)) return program;
+        int vertex = GL.CreateShader(ShaderType.VertexShader), fragment = GL.CreateShader(ShaderType.FragmentShader), id = GL.CreateProgram();
+        GL.ShaderSource(vertex, translated.Vertex);
+        GL.ShaderSource(fragment, translated.Fragment);
+        GL.CompileShader(vertex);
+        GL.CompileShader(fragment);
+        GL.AttachShader(id, vertex);
+        GL.AttachShader(id, fragment);
+        GL.LinkProgram(id);
+        return glPrograms[key] = new(id, vertex, fragment);
+    }
+
+    // Waits for the program, and binds its blocks and texture units the first time. A failure is kept, so it is not compiled again.
+    private int FinishGlProgram(TranslatedShader translated)
+    {
+        var program = StartGlProgram(translated);
+        if (program.Vertex != 0)
+        {
+            int id = program.Id;
+            GL.GetProgram(id, GetProgramParameterName.LinkStatus, out int linked);
+            if (linked == 0)
+                program.Error = string.Join(Environment.NewLine, new[] { GL.GetShaderInfoLog(program.Vertex), GL.GetShaderInfoLog(program.Fragment), GL.GetProgramInfoLog(id) }
+                    .Where(log => !string.IsNullOrWhiteSpace(log)));
+            GL.DetachShader(id, program.Vertex);
+            GL.DetachShader(id, program.Fragment);
+            GL.DeleteShader(program.Vertex);
+            GL.DeleteShader(program.Fragment);
+            program.Vertex = program.Fragment = 0;
+            if (linked != 0)
             {
-                int index = GL.GetUniformBlockIndex(id, name);
-                if (index >= 0) GL.UniformBlockBinding(id, index, binding);
-            }
-            Bind("vp_c1", 0); Bind("fp_c1", 1);
-            // Screen-space lookups divide the pixel position by the emulator's resolution scale, which is 1 here.
-            int scale = GL.GetUniformLocation(id, "fp_renderScale");
-            if (scale >= 0) { GL.UseProgram(id); GL.Uniform1(scale, 1f); }
-            foreach (var resource in translated.Binary.Buffers)
-            {
-                int binding = blocks.Count + 2;
-                bool used = false;
-                foreach (var (prefix, location) in new[] { ("vp", resource.Vertex), ("fp", resource.Fragment) })
+                for (int n = 0; n < ConstantBuffers; n++)
                 {
-                    if (location < 0) continue;
-                    string name = $"{prefix}_c{location + 3}";
-                    int index = GL.GetUniformBlockIndex(id, name);
-                    if (index < 0) continue;
-                    GL.UniformBlockBinding(id, index, binding); used = true;
+                    BindBlock(id, $"vp_c{n}", n);
+                    BindBlock(id, $"fp_c{n}", ConstantBuffers + n);
                 }
-                if (used) blocks.Add((binding, resource.Name));
+                GL.UseProgram(id);
+                // Screen-space lookups divide the pixel position by the emulator's resolution scale, which is 1 here.
+                int scale = GL.GetUniformLocation(id, "fp_renderScale");
+                if (scale >= 0) GL.Uniform1(scale, 1f);
+                for (int slot = 0; slot < TextureSlots; slot++)
+                    foreach (var prefix in new[] { "vp", "fp" })
+                    {
+                        int location = GL.GetUniformLocation(id, TextureName(prefix, slot));
+                        if (location >= 0) GL.Uniform1(location, NativeTextureUnit(prefix, slot));
+                    }
             }
+        }
+        if (program.Error != null) throw new InvalidOperationException(program.Error);
+        return program.Id;
+    }
+
+    private static void BindBlock(int program, string name, int binding)
+    {
+        int index = GL.GetUniformBlockIndex(program, name);
+        if (index >= 0) GL.UniformBlockBinding(program, index, binding);
+    }
+
+    private static string TextureName(string prefix, int slot) => $"{prefix}_tex_tcb_{slot * 2 + 8:X}";
+    private static int NativeTextureUnit(string prefix, int slot) => (prefix == "vp" ? 0 : TextureSlots) + slot;
+    // The game's blocks start at the stage's third constant buffer.
+    private static int BlockBinding(string prefix, int location) => (prefix == "vp" ? 0 : ConstantBuffers) + location + 3;
+
+    private NativeProgramGpu CreateNativeProgram(TranslatedShader translated)
+    {
+        var key = (translated.Model, translated.Binary.Index);
+        if (nativePrograms.TryGetValue(key, out var cached)) return cached;
+        GL.GetInteger(GetPName.MaxUniformBlockSize, out int maxBlockSize);
+        if (maxBlockSize < ParkUniforms.BufferSize) throw new NotSupportedException("Native shader translation requires 64 KiB uniform blocks.");
+        int id = FinishGlProgram(translated), vertexConstants = 0, fragmentConstants = 0;
+        try
+        {
+            var blocks = new List<(int, string)>();
+            foreach (var resource in translated.Binary.Buffers)
+                foreach (var (prefix, location) in new[] { ("vp", resource.Vertex), ("fp", resource.Fragment) })
+                    if (location >= 0 && GL.GetUniformBlockIndex(id, $"{prefix}_c{location + 3}") >= 0)
+                        blocks.Add((BlockBinding(prefix, location), resource.Name));
             vertexConstants = CreateBuffer(ParkUniforms.Constants(translated.Binary.Vertex!));
             fragmentConstants = CreateBuffer(ParkUniforms.Constants(translated.Binary.Fragment!));
             var gpu = new NativeProgramGpu(id, translated, vertexConstants, fragmentConstants, blocks);
-            nativePrograms.Add(translated.Key, gpu);
-            id = 0;
+            nativePrograms.Add(key, gpu);
             vertexConstants = fragmentConstants = 0;
             return gpu;
         }
         finally
         {
-            if (id != 0) GL.DeleteProgram(id);
-            if (vertexConstants != 0) GL.DeleteBuffer(vertexConstants); if (fragmentConstants != 0) GL.DeleteBuffer(fragmentConstants);
+            if (vertexConstants != 0) GL.DeleteBuffer(vertexConstants);
+            if (fragmentConstants != 0) GL.DeleteBuffer(fragmentConstants);
         }
     }
 
@@ -120,7 +211,7 @@ public sealed partial class BfresRenderer
         var gpu = CreateNativeProgram(translated);
         int vao = GL.GenVertexArray(), vbo = GL.GenBuffer();
         var buffers = new Dictionary<string, int>();
-        var samplers = new List<(int, int)>();
+        var samplers = new List<(int, int, int)>();
         try
         {
             var attrs = translated.Model.Attributes.Where(x => x.Location >= 0).ToArray();
@@ -144,7 +235,8 @@ public sealed partial class BfresRenderer
                     vertices[p] = value.X; vertices[p + 1] = value.Y; vertices[p + 2] = value.Z; vertices[p + 3] = value.W;
                 }
             }
-            GL.BindVertexArray(vao); GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+            GL.BindVertexArray(vao);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
             GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * 4, vertices, BufferUsageHint.StaticDraw);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, mesh.IndexBuffer);
             for (int a = 0; a < attrs.Length; a++)
@@ -152,7 +244,7 @@ public sealed partial class BfresRenderer
                 GL.EnableVertexAttribArray(attrs[a].Location);
                 GL.VertexAttribPointer(attrs[a].Location, 4, VertexAttribPointerType.Float, false, stride, a * 16);
             }
-            var bindings = new List<(int, int)> { (0, gpu.VertexConstants), (1, gpu.FragmentConstants) };
+            var bindings = new List<(int, int)> { (1, gpu.VertexConstants), (ConstantBuffers + 1, gpu.FragmentConstants) };
             foreach (var (binding, name) in gpu.Blocks)
             {
                 if (name is not ("gsys_material" or "gsys_shape" or "gsys_skeleton"))
@@ -166,39 +258,37 @@ public sealed partial class BfresRenderer
                 buffers[name] = CreateBuffer(bytes);
                 bindings.Add((binding, buffers[name]));
             }
-            GL.UseProgram(gpu.Program);
+            GL.GetInteger(GetPName.MaxCombinedTextureImageUnits, out int maxUnits);
             foreach (var resource in translated.Binary.Samplers)
             {
                 var materialSampler = mesh.Source.Material.Sampler(resource.Name);
                 foreach (var (prefix, slot) in new[] { ("vp", resource.Vertex), ("fp", resource.Fragment) })
                 {
-                    if (slot < 0) continue;
-                    int location = GL.GetUniformLocation(gpu.Program, $"{prefix}_tex_tcb_{slot * 2 + 8:X}");
-                    if (location < 0) continue;
+                    if (slot < 0 || GL.GetUniformLocation(gpu.Program, TextureName(prefix, slot)) < 0) continue;
+                    int unit = NativeTextureUnit(prefix, slot);
+                    if (slot >= TextureSlots || unit >= maxUnits) throw new NotSupportedException("Native shader needs more texture units than this GPU supports.");
                     int texture = materialSampler?.Texture != null ? UploadTexture(materialSampler.Texture) : 0;
                     if (texture == 0) texture = DefaultNativeTexture(resource.Name);
                     int sampler = materialSampler != null ? CreateSampler(materialSampler) : 0;
-                    // The unit order depends only on the program, so meshes sharing it agree on this value.
-                    GL.Uniform1(location, samplers.Count);
-                    samplers.Add((texture, sampler));
+                    samplers.Add((unit, texture, sampler));
                 }
             }
-            GL.GetInteger(GetPName.MaxCombinedTextureImageUnits, out int maxUnits);
-            if (samplers.Count > maxUnits) throw new NotSupportedException("Native shader needs more texture units than this GPU supports.");
             return new(vao, vbo, gpu, buffers, [.. bindings], samplers);
         }
         catch
         {
-            GL.DeleteVertexArray(vao); GL.DeleteBuffer(vbo);
+            GL.DeleteVertexArray(vao);
+            GL.DeleteBuffer(vbo);
             foreach (int buffer in buffers.Values) GL.DeleteBuffer(buffer);
-            foreach (var (_, sampler) in samplers) if (sampler != 0) GL.DeleteSampler(sampler);
+            foreach (var (_, _, sampler) in samplers) if (sampler != 0) GL.DeleteSampler(sampler);
             throw;
         }
     }
 
     private static int CreateBuffer(byte[] bytes)
     {
-        int id = GL.GenBuffer(); GL.BindBuffer(BufferTarget.UniformBuffer, id);
+        int id = GL.GenBuffer();
+        GL.BindBuffer(BufferTarget.UniformBuffer, id);
         GL.BufferData(BufferTarget.UniformBuffer, bytes.Length, bytes, BufferUsageHint.DynamicDraw);
         return id;
     }
@@ -249,11 +339,12 @@ public sealed partial class BfresRenderer
         GL.UseProgram(native.Program.Program);
         foreach (var (binding, buffer) in native.Bindings)
             GL.BindBufferBase(BufferRangeTarget.UniformBuffer, binding, passContext != 0 && buffer == nativeContext ? passContext : buffer);
-        for (int i = 0; i < native.Samplers.Count; i++)
+        foreach (var (unit, bound, sampler) in native.Samplers)
         {
-            var (texture, sampler) = native.Samplers[i];
-            if (passContext != 0 && texture == shadowMap) texture = DefaultNativeTexture("shadow");
-            GL.ActiveTexture(TextureUnit.Texture0 + i); GL.BindTexture(TextureTarget.Texture2D, texture); GL.BindSampler(i, sampler);
+            int texture = passContext != 0 && bound == shadowMap ? DefaultNativeTexture("shadow") : bound;
+            GL.ActiveTexture(TextureUnit.Texture0 + unit);
+            GL.BindTexture(TextureTarget.Texture2D, texture);
+            GL.BindSampler(unit, sampler);
         }
         GL.BindVertexArray(native.Vao);
         GL.DrawElements(PrimitiveType.Triangles, mesh.Count, DrawElementsType.UnsignedInt, 0);
@@ -261,6 +352,7 @@ public sealed partial class BfresRenderer
 
     private int DefaultNativeTexture(string name)
     {
+        if (name == "gsys_normalized_linear_depth") return NormalizedLinearDepthMap();
         if (name == "gsys_cube_map")
         {
             if (environmentTexture == 0) environmentTexture = LoadStudioEnvironment();
@@ -274,7 +366,8 @@ public sealed partial class BfresRenderer
         {
             if (shadowTexture == 0)
             {
-                shadowTexture = GL.GenTexture(); GL.BindTexture(TextureTarget.Texture2D, shadowTexture);
+                shadowTexture = GL.GenTexture();
+                GL.BindTexture(TextureTarget.Texture2D, shadowTexture);
                 GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.DepthComponent32f, 1, 1, 0, PixelFormat.DepthComponent, PixelType.Float, new float[] { 1 });
                 TextureParameters(TextureMinFilter.Nearest);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureCompareMode, (int)TextureCompareMode.CompareRefToTexture);
@@ -283,11 +376,13 @@ public sealed partial class BfresRenderer
             return shadowTexture;
         }
         // A white projection texture casts no projected shadow.
-        bool black = name.Contains("color_buffer");
+        // The game's shared context defaults the ground-color sampler to Black2D until FieldUnitMapDrawer supplies it.
+        bool black = name == "gsys_user0" || name.Contains("color_buffer");
         int id = black ? blackTexture : whiteTexture;
         if (id == 0)
         {
-            id = GL.GenTexture(); GL.BindTexture(TextureTarget.Texture2D, id);
+            id = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, id);
             byte[] bytes = black ? [0, 0, 0, 255] : [255, 255, 255, 255];
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, 1, 1, 0, PixelFormat.Rgba, PixelType.UnsignedByte, bytes);
             TextureParameters(TextureMinFilter.Linear);
@@ -307,16 +402,21 @@ public sealed partial class BfresRenderer
     private static int LoadStudioEnvironment()
     {
         using var stream = typeof(BfresRenderer).Assembly.GetManifestResourceStream("HeavenTool.Rendering.Resources.StudioEnvironment.dds") ?? throw new InvalidOperationException("Studio environment texture is missing.");
-        using var data = new MemoryStream(); stream.CopyTo(data); var bytes = data.ToArray();
+        using var data = new MemoryStream();
+        stream.CopyTo(data);
+        var bytes = data.ToArray();
         int width = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(16)), height = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(12)), mips = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(28));
         if (!bytes.AsSpan(0, 4).SequenceEqual("DDS "u8) || width != 512 || height != 256 || mips != 5) throw new InvalidDataException("Unsupported studio DDS.");
-        int id = GL.GenTexture(); GL.BindTexture(TextureTarget.Texture2D, id);
+        int id = GL.GenTexture();
+        GL.BindTexture(TextureTarget.Texture2D, id);
         int offset = 128;
         for (int i = 0; i < mips; i++)
         {
             int count = width * height * 4;
             GL.TexImage2D(TextureTarget.Texture2D, i, PixelInternalFormat.Rgba8, width, height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, bytes.AsSpan(offset, count).ToArray());
-            offset += count; width = Math.Max(1, width / 2); height = Math.Max(1, height / 2);
+            offset += count;
+            width = Math.Max(1, width / 2);
+            height = Math.Max(1, height / 2);
         }
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, mips - 1);
         TextureParameters(TextureMinFilter.LinearMipmapLinear);
@@ -325,23 +425,38 @@ public sealed partial class BfresRenderer
 
     private void ReleaseNativeScene()
     {
-        foreach (var mesh in nativeMeshes.Values)
+        foreach (var (_, mesh) in AllNativeMeshes)
         {
-            GL.DeleteVertexArray(mesh.Vao); GL.DeleteBuffer(mesh.Vbo);
+            GL.DeleteVertexArray(mesh.Vao);
+            GL.DeleteBuffer(mesh.Vbo);
             foreach (int buffer in mesh.Buffers.Values) GL.DeleteBuffer(buffer);
-            foreach (var (_, sampler) in mesh.Samplers) if (sampler != 0) GL.DeleteSampler(sampler);
+            foreach (var (_, _, sampler) in mesh.Samplers) if (sampler != 0) GL.DeleteSampler(sampler);
         }
         nativeMeshes.Clear();
+        nativeDepthMeshes.Clear();
+        nativeShadowMeshes.Clear();
         foreach (int buffer in studioBuffers.Values) GL.DeleteBuffer(buffer);
         studioBuffers.Clear();
-        foreach (var p in nativePrograms.Values) { GL.DeleteProgram(p.Program); GL.DeleteBuffer(p.VertexConstants); GL.DeleteBuffer(p.FragmentConstants); }
+        foreach (var p in nativePrograms.Values) { GL.DeleteBuffer(p.VertexConstants); GL.DeleteBuffer(p.FragmentConstants); }
         nativePrograms.Clear();
         if (nativeContext != 0) GL.DeleteBuffer(nativeContext);
         nativeContext = 0;
         foreach (int texture in new[] { whiteTexture, blackTexture, shadowTexture, environmentTexture }) if (texture != 0) GL.DeleteTexture(texture);
         ReleaseShadows();
         ReleaseOcclusion();
+        ReleaseNormalizedLinearDepth();
         whiteTexture = blackTexture = shadowTexture = environmentTexture = 0;
         nativeDirty = nativePending.Count > 0;
+    }
+
+    private void ReleaseNativePrograms()
+    {
+        foreach (var program in glPrograms.Values)
+        {
+            if (program.Vertex != 0) { GL.DeleteShader(program.Vertex); GL.DeleteShader(program.Fragment); }
+            GL.DeleteProgram(program.Id);
+        }
+        glPrograms.Clear();
+        parallelCompile = null;
     }
 }

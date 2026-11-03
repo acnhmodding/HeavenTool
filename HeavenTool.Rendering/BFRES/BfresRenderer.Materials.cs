@@ -14,14 +14,19 @@ public sealed partial class BfresRenderer
         public int[] Samplers { get; } = samplers;
     }
     private readonly HashSet<BfresMaterial> changedMaterials = [];
-    public void RefreshMaterial(BfresMaterial material) { changedMaterials.Add(material); Invalidate(); }
+    public void RefreshMaterial(BfresMaterial material)
+    {
+        changedMaterials.Add(material);
+        shadowDirty = worldAoDirty = true;
+        Invalidate();
+    }
 
     private void UpdateMaterials()
     {
         foreach (var source in changedMaterials)
         {
             if (materials.TryGetValue(source, out var material)) material.Profile = new(source);
-            foreach (var pair in nativeMeshes)
+            foreach (var pair in AllNativeMeshes)
             {
                 if (!ReferenceEquals(pair.Key.Material, source) || !pair.Value.Buffers.TryGetValue("gsys_material", out int buffer)) continue;
                 var block = pair.Value.Program.Source.Model.UniformBlocks.Single(x => x.Name == "gsys_material");
@@ -139,7 +144,8 @@ public sealed partial class BfresRenderer
         for (int i = 0; i < 5; i++)
         {
             GL.ActiveTexture(TextureUnit.Texture0 + i);
-            GL.BindTexture(TextureTarget.Texture2D, gpu.Textures[i]); GL.BindSampler(i, gpu.Samplers[i]);
+            GL.BindTexture(TextureTarget.Texture2D, gpu.Textures[i]);
+            GL.BindSampler(i, gpu.Samplers[i]);
             if (gpu.Textures[i] != 0 && mesh.Source.TexCoords.Length > 0) present |= 1 << i;
         }
         GL.Uniform1(U("mapPresent"), present);
@@ -281,7 +287,8 @@ public sealed partial class BfresRenderer
             cached = NativeMaterialUsage.FindComponents(mesh.Material, nativeMeshes[mesh].Program.Source);
         else
         {
-            var source = mesh.Material; var p = new ParkMaterialProfile(source);
+            var source = mesh.Material;
+            var p = new ParkMaterialProfile(source);
             var components = new HashSet<(string, int)>();
             void Add(string name, int count = 1) { for (int i = 0; i < count; i++) components.Add((name, i)); }
             int diffuse = source.Option("material_diffuse_color");

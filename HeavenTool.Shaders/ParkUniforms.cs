@@ -59,8 +59,9 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     };
     // Viewer approximation for missing sky-derived indirect illumination; not a game uniform value.
     public Vector3 PreviewIndirectLight { get; init; }
-    // Time-of-day gsys_user0 rows: [10] a sky direction, [17].w shadow strength, [21] fog colour, and
-    // the rim light's colour [72], direction [75] and exponents/intensity [76].
+    // Evaluated sky rows: [6] atmosphere, [8] sun radiance, [9] scattered sun RGB, [10] sky direction, [24].xy sun controls.
+    // Other time-of-day gsys_user0 rows: [17].w shadow strength, [21] fog colour, and
+    // the rim light's colour [72], direction [75] and exponents/intensity [76], and field GI override colour [73].
     public IReadOnlyDictionary<int, Vector4> User0 { get; init; } = new Dictionary<int, Vector4>();
     // Time-of-day gsys_environment rows that only the vertex programs read.
     public IReadOnlyDictionary<int, Vector4> Environment { get; init; } = new Dictionary<int, Vector4>();

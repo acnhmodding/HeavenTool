@@ -5,6 +5,7 @@ using AeonSake.NintendoTools.FileFormats.Msbt;
 using AeonSake.NintendoTools.FileFormats.Sarc;
 using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
+using HeavenTool.IO.AcnhEnvironment;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
@@ -40,6 +41,7 @@ public sealed partial class VillagerGameData
     private readonly ConcurrentDictionary<string, BinaryCSV> tables = new();
     private readonly ConcurrentDictionary<(string Archive, string Language), Lazy<SarcFile>> messageArchives = new();
     private readonly Lazy<SarcFile> staticParam;
+    private readonly Lazy<AcnhEnvironmentResources> environment;
     private readonly Lazy<IReadOnlyDictionary<int, string>> itemNames;
     private readonly Lazy<IReadOnlyList<VillagerInfo>> villagers;
     private readonly Lazy<IReadOnlyList<NameColor>> nameColors;
@@ -54,6 +56,7 @@ public sealed partial class VillagerGameData
     {
         Romfs = romfs;
         staticParam = new(() => ReadSarc(Path.Combine(Romfs, "Pack", StaticParamArchive + ".pack")));
+        environment = new(() => AcnhEnvironmentResources.Read(ReadParam, AcnhSunOrbit.Load(Romfs)));
         itemNames = new(LoadItemNames);
         villagers = new(LoadVillagers);
         nameColors = new(() => ReadParam(NameColor.ParamPath) is { } root ? NameColor.ReadAll(root) : []);
@@ -102,6 +105,7 @@ public sealed partial class VillagerGameData
     public IReadOnlyList<NameColor> NameColors => nameColors.Value;
 
     public SarcFile StaticParam => staticParam.Value;
+    public AcnhEnvironmentResources Environment => environment.Value;
 
     /// <summary>
     /// The layout icon archive of an item, as the closet shows it or else as the furniture menus do, or null when the romfs
@@ -131,6 +135,12 @@ public sealed partial class VillagerGameData
     /// <summary>The space an item takes, from its ItemSize; one tile when the romfs doesn't say.</summary>
     public ItemFootprint ItemSize(int id) =>
         itemParam.Value.TryGetValue(id, out var item) && itemSizes.Value.TryGetValue(item.Size, out var size) ? size : new(2, 2, RoomLayer.Floor);
+
+    /// <summary>
+    /// How high up an item other items stand on it, from its RideHeight. It's lower than the top of the model on furniture
+    /// with shelves over its counter.
+    /// </summary>
+    public float ItemRideHeight(int id) => itemParam.Value.TryGetValue(id, out var item) ? item.RideHeight : 0;
 
     /// <summary>A table from <c>Bcsv/</c>, by name without extension.</summary>
     public BinaryCSV Table(string name) => tables.GetOrAdd(name, _ =>
@@ -185,7 +195,7 @@ public sealed partial class VillagerGameData
         return new SarcFileReader().Read(decompressed);
     }
 
-    private IReadOnlyDictionary<int, string> LoadItemNames()
+    private Dictionary<int, string> LoadItemNames()
     {
         var names = new Dictionary<int, string>();
         var files = ReadSarc(Path.Combine(Romfs, "Message", $"String_{NameLanguage}.sarc.zs")).Files;
@@ -211,24 +221,26 @@ public sealed partial class VillagerGameData
         return names;
     }
 
-    // An item's resource name and label, which name its models and icons, its kind and the CRC32 of its ItemSize label.
-    private sealed record ItemRow(string Resource, string Label, uint Kind, uint Size);
+    // An item's resource name and label, which name its models and icons, its kind, the CRC32 of its ItemSize label and
+    // the height other items stand on it.
+    private sealed record ItemRow(string Resource, string Label, uint Kind, uint Size, float RideHeight);
 
-    private IReadOnlyDictionary<int, ItemRow> LoadItemParam()
+    private Dictionary<int, ItemRow> LoadItemParam()
     {
-        if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemParam.bcsv"))) return new Dictionary<int, ItemRow>();
+        if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemParam.bcsv"))) return [];
         var table = Table("ItemParam");
         int id = table.ColumnIndex("UniqueID u16"), resource = table.ColumnIndex("ResName string64");
         int label = table.ColumnIndex("Label string50"), kind = table.ColumnIndex("ItemKind.hshCstringRef");
         int size = table.ColumnIndex("ItemSize.hshCstringRef");
+        int rideHeight = table.ColumnIndex("RideHeight f32");
         return table.Entries.ToDictionary(row => Convert.ToInt32(row[id]),
-            row => new ItemRow((string)row[resource], (string)row[label], Convert.ToUInt32(row[kind]), Convert.ToUInt32(row[size])));
+            row => new ItemRow((string)row[resource], (string)row[label], Convert.ToUInt32(row[kind]), Convert.ToUInt32(row[size]), Convert.ToSingle(row[rideHeight])));
     }
 
     // ItemParam names an item's size by the CRC32 of its row's label here, such as 2_0x1_0.
-    private IReadOnlyDictionary<uint, ItemFootprint> LoadItemSizes()
+    private Dictionary<uint, ItemFootprint> LoadItemSizes()
     {
-        if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemSize.bcsv"))) return new Dictionary<uint, ItemFootprint>();
+        if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemSize.bcsv"))) return [];
         var table = Table("ItemSize");
         int label = table.ColumnIndex("Label string32"), x = table.ColumnIndex("HalfUnitSizeX u8"), z = table.ColumnIndex("HalfUnitSizeZ u8");
         static RoomLayer Layer(string name) =>

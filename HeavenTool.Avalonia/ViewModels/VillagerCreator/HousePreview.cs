@@ -1,3 +1,4 @@
+using HeavenTool.IO.AcnhEnvironment;
 using HeavenTool.IO.FileFormats.BFRES;
 using HeavenTool.ModManager.Villagers;
 using HeavenTool.Rendering.BFRES;
@@ -17,14 +18,14 @@ namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 /// A house exterior put together from its wall, roof and door models, ready to show in a viewport. <see cref="Curtains"/> are
 /// the wall's curtain materials, which <see cref="HousePreview.PaintCurtains"/> colors.
 /// </summary>
-public sealed record HouseScene(BfresRenderer.PreparedScene Geometry, IReadOnlyDictionary<BfresMesh, TranslatedShader> Shaders,
-    IReadOnlyList<BfresMaterial> Curtains, IReadOnlyList<string> Warnings);
+public sealed record HouseScene(BfresRenderer.PreparedScene Geometry, IReadOnlyDictionary<BfresMesh, BfresMeshShaders> Shaders,
+    IReadOnlyList<BfresMaterial> Curtains, IReadOnlyList<string> Warnings, AcnhLightingPreset? Lighting);
 
 /// <summary>
 /// Builds house previews from the romfs models. Wall and roof models share the house's origin; the door sits on the wall's
 /// <c>DoorModel0</c> bone. Models and the game's material archive load once and are reused.
 /// </summary>
-public sealed class HousePreview(string romfs)
+public sealed class HousePreview(string romfs, Func<AcnhEnvironmentResources> environment)
 {
     private const string DoorBone = "DoorModel0";
     // Snow only shows in winter, over the roof.
@@ -49,6 +50,16 @@ public sealed class HousePreview(string romfs)
     private HouseScene? Build(HousePart wall, HousePart roof, HousePart door, CancellationToken cancellation)
     {
         var warnings = new List<string>();
+        AcnhLightingPreset? lighting = null;
+        try
+        {
+            lighting = AcnhSceneLighting.Evaluate(environment(), 12);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            warnings.Add($"Couldn't load the game's noon lighting: {ex.Message}");
+        }
+
         BfresModel? Load(HousePart part)
         {
             var model = models.GetOrAdd(part.ModelName, _ => new(() => Read(part))).Value;
@@ -68,10 +79,15 @@ public sealed class HousePreview(string romfs)
         meshes.AddRange(Visible(doorModel).Select(mesh => mesh.Transformed(doorPlace)));
 
         var geometry = BfresRenderer.PrepareScene(meshes, cancellation);
-        IReadOnlyDictionary<BfresMesh, TranslatedShader> programs = new Dictionary<BfresMesh, TranslatedShader>();
+        IReadOnlyDictionary<BfresMesh, BfresMeshShaders> programs = new Dictionary<BfresMesh, BfresMeshShaders>();
         try
         {
-            if (shaders.Value is { } archive) programs = BfresScene.PrepareShaders(meshes, archive, cancellation).Programs;
+            if (shaders.Value is { } archive)
+            {
+                var prepared = BfresScene.PrepareShaders(meshes, archive, cancellation);
+                programs = prepared.Programs;
+                warnings.AddRange(prepared.Errors.Select(error => $"{error.Key.Name}: {error.Value}"));
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -81,7 +97,7 @@ public sealed class HousePreview(string romfs)
             .Where(material => material.Name == CurtainMaterial && material.Parameters.ContainsKey(CurtainColor))
             .Distinct()
             .ToList();
-        return new HouseScene(geometry, programs, curtains, warnings);
+        return new HouseScene(geometry, programs, curtains, warnings, lighting);
     }
 
     /// <summary>

@@ -77,7 +77,7 @@ public sealed partial class BfresRenderer
         hidden.Clear();
         dirty = true;
         // Translated programs belong to the previous document, even when no new archive is loaded.
-        nativePending = new Dictionary<BfresMesh, HeavenTool.Shaders.TranslatedShader>();
+        nativePending = new Dictionary<BfresMesh, BfresMeshShaders>();
         nativeDirty = true;
         SetNativeShaderWarnings([]);
         if (keepCamera) Invalidate(); else FrameScene();
@@ -187,13 +187,15 @@ public sealed partial class BfresRenderer
             RenderSsao(projection);
             SetFrameUniforms(matrix);
             transparent.Clear();
-            NativeDrawCount = 0; FallbackDrawCount = 0;
+            NativeDrawCount = 0;
+            FallbackDrawCount = 0;
             foreach (var mesh in meshes)
             {
-                if (hidden.Contains(mesh.Source)) continue;
+                if (hidden.Contains(mesh.Source) || mesh.Source.Material.IsShadowOnly) continue;
                 if (mesh.Material.Profile.Translucent) transparent.Add(mesh);
                 else DrawSceneMesh(mesh);
             }
+            RenderNormalizedLinearDepth(projection, near, far);
             transparent.Sort(transparentOrder);
             foreach (var mesh in transparent) DrawSceneMesh(mesh);
             // Checked once per frame: querying after every draw stalls the driver.
@@ -245,8 +247,12 @@ public sealed partial class BfresRenderer
         int vs = 0, fs = 0, id = 0;
         try
         {
-            vs = Compile(ShaderType.VertexShader, vertex); fs = Compile(ShaderType.FragmentShader, fragment);
-            id = GL.CreateProgram(); GL.AttachShader(id, vs); GL.AttachShader(id, fs); GL.LinkProgram(id);
+            vs = Compile(ShaderType.VertexShader, vertex);
+            fs = Compile(ShaderType.FragmentShader, fragment);
+            id = GL.CreateProgram();
+            GL.AttachShader(id, vs);
+            GL.AttachShader(id, fs);
+            GL.LinkProgram(id);
             GL.GetProgram(id, GetProgramParameterName.LinkStatus, out int linked);
             if (linked == 0) throw new InvalidOperationException(GL.GetProgramInfoLog(id));
             return id;
@@ -258,7 +264,8 @@ public sealed partial class BfresRenderer
     private static int Compile(ShaderType type, string source)
     {
         int shader = GL.CreateShader(type);
-        GL.ShaderSource(shader, source); GL.CompileShader(shader);
+        GL.ShaderSource(shader, source);
+        GL.CompileShader(shader);
         GL.GetShader(shader, ShaderParameter.CompileStatus, out int compiled);
         if (compiled != 0) return shader;
         string log = GL.GetShaderInfoLog(shader);
@@ -283,7 +290,9 @@ public sealed partial class BfresRenderer
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
             fixed (uint* pointer = indices)
                 GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), (IntPtr)pointer, BufferUsageHint.StaticDraw);
-            GL.EnableVertexAttribArray(0); GL.EnableVertexAttribArray(1); GL.EnableVertexAttribArray(2);
+            GL.EnableVertexAttribArray(0);
+            GL.EnableVertexAttribArray(1);
+            GL.EnableVertexAttribArray(2);
             GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 32, 0);
             GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 32, 12);
             GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, 32, 24);
@@ -327,7 +336,9 @@ public sealed partial class BfresRenderer
         if (GL.GetError() != ErrorCode.NoError)
         {
             // Optional GPU compression support varies by driver. Keep geometry usable.
-            GL.DeleteTexture(id); textures[texture] = 0; return 0;
+            GL.DeleteTexture(id);
+            textures[texture] = 0;
+            return 0;
         }
         static int Swizzle(byte source) => source switch { 0 => 0, 1 => 1, 2 => (int)All.Red, 3 => (int)All.Green, 4 => (int)All.Blue, 5 => (int)All.Alpha, _ => (int)All.Red };
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureSwizzleR, Swizzle(texture.Channels[0]));
@@ -346,7 +357,9 @@ public sealed partial class BfresRenderer
         ReleaseNativeScene();
         foreach (var mesh in meshes)
         {
-            GL.DeleteBuffer(mesh.VertexBuffer); GL.DeleteBuffer(mesh.IndexBuffer); GL.DeleteVertexArray(mesh.Vao);
+            GL.DeleteBuffer(mesh.VertexBuffer);
+            GL.DeleteBuffer(mesh.IndexBuffer);
+            GL.DeleteVertexArray(mesh.Vao);
         }
         meshes.Clear();
         transparent.Clear();
@@ -453,8 +466,13 @@ public sealed partial class BfresRenderer
         GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, outputDepth);
         GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.DepthComponent24, width, height);
         GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, outputDepth);
+        CheckFramebufferComplete("3D preview");
+    }
+
+    private static void CheckFramebufferComplete(string name)
+    {
         if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
-            throw new InvalidOperationException("The 3D preview framebuffer is incomplete.");
+            throw new InvalidOperationException($"{name} framebuffer is incomplete.");
     }
 
     private int outputWidth, outputHeight;
@@ -471,6 +489,7 @@ public sealed partial class BfresRenderer
     public void ReleaseGraphics()
     {
         ReleaseMeshes();
+        ReleaseNativePrograms();
         ReleaseLighting();
         ReleaseBones();
         ReleaseGround();

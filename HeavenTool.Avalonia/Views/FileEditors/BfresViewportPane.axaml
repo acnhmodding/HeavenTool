@@ -37,21 +37,17 @@
           <icons:PackIconFontAwesome6 Kind="BoneSolid" />
         </ToggleButton>
         <Rectangle Classes="divider" />
-        <Button Classes="tool" Classes.selected="{Binding IsDay}" Command="{Binding SetLightingCommand}" CommandParameter="Day" ToolTip.Tip="Day lighting">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <icons:PackIconFontAwesome6 Kind="SunSolid" />
-            <TextBlock Classes="label" Text="Day" />
-          </StackPanel>
-        </Button>
-        <Button Classes="tool" Classes.selected="{Binding IsNight}" Command="{Binding SetLightingCommand}" CommandParameter="Night" ToolTip.Tip="Night lighting">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <icons:PackIconFontAwesome6 Kind="MoonSolid" />
-            <TextBlock Classes="label" Text="Night" />
-          </StackPanel>
-        </Button>
+        <StackPanel Orientation="Horizontal" Spacing="6" Margin="6,0"
+          ToolTip.Tip="Time of day · clear weather · June 21, northern hemisphere. Requires game environment resources from romfs.">
+          <icons:PackIconFontAwesome6 Kind="SunSolid" Width="14" Height="14" VerticalAlignment="Center" />
+          <TextBlock Classes="label" Text="Time" VerticalAlignment="Center" />
+          <Slider Value="{Binding TimeOfDay}" Minimum="0" Maximum="1439" TickFrequency="15" IsSnapToTickEnabled="True"
+            IsEnabled="{Binding HasGameEnvironment}" Width="130" VerticalAlignment="Center" Margin="0,-6" />
+          <TextBlock Text="{Binding TimeText}" Width="38" FontSize="12" VerticalAlignment="Center" />
+        </StackPanel>
         <Rectangle Classes="divider" />
         <StackPanel Orientation="Horizontal">
-          <ToggleButton Classes="tool" IsChecked="{Binding SkyFill}" ToolTip.Tip="Sky fill light">
+          <ToggleButton Classes="tool" IsChecked="{Binding SkyFill}" ToolTip.Tip="Additional preview fill light">
             <icons:PackIconFontAwesome6 Kind="CloudSunSolid" />
           </ToggleButton>
           <icons:PackIconFontAwesome6 Kind="CircleHalfStrokeSolid" Width="13" Height="13" Margin="8,0,6,0"

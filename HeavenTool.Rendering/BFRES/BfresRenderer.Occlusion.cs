@@ -60,11 +60,13 @@ public sealed partial class BfresRenderer
 
     private static int CreateTarget(PixelInternalFormat format, int size, out int framebuffer)
     {
-        int texture = GL.GenTexture(); GL.BindTexture(TextureTarget.Texture2D, texture);
+        int texture = GL.GenTexture();
+        GL.BindTexture(TextureTarget.Texture2D, texture);
         bool depth = format == PixelInternalFormat.DepthComponent32f;
         GL.TexImage2D(TextureTarget.Texture2D, 0, format, size, size, 0, depth ? PixelFormat.DepthComponent : PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
         TextureParameters(TextureMinFilter.Linear);
-        framebuffer = GL.GenFramebuffer(); GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer);
+        framebuffer = GL.GenFramebuffer();
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer);
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, depth ? FramebufferAttachment.DepthAttachment : FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, texture, 0);
         if (depth) { GL.DrawBuffer(DrawBufferMode.None); GL.ReadBuffer(ReadBufferMode.None); }
         return texture;
@@ -85,7 +87,8 @@ public sealed partial class BfresRenderer
     private int SsaoMap()
     {
         if (ssaoMaps[1] != 0) return ssaoMaps[1];
-        ssaoDepth = GL.GenTexture(); ssaoDepthFramebuffer = GL.GenFramebuffer();
+        ssaoDepth = GL.GenTexture();
+        ssaoDepthFramebuffer = GL.GenFramebuffer();
         for (int i = 0; i < 2; i++) { ssaoMaps[i] = GL.GenTexture(); ssaoFramebuffers[i] = GL.GenFramebuffer(); }
         ssaoWidth = ssaoHeight = 0;
         return ssaoMaps[1];
@@ -119,13 +122,15 @@ public sealed partial class BfresRenderer
         int w = Math.Max(1, width / 2), h = Math.Max(1, height / 2);
         if (ssaoWidth != w || ssaoHeight != h)
         {
-            ssaoWidth = w; ssaoHeight = h;
+            ssaoWidth = w;
+            ssaoHeight = h;
             GL.BindTexture(TextureTarget.Texture2D, ssaoDepth);
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.DepthComponent32f, w, h, 0, PixelFormat.DepthComponent, PixelType.Float, IntPtr.Zero);
             TextureParameters(TextureMinFilter.Nearest);
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssaoDepthFramebuffer);
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D, ssaoDepth, 0);
-            GL.DrawBuffer(DrawBufferMode.None); GL.ReadBuffer(ReadBufferMode.None);
+            GL.DrawBuffer(DrawBufferMode.None);
+            GL.ReadBuffer(ReadBufferMode.None);
             for (int i = 0; i < 2; i++)
             {
                 GL.BindTexture(TextureTarget.Texture2D, ssaoMaps[i]);
@@ -170,41 +175,52 @@ public sealed partial class BfresRenderer
                     color=vec4(clamp(1.0-strength*occluded/16.0,0.0,1.0));
                 }
                 """);
-            GL.UseProgram(ssaoProgram); GL.Uniform1(GL.GetUniformLocation(ssaoProgram, "depth"), 0);
+            GL.UseProgram(ssaoProgram);
+            GL.Uniform1(GL.GetUniformLocation(ssaoProgram, "depth"), 0);
         }
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, ssaoFramebuffers[1]);
-        GL.Disable(EnableCap.DepthTest); GL.Disable(EnableCap.FramebufferSrgb);
+        GL.Disable(EnableCap.DepthTest);
+        GL.Disable(EnableCap.FramebufferSrgb);
         GL.UseProgram(ssaoProgram);
         var unprojection = projection.Inverted();
         GL.UniformMatrix4(GL.GetUniformLocation(ssaoProgram, "projection"), false, ref projection);
         GL.UniformMatrix4(GL.GetUniformLocation(ssaoProgram, "unprojection"), false, ref unprojection);
         GL.Uniform1(GL.GetUniformLocation(ssaoProgram, "radius"), SsaoRadius);
         GL.Uniform1(GL.GetUniformLocation(ssaoProgram, "strength"), SsaoStrength);
-        GL.ActiveTexture(TextureUnit.Texture0); GL.BindSampler(0, 0); GL.BindTexture(TextureTarget.Texture2D, ssaoDepth);
-        GL.BindVertexArray(BlurVao()); GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+        GL.ActiveTexture(TextureUnit.Texture0);
+        GL.BindSampler(0, 0);
+        GL.BindTexture(TextureTarget.Texture2D, ssaoDepth);
+        GL.BindVertexArray(BlurVao());
+        GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
         // About two pixels either way.
         Blur(ssaoMaps[1], ssaoMaps[0], ssaoFramebuffers, w, h, 2f / w, null);
-        GL.BindTexture(TextureTarget.Texture2D, ssaoMaps[1]); GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+        GL.BindTexture(TextureTarget.Texture2D, ssaoMaps[1]);
+        GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, hdrFramebuffer);
         GL.Viewport(0, 0, width, height);
-        GL.Enable(EnableCap.DepthTest); GL.DepthMask(true);
+        GL.Enable(EnableCap.DepthTest);
+        GL.DepthMask(true);
         GL.PolygonMode(TriangleFace.FrontAndBack, wireframe ? PolygonMode.Line : PolygonMode.Fill);
     }
 
-    // The opaque native meshes' depth, from the view in context.
+    // Camera/world-AO depth excludes authored shadow-only geometry and uses each material's Z-only variant.
     private void DrawDepth(int framebuffer, int w, int h, int context)
     {
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer);
         GL.Viewport(0, 0, w, h);
         GL.ColorMask(false, false, false, false);
-        GL.DepthMask(true); GL.Clear(ClearBufferMask.DepthBufferBit);
-        GL.Enable(EnableCap.DepthTest); GL.DepthFunc(DepthFunction.Lequal);
-        GL.Disable(EnableCap.CullFace); GL.Disable(EnableCap.Blend);
+        GL.DepthMask(true);
+        GL.Clear(ClearBufferMask.DepthBufferBit);
+        GL.Enable(EnableCap.DepthTest);
+        GL.DepthFunc(DepthFunction.Lequal);
+        GL.Disable(EnableCap.CullFace);
+        GL.Disable(EnableCap.Blend);
         GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
         foreach (var mesh in meshes)
         {
-            if (hidden.Contains(mesh.Source) || mesh.Material.Profile.Translucent || !nativeMeshes.TryGetValue(mesh.Source, out var native)) continue;
+            if (hidden.Contains(mesh.Source) || mesh.Source.Material.IsShadowOnly || mesh.Material.Profile.Translucent
+                || !nativeDepthMeshes.TryGetValue(mesh.Source, out var native)) continue;
             DrawNativeMesh(mesh, native, context == nativeContext ? 0 : context);
         }
         GL.ColorMask(true, true, true, true);
@@ -238,14 +254,18 @@ public sealed partial class BfresRenderer
                     color=vec4(sum/weights);
                 }
                 """);
-            GL.UseProgram(blurProgram); GL.Uniform1(GL.GetUniformLocation(blurProgram, "source"), 0);
+            GL.UseProgram(blurProgram);
+            GL.Uniform1(GL.GetUniformLocation(blurProgram, "source"), 0);
         }
         GL.Viewport(0, 0, w, h);
-        GL.Disable(EnableCap.DepthTest); GL.Disable(EnableCap.Blend); GL.Disable(EnableCap.FramebufferSrgb);
+        GL.Disable(EnableCap.DepthTest);
+        GL.Disable(EnableCap.Blend);
+        GL.Disable(EnableCap.FramebufferSrgb);
         GL.UseProgram(blurProgram);
         GL.Uniform2(GL.GetUniformLocation(blurProgram, "depthToHeight"), depthToHeight ?? default);
         GL.BindVertexArray(BlurVao());
-        GL.ActiveTexture(TextureUnit.Texture0); GL.BindSampler(0, 0);
+        GL.ActiveTexture(TextureUnit.Texture0);
+        GL.BindSampler(0, 0);
         float aspect = w / (float)h;
         for (int pass = 0; pass < 2; pass++)
         {
@@ -265,7 +285,10 @@ public sealed partial class BfresRenderer
         if (worldAoContext != 0) GL.DeleteBuffer(worldAoContext);
         foreach (int id in new[] { ssaoProgram, blurProgram }) if (id != 0) GL.DeleteProgram(id);
         if (blurVao != 0) GL.DeleteVertexArray(blurVao);
-        Array.Clear(worldAoMaps); Array.Clear(worldAoFramebuffers); Array.Clear(ssaoMaps); Array.Clear(ssaoFramebuffers);
+        Array.Clear(worldAoMaps);
+        Array.Clear(worldAoFramebuffers);
+        Array.Clear(ssaoMaps);
+        Array.Clear(ssaoFramebuffers);
         worldAoDepth = worldAoDepthFramebuffer = worldAoContext = ssaoDepth = ssaoDepthFramebuffer = ssaoProgram = blurProgram = blurVao = 0;
         ssaoWidth = ssaoHeight = 0;
         worldAoDirty = true;

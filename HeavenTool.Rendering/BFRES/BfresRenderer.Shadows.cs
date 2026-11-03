@@ -16,7 +16,8 @@ public sealed partial class BfresRenderer
     private int ShadowMap()
     {
         if (shadowMap != 0) return shadowMap;
-        shadowMap = GL.GenTexture(); GL.BindTexture(TextureTarget.Texture2D, shadowMap);
+        shadowMap = GL.GenTexture();
+        GL.BindTexture(TextureTarget.Texture2D, shadowMap);
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.DepthComponent32f, ShadowSize, ShadowSize, 0, PixelFormat.DepthComponent, PixelType.Float, IntPtr.Zero);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
@@ -27,11 +28,12 @@ public sealed partial class BfresRenderer
         // The game shaders count a passing comparison as lit.
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureCompareMode, (int)TextureCompareMode.CompareRefToTexture);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureCompareFunc, (int)DepthFunction.Lequal);
-        shadowFramebuffer = GL.GenFramebuffer(); GL.BindFramebuffer(FramebufferTarget.Framebuffer, shadowFramebuffer);
+        shadowFramebuffer = GL.GenFramebuffer();
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, shadowFramebuffer);
         GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D, shadowMap, 0);
-        GL.DrawBuffer(DrawBufferMode.None); GL.ReadBuffer(ReadBufferMode.None);
-        if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
-            throw new InvalidOperationException("Shadow map framebuffer is incomplete.");
+        GL.DrawBuffer(DrawBufferMode.None);
+        GL.ReadBuffer(ReadBufferMode.None);
+        CheckFramebufferComplete("Shadow map");
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, outputFramebuffer);
         shadowContext = CreateBuffer(new byte[ParkUniforms.BufferSize]);
         return shadowMap;
@@ -56,14 +58,19 @@ public sealed partial class BfresRenderer
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, shadowFramebuffer);
         GL.Viewport(0, 0, ShadowSize, ShadowSize);
         GL.ColorMask(false, false, false, false);
-        GL.DepthMask(true); GL.Clear(ClearBufferMask.DepthBufferBit);
-        GL.Enable(EnableCap.DepthTest); GL.DepthFunc(DepthFunction.Lequal);
-        GL.Disable(EnableCap.CullFace); GL.Disable(EnableCap.Blend);
+        GL.DepthMask(true);
+        GL.Clear(ClearBufferMask.DepthBufferBit);
+        GL.Enable(EnableCap.DepthTest);
+        GL.DepthFunc(DepthFunction.Lequal);
+        GL.Disable(EnableCap.CullFace);
+        GL.Disable(EnableCap.Blend);
         GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
-        GL.Enable(EnableCap.PolygonOffsetFill); GL.PolygonOffset(2, 4);
+        GL.Enable(EnableCap.PolygonOffsetFill);
+        GL.PolygonOffset(2, 4);
         foreach (var mesh in meshes)
         {
-            if (hidden.Contains(mesh.Source) || mesh.Material.Profile.Translucent || !nativeMeshes.TryGetValue(mesh.Source, out var native)) continue;
+            if (hidden.Contains(mesh.Source) || !mesh.Source.Material.CastsDynamicShadow
+                || !nativeShadowMeshes.TryGetValue(mesh.Source, out var native)) continue;
             DrawNativeMesh(mesh, native, shadowContext);
         }
         GL.Disable(EnableCap.PolygonOffsetFill);

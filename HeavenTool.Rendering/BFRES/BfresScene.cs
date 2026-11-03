@@ -32,7 +32,7 @@ public sealed record BfresScene(IReadOnlyList<BfresAsset> Assets, BfresRenderer.
     /// <summary>Prepares the game materials of meshes put together from several models.</summary>
     public static BfresShaderPreparation PrepareShaders(IEnumerable<BfresMesh> meshes, SwitchShaderArchive archive, CancellationToken cancellation = default)
     {
-        var programs = new Dictionary<BfresMesh, TranslatedShader>();
+        var programs = new Dictionary<BfresMesh, BfresMeshShaders>();
         var errors = new Dictionary<BfresMesh, string>();
         foreach (var mesh in meshes)
         {
@@ -42,14 +42,39 @@ public sealed record BfresScene(IReadOnlyList<BfresAsset> Assets, BfresRenderer.
                 if (archive.Name != mesh.Material.ShaderArchive) continue;
                 var model = archive.Models.FirstOrDefault(m => m.Name == mesh.Material.ShadingModel);
                 if (model == null) continue;
-                int index = model.FindMaterialProgram(mesh);
-                if (index >= 0) programs.Add(mesh, NativeShaderTranslator.Translate(model, model.ReadProgram(index), cancellation));
+
+                var failures = new List<string>();
+                var prepared = new BfresMeshShaders(
+                    PreparePass(model, mesh, BfresShaderPass.Material, failures, cancellation),
+                    PreparePass(model, mesh, BfresShaderPass.ZOnly, failures, cancellation),
+                    PreparePass(model, mesh, BfresShaderPass.DepthShadow, failures, cancellation));
+
+                if (prepared.Material != null || prepared.ZOnly != null || prepared.DepthShadow != null) programs.Add(mesh, prepared);
+                if (failures.Count > 0) errors[mesh] = string.Join("; ", failures);
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex) { errors[mesh] = ex.Message; }
         }
         return new(programs, errors);
     }
+
+    // A pass that fails is reported, without giving up on the mesh's other passes.
+    private static TranslatedShader? PreparePass(SwitchShadingModel model, BfresMesh mesh, BfresShaderPass pass, List<string> failures, CancellationToken cancellation)
+    {
+        try
+        {
+            int index = model.FindProgram(mesh, pass);
+            if (index < 0) throw new InvalidDataException("No program matches the material's shader options.");
+            return NativeShaderTranslator.Translate(model, model.ReadProgram(index), cancellation);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            failures.Add($"{pass}: {ex.Message}");
+            return null;
+        }
+    }
 }
 
-public sealed record BfresShaderPreparation(IReadOnlyDictionary<BfresMesh, TranslatedShader> Programs, IReadOnlyDictionary<BfresMesh, string> Errors);
+public sealed record BfresMeshShaders(TranslatedShader? Material, TranslatedShader? ZOnly, TranslatedShader? DepthShadow);
+
+public sealed record BfresShaderPreparation(IReadOnlyDictionary<BfresMesh, BfresMeshShaders> Programs, IReadOnlyDictionary<BfresMesh, string> Errors);

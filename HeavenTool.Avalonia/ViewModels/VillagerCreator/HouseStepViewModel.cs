@@ -13,6 +13,7 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
 {
     private VillagerProject? project;
     private BfresRenderer? renderer;
+    private IReadOnlyList<string> sceneWarnings = [];
     private CancellationTokenSource? previewLoad;
     private (HousePart Wall, HousePart Roof, HousePart Door)? shown;
     private HouseScene? scene;
@@ -64,7 +65,18 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
     }
 
     /// <summary>Connects the viewport the preview draws in.</summary>
-    public void Attach(BfresRenderer value) => renderer = value;
+    public void Attach(BfresRenderer value)
+    {
+        if (renderer != null) renderer.NativeShaderWarningsChanged -= UpdatePreviewWarning;
+        renderer = value;
+        renderer.NativeShaderWarningsChanged += UpdatePreviewWarning;
+    }
+
+    private void UpdatePreviewWarning()
+    {
+        var warnings = sceneWarnings.Concat(renderer?.NativeShaderWarnings ?? []).ToArray();
+        PreviewWarning = warnings.Length > 0 ? string.Join(Environment.NewLine, warnings) : null;
+    }
 
     public void ReportRenderFailure(Exception error) => RenderError = error.Message;
 
@@ -145,9 +157,11 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
             if (built == null || request.IsCancellationRequested) return;
             scene = built;
             ShowCurtains();
+            sceneWarnings = built.Warnings;
             renderer.SetScene(built.Geometry);
+            if (built.Lighting != null) renderer.SetLighting(built.Lighting);
             renderer.SetNativeShaders(built.Shaders);
-            PreviewWarning = built.Warnings.Count > 0 ? string.Join(Environment.NewLine, built.Warnings) : null;
+            UpdatePreviewWarning();
             shown = (wall, roof, door);
         }
         catch (Exception ex)
@@ -167,6 +181,7 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
 
     public void Dispose()
     {
+        if (renderer != null) renderer.NativeShaderWarningsChanged -= UpdatePreviewWarning;
         previewLoad?.Cancel();
         GC.SuppressFinalize(this);
     }

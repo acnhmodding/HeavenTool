@@ -23,6 +23,7 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
     private readonly VillagerCreatorViewModel creator;
     private VillagerProject? project;
     private BfresRenderer? renderer;
+    private IReadOnlyList<string> sceneWarnings = [];
     private CancellationTokenSource? previewLoad;
     private VillagerRoom? shown;
     private bool previewVisible, framed, loading;
@@ -81,12 +82,20 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
     /// <summary>Connects the viewport the preview draws in.</summary>
     public void Attach(BfresRenderer value)
     {
+        if (renderer != null) renderer.NativeShaderWarningsChanged -= UpdatePreviewWarning;
         renderer = value;
+        renderer.NativeShaderWarningsChanged += UpdatePreviewWarning;
         // The room has its own floor, which the viewport's ground would cut through.
         renderer.ShowGround = false;
         // The game darkens a room's floor under its furniture and along its walls by what stands over it.
         renderer.AmbientOcclusion = true;
         renderer.SetLighting(AcnhLightingPreset.Room);
+    }
+
+    private void UpdatePreviewWarning()
+    {
+        var warnings = sceneWarnings.Concat(renderer?.NativeShaderWarnings ?? []).ToArray();
+        PreviewWarning = warnings.Length > 0 ? string.Join(Environment.NewLine, warnings) : null;
     }
 
     public void ReportRenderFailure(Exception error) => RenderError = error.Message;
@@ -185,7 +194,9 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
             var built = await creator.RoomPreview.BuildAsync(room, request.Token);
             if (built == null || request.IsCancellationRequested) return;
             // The camera starts looking in through the missing front wall, and stays where the user puts it after an edit.
+            sceneWarnings = built.Warnings;
             renderer.SetScene(built.Geometry, keepCamera: framed);
+            if (built.Lighting != null) renderer.SetLighting(built.Lighting);
             if (!framed)
             {
                 renderer.SetOrbit(0, .55f);
@@ -194,7 +205,7 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
             }
             framed = true;
             renderer.SetNativeShaders(built.Shaders);
-            PreviewWarning = built.Warnings.Count > 0 ? string.Join(Environment.NewLine, built.Warnings) : null;
+            UpdatePreviewWarning();
             shown = room;
         }
         catch (Exception ex)
@@ -220,6 +231,7 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        if (renderer != null) renderer.NativeShaderWarningsChanged -= UpdatePreviewWarning;
         previewLoad?.Cancel();
         GC.SuppressFinalize(this);
     }

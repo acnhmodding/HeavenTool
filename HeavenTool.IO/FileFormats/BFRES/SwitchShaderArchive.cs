@@ -16,6 +16,8 @@ public sealed record ShaderUniformBlock(string Name, byte Type, int Size, IReadO
 public sealed record SwitchShaderProgram(int Index, SwitchShaderStage? Vertex, SwitchShaderStage? Fragment,
     IReadOnlyList<ShaderResourceLocation> Buffers, IReadOnlyList<ShaderResourceLocation> Samplers);
 
+public enum BfresShaderPass { Material, ZOnly, DepthShadow, FieldUnitMap, CubeMap }
+
 // A shading model of an ACNH Switch BFSHA v8 archive. Everything except the compiled programs is read up front.
 public sealed partial class SwitchShadingModel
 {
@@ -70,23 +72,32 @@ public sealed partial class SwitchShadingModel
 
     // Dynamic option words are stored relative to the dynamic key region; dynamicBase moves them after the static words.
     private static IEnumerable<SwitchShaderOption> ReadOptions(BinaryReader reader, long array, long dictionary, int dynamicBase) =>
-        reader.ReadNamesAt(dictionary).Select((name, i) =>
+        [.. reader.ReadNamesAt(dictionary).Select((name, i) =>
         {
             long at = array + i * 40;
             int word = reader.ReadByteAt(at + 30);
             if (dynamicBase > 0) word = word - reader.ReadByteAt(at + 29) + dynamicBase;
             return new SwitchShaderOption(name, reader.ReadNamesAt(reader.ReadPointerAt(at + 8)), reader.ReadByteAt(at + 25),
                 word, reader.ReadByteAt(at + 31), reader.ReadUInt32At(at + 32));
-        }).ToArray();
+        })];
 
-    // The compiled program for a mesh's material in the default render pass, or -1 when the archive has none.
-    public int FindMaterialProgram(BfresMesh mesh)
+    // The game falls back depthshadow -> zonly -> material when an assignment is unsupported.
+    // A supported assignment with an unmatched key is an error, rather than a reason to silently use another pass.
+    public int FindProgram(BfresMesh mesh, BfresShaderPass pass)
     {
+        var assignments = Options.FirstOrDefault(o => o.Name == "gsys_assign_type")?.Choices ?? [];
+        // The surface-color map requires its dedicated assignment; a lit material pass cannot substitute for it.
+        if (pass == BfresShaderPass.FieldUnitMap && !assignments.Contains(AssignmentName(pass))) return -1;
+        while (pass != BfresShaderPass.Material && !assignments.Contains(AssignmentName(pass)))
+            pass = pass == BfresShaderPass.DepthShadow ? BfresShaderPass.ZOnly : BfresShaderPass.Material;
+
         var material = mesh.Material;
         var choices = new Dictionary<string, string>(material.ShaderOptions)
         {
             ["gsys_weight"] = mesh.VertexSkinCount.ToString(CultureInfo.InvariantCulture),
-            ["gsys_assign_type"] = "gsys_assign_material", ["gsys_index_stream_format"] = "0", ["system_id"] = "0",
+            ["gsys_assign_type"] = AssignmentName(pass),
+            ["gsys_index_stream_format"] = "0",
+            ["system_id"] = "0",
             ["gsys_renderstate"] = material.Info("gsys_render_state_mode", "opaque") switch
                 { "mask" => "1", "translucent" => "2", "custom" => "3", _ => "0" }
         };
@@ -103,6 +114,16 @@ public sealed partial class SwitchShadingModel
             if (keys.AsSpan(i * keyWords, keyWords).SequenceEqual(words)) return i;
         return -1;
     }
+
+    private static string AssignmentName(BfresShaderPass pass) => pass switch
+    {
+        BfresShaderPass.Material => "gsys_assign_material",
+        BfresShaderPass.ZOnly => "gsys_assign_zonly",
+        BfresShaderPass.DepthShadow => "gsys_assign_depthshadow",
+        BfresShaderPass.FieldUnitMap => "gsys_assign_user1",
+        BfresShaderPass.CubeMap => "gsys_assign_cubemap",
+        _ => throw new ArgumentOutOfRangeException(nameof(pass))
+    };
 
     private static int ChoiceIndex(SwitchShaderOption option, string value)
     {
