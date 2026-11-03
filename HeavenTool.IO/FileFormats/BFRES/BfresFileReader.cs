@@ -1,3 +1,4 @@
+using AeonSake.NintendoTools.Compression.Yaz0;
 using AeonSake.NintendoTools.Compression.Zstd;
 using AeonSake.NintendoTools.FileFormats.Sarc;
 using HeavenTool.IO.Compression;
@@ -9,12 +10,23 @@ using BinaryReader = AeonSake.BinaryTools.BinaryReader;
 namespace HeavenTool.IO.FileFormats.BFRES;
 
 // Reads the models, materials, skeletons and embedded textures of ACNH's Switch BFRES v9 files for previewing.
-public sealed class BfresFileReader
+public sealed partial class BfresFileReader
 {
+    private const uint ZstdMagic = 0xfd2fb528;
+    private const ushort LittleEndianMark = 0xfeff;
+
+    // The sizes of the file's array entries, in bytes.
+    private const int ModelSize = 120, ShapeSize = 96, MaterialSize = 168, BoneSize = 96;
+    private const int VertexBufferSize = 16, VertexAttributeSize = 16, ExternalFileSize = 16;
+    private const int SamplerSize = 32, RenderInfoSize = 24, ShaderParameterSize = 32;
+    private const int PointerSize = 8;
+
     private readonly BinaryReader reader;
     private readonly CancellationToken cancellation;
     private readonly List<string> warnings = [];
     private readonly Dictionary<string, BntxTexture> textures = [];
+    private static readonly ZstdDecompressor zstdDecompressor = new();
+    private static readonly Yaz0Decompressor yaz0Decompressor = new();
     private long gpuBase;
 
     private BfresFileReader(BinaryReader reader, CancellationToken cancellation)
@@ -28,8 +40,9 @@ public sealed class BfresFileReader
     {
         var files = Unpack(input, "FRES"u8, "BFRES");
         cancellation.ThrowIfCancellationRequested();
-        return files.Count > 0 ? [.. files.Select(file => new BfresAsset(file.Name, Read(file.Data, cancellation)))]
-            : throw new InvalidDataException("Expected BFRES or a SARC model archive.");
+        if (files.Count == 0) throw new InvalidDataException("Expected BFRES or a SARC model archive.");
+
+        return [.. files.Select(file => new BfresAsset(file.Name, Read(file.Data, cancellation)))];
     }
 
     // Loads only the embedded textures of a BFRES, or of every BFRES inside a SARC such as a layout icon, optionally Zstd or
@@ -50,29 +63,38 @@ public sealed class BfresFileReader
     // Decompresses the input and returns it when it starts with magic, or else every SARC entry that does.
     internal static List<(string Name, byte[] Data)> Unpack(Stream input, ReadOnlySpan<byte> magic, string name)
     {
-        using var content = new MemoryStream();
+        byte[] data = Decompress(input);
+        if (data.AsSpan().StartsWith(magic)) 
+            return [(name, data)];
+
+        if (!data.AsSpan().StartsWith("SARC"u8)) 
+            return [];
+
+        using var archive = new MemoryStream(data);
+        var files = new List<(string, byte[])>();
+        foreach (var file in new SarcFileReader().Read(archive).Files)
+            if (file.Data.AsSpan().StartsWith(magic)) 
+                files.Add((file.Name, file.Data));
+        
+        return files;
+    }
+
+    private static byte[] Decompress(Stream input)
+    {
         Span<byte> header = stackalloc byte[4];
         long start = input.Position;
         input.ReadExactly(header);
         input.Position = start;
-        if (BinaryPrimitives.ReadUInt32LittleEndian(header) == 0xfd2fb528)
-            new ZstdDecompressor().Decompress(input, content);
-        else if (header.SequenceEqual("Yaz0"u8))
-        {
-            using var decompressed = Yaz0CompressionAlgorithm.Decompress(input) ?? throw new InvalidDataException("Yaz0 decompression failed.");
-            decompressed.Position = 0;
-            decompressed.CopyTo(content);
-        }
-        else input.CopyTo(content);
 
-        byte[] data = content.ToArray();
-        if (data.AsSpan().StartsWith(magic)) return [(name, data)];
-        if (!data.AsSpan().StartsWith("SARC"u8)) return [];
-        content.Position = 0;
-        var files = new List<(string, byte[])>();
-        foreach (var file in new SarcFileReader().Read(content).Files)
-            if (file.Data.AsSpan().StartsWith(magic)) files.Add((file.Name, file.Data));
-        return files;
+        using var content = new MemoryStream();
+        if (BinaryPrimitives.ReadUInt32LittleEndian(header) == ZstdMagic)
+            zstdDecompressor.Decompress(input, content);
+        else if (header.SequenceEqual("Yaz0"u8))
+            yaz0Decompressor.Decompress(input, content);
+        else
+            input.CopyTo(content);
+        
+        return content.ToArray();
     }
 
     private static BfresDocument Read(byte[] data, CancellationToken cancellation)
@@ -87,148 +109,239 @@ public sealed class BfresFileReader
     private BfresDocument Parse(byte[] data)
     {
         ReadEmbeddedTextures(data);
+
         long bufferInfo = reader.ReadPointerAt(176);
         gpuBase = bufferInfo == 0 ? 0 : reader.ReadPointerAt(bufferInfo + 8);
 
         long modelArray = reader.ReadPointerAt(40);
+        int modelCount = reader.ReadUInt16At(220);
         var models = new List<BfresModel>();
-        for (int i = 0, count = reader.ReadUInt16At(220); i < count; i++) models.Add(ReadModel(modelArray + i * 120));
-        if (!models.Any(x => x.Meshes.Count > 0))
+        for (int i = 0; i < modelCount; i++) models.Add(ReadModel(modelArray + i * ModelSize));
+
+        var animations = ReadSkeletalAnimations();
+        if (!models.Any(model => model.Meshes.Count > 0))
             warnings.Add("This BFRES contains no previewable model geometry (it may be a texture or animation resource).");
-        return new BfresDocument(models, warnings);
+
+        return new BfresDocument(models, warnings) { SkeletalAnimations = animations };
     }
 
+    private Vector3 ReadVector3(long at) => new(reader.ReadSingleAt(at), reader.ReadSingleAt(at + 4), reader.ReadSingleAt(at + 8));
+
     #region Models
+
+    private sealed record VertexData(Vector3[] Positions, Vector3[] Normals, Vector4[] BoneIndices, Vector4[] Weights, Vector2[] TexCoords,
+        Dictionary<string, ReadOnlyMemory<Vector4>> Attributes);
 
     private BfresModel ReadModel(long at)
     {
         cancellation.ThrowIfCancellationRequested();
         string name = reader.ReadNameAt(at + 8);
-        var (bones, world, palette) = ReadSkeleton(reader.ReadPointerAt(at + 24));
-        long materialArray = reader.ReadPointerAt(at + 56), shapeArray = reader.ReadPointerAt(at + 40);
-        var materials = new BfresMaterial[reader.ReadUInt16At(at + 108)];
-        for (int i = 0; i < materials.Length; i++) materials[i] = ReadMaterial(materialArray + i * 168);
+        var skeleton = ReadSkeleton(reader.ReadPointerAt(at + 24));
 
+        long materialArray = reader.ReadPointerAt(at + 56);
+        var materials = new BfresMaterial[reader.ReadUInt16At(at + 108)];
+        for (int i = 0; i < materials.Length; i++) materials[i] = ReadMaterial(materialArray + i * MaterialSize);
+
+        long shapeArray = reader.ReadPointerAt(at + 40);
+        int shapeCount = reader.ReadUInt16At(at + 106);
         var meshes = new List<BfresMesh>();
         // Several shapes can share one FVTX, so decoded vertices are cached by offset.
         var vertexCache = new Dictionary<long, VertexData>();
-        for (int i = 0, count = reader.ReadUInt16At(at + 106); i < count; i++)
+        for (int i = 0; i < shapeCount; i++)
         {
             cancellation.ThrowIfCancellationRequested();
-            long shape = shapeArray + i * 96;
+            long shape = shapeArray + i * ShapeSize;
             string shapeName = reader.ReadNameAt(shape + 8);
             try
             {
-                if ((reader.ReadUInt32At(shape + 4) & 16) != 0) throw new NotSupportedException("Meshlet geometry is unsupported.");
-                long vertex = reader.ReadPointerAt(shape + 16);
-                if (!vertexCache.TryGetValue(vertex, out var v)) vertexCache.Add(vertex, v = ReadVertices(vertex));
-                if (reader.ReadByteAt(shape + 91) == 0) continue;
-
-                int skinCount = reader.ReadByteAt(shape + 90);
-                if (skinCount > 4 || skinCount > 0 && (v.BoneIndices.Length == 0 || skinCount > 1 && v.Weights.Length == 0))
-                    throw new NotSupportedException("Unsupported skin weights or missing skin attributes.");
-                var shapeTransform = skinCount == 0 && world.Length > 0 ? world[reader.ReadUInt16At(shape + 84)] : Matrix4x4.Identity;
-                var indices = ReadIndices(reader.ReadPointerAt(shape + 24));
-                var positions = new Vector3[v.Positions.Length];
-                var normals = new Vector3[positions.Length];
-                for (int j = 0; j < positions.Length; j++)
-                {
-                    var transform = shapeTransform;
-                    if (skinCount > 0)
-                    {
-                        transform = default;
-                        for (int k = 0; k < skinCount; k++)
-                            transform += palette[(int)v.BoneIndices[j][k]] * (skinCount == 1 ? 1 : v.Weights[j][k]);
-                    }
-                    positions[j] = Vector3.Transform(v.Positions[j], transform);
-                    if (v.Normals.Length == 0) continue;
-                    var normal = Matrix4x4.Invert(transform, out var inverse) ? Vector3.TransformNormal(v.Normals[j], Matrix4x4.Transpose(inverse)) : v.Normals[j];
-                    normals[j] = normal.LengthSquared() > 1e-12f ? Vector3.Normalize(normal) : normal;
-                }
-                if (v.Normals.Length == 0) normals = GenerateNormals(positions, indices);
-
-                meshes.Add(new BfresMesh
-                {
-                    Name = shapeName, Material = materials[reader.ReadUInt16At(shape + 82)], VertexSkinCount = skinCount,
-                    Positions = positions, Normals = normals, Indices = indices, TexCoords = v.TexCoords,
-                    NativeAttributes = v.Attributes, BonePalette = palette, ShapeTransform = shapeTransform
-                });
+                if (ReadMesh(shape, shapeName, materials, skeleton, vertexCache) is { } mesh) meshes.Add(mesh);
             }
             catch (NotSupportedException ex)
             {
                 warnings.Add($"{name}/{shapeName}: {ex.Message}");
             }
         }
-        return new BfresModel(name, meshes, materials, bones);
+        return new BfresModel(name, meshes, materials, skeleton.Bones);
     }
 
-    private sealed record VertexData(Vector3[] Positions, Vector3[] Normals, Vector4[] BoneIndices, Vector4[] Weights, Vector2[] TexCoords,
-        Dictionary<string, ReadOnlyMemory<Vector4>> Attributes);
+    // The mesh of a shape, or null when the shape has no geometry to draw.
+    private BfresMesh? ReadMesh(long shape, string name, BfresMaterial[] materials, SkeletonData skeleton, Dictionary<long, VertexData> vertexCache)
+    {
+        const uint MeshletFlag = 16;
+        if ((reader.ReadUInt32At(shape + 4) & MeshletFlag) != 0) throw new NotSupportedException("Meshlet geometry is unsupported.");
+
+        long vertexBuffer = reader.ReadPointerAt(shape + 16);
+        if (!vertexCache.TryGetValue(vertexBuffer, out var vertices))
+        {
+            vertices = ReadVertices(vertexBuffer);
+            vertexCache.Add(vertexBuffer, vertices);
+        }
+
+        int meshCount = reader.ReadByteAt(shape + 91);
+        if (meshCount == 0) return null;
+
+        int skinCount = reader.ReadByteAt(shape + 90);
+        bool missingBones = skinCount > 0 && vertices.BoneIndices.Length == 0;
+        bool missingWeights = skinCount > 1 && vertices.Weights.Length == 0;
+        if (skinCount > 4 || missingBones || missingWeights)
+            throw new NotSupportedException("Unsupported skin weights or missing skin attributes.");
+
+        var shapeTransform = skinCount == 0 && skeleton.World.Length > 0 ? skeleton.World[reader.ReadUInt16At(shape + 84)] : Matrix4x4.Identity;
+        var indices = ReadIndices(reader.ReadPointerAt(shape + 24));
+        var (positions, normals) = PoseVertices(vertices, skinCount, shapeTransform, skeleton.Palette);
+        if (vertices.Normals.Length == 0) normals = GenerateNormals(positions, indices);
+
+        return new BfresMesh
+        {
+            Name = name,
+            Material = materials[reader.ReadUInt16At(shape + 82)],
+            VertexSkinCount = skinCount,
+            Positions = positions,
+            Normals = normals,
+            Indices = indices,
+            TexCoords = vertices.TexCoords,
+            NativeAttributes = vertices.Attributes,
+            BonePalette = skeleton.Palette,
+            ShapeTransform = shapeTransform
+        };
+    }
+
+    // The vertices moved from their bind pose into the model's space, by their shape or their bones.
+    private static (Vector3[] Positions, Vector3[] Normals) PoseVertices(VertexData vertices, int skinCount, Matrix4x4 shapeTransform, Matrix4x4[] palette)
+    {
+        var positions = new Vector3[vertices.Positions.Length];
+        var normals = new Vector3[positions.Length];
+        for (int i = 0; i < positions.Length; i++)
+        {
+            var transform = skinCount > 0 ? SkinTransform(vertices, i, skinCount, palette) : shapeTransform;
+            positions[i] = Vector3.Transform(vertices.Positions[i], transform);
+            if (vertices.Normals.Length == 0) continue;
+
+            var normal = Matrix4x4.Invert(transform, out var inverse)
+                ? Vector3.TransformNormal(vertices.Normals[i], Matrix4x4.Transpose(inverse))
+                : vertices.Normals[i];
+            normals[i] = normal.LengthSquared() > 1e-12f ? Vector3.Normalize(normal) : normal;
+        }
+        return (positions, normals);
+    }
+
+    // The bones' matrices blended by the vertex's weights. A vertex with a single bone has no weight attribute.
+    private static Matrix4x4 SkinTransform(VertexData vertices, int vertex, int skinCount, Matrix4x4[] palette)
+    {
+        Matrix4x4 transform = default;
+        for (int i = 0; i < skinCount; i++)
+        {
+            float weight = skinCount == 1 ? 1 : vertices.Weights[vertex][i];
+            transform += palette[(int)vertices.BoneIndices[vertex][i]] * weight;
+        }
+        return transform;
+    }
 
     private VertexData ReadVertices(long at)
     {
-        long attributes = reader.ReadPointerAt(at + 8), sizes = reader.ReadPointerAt(at + 48), strides = reader.ReadPointerAt(at + 56);
-        int count = reader.ReadInt32At(at + 80);
-        // Vertex buffers are packed one after another, each aligned to 8 bytes.
+        var buffers = ReadVertexBuffers(at);
+        long attributeArray = reader.ReadPointerAt(at + 8);
+        int attributeCount = reader.ReadByteAt(at + 76);
+        int vertexCount = reader.ReadInt32At(at + 80);
+
+        var decoded = new Dictionary<string, Vector4[]>();
+        for (int i = 0; i < attributeCount; i++)
+        {
+            long attribute = attributeArray + i * VertexAttributeSize;
+            string name = reader.ReadNameAt(attribute);
+            if (IsDecodedAttribute(name)) decoded.Add(name, ReadVertexAttribute(attribute, buffers, vertexCount));
+        }
+        if (!decoded.TryGetValue("_p0", out var positions)) throw new NotSupportedException("No position attribute (_p0).");
+
+        Vector4[] Values(string name) => decoded.TryGetValue(name, out var values) ? values : [];
+        static Vector3 ToVector3(Vector4 value) => new(value.X, value.Y, value.Z);
+        static Vector2 ToVector2(Vector4 value) => new(value.X, value.Y);
+
+        return new VertexData(
+            Positions: Array.ConvertAll(positions, ToVector3),
+            Normals: Array.ConvertAll(Values("_n0"), ToVector3),
+            BoneIndices: Values("_i0"),
+            Weights: Values("_w0"),
+            TexCoords: Array.ConvertAll(Values("_u0"), ToVector2),
+            Attributes: decoded.ToDictionary(pair => pair.Key, pair => (ReadOnlyMemory<Vector4>)pair.Value));
+    }
+
+    // Vertex buffers are packed one after another, each aligned to 8 bytes.
+    private (long Offset, int Stride)[] ReadVertexBuffers(long at)
+    {
+        long sizes = reader.ReadPointerAt(at + 48);
+        long strides = reader.ReadPointerAt(at + 56);
         var buffers = new (long Offset, int Stride)[reader.ReadByteAt(at + 77)];
         long offset = gpuBase + reader.ReadUInt32At(at + 72);
         for (int i = 0; i < buffers.Length; i++)
         {
             offset = (offset + 7) & ~7L;
-            buffers[i] = (offset, reader.ReadInt32At(strides + i * 16));
-            offset += reader.ReadUInt32At(sizes + i * 16);
+            buffers[i] = (offset, reader.ReadInt32At(strides + i * VertexBufferSize));
+            offset += reader.ReadUInt32At(sizes + i * VertexBufferSize);
         }
-
-        var decoded = new Dictionary<string, Vector4[]>();
-        for (int i = 0, attributeCount = reader.ReadByteAt(at + 76); i < attributeCount; i++)
-        {
-            long attribute = attributes + i * 16;
-            string name = reader.ReadNameAt(attribute);
-            if (name.Length != 3 || name[0] != '_' || !"pniwutbc".Contains(name[1])) continue;
-            // The attribute format is the only big endian field.
-            ushort format = BinaryPrimitives.ReverseEndianness(reader.ReadUInt16At(attribute + 8));
-            var buffer = buffers[reader.ReadByteAt(attribute + 14)];
-            long first = buffer.Offset + reader.ReadUInt16At(attribute + 12);
-            var values = new Vector4[count];
-            for (int j = 0; j < count; j++)
-            {
-                if ((j & 4095) == 0) cancellation.ThrowIfCancellationRequested();
-                values[j] = DecodeVertex(first + (long)j * buffer.Stride, format);
-            }
-            decoded.Add(name, values);
-        }
-        if (!decoded.TryGetValue("_p0", out var position)) throw new NotSupportedException("No position attribute (_p0).");
-        Vector4[] Values(string name) => decoded.TryGetValue(name, out var values) ? values : [];
-        return new VertexData(Array.ConvertAll(position, x => new Vector3(x.X, x.Y, x.Z)),
-            Array.ConvertAll(Values("_n0"), x => new Vector3(x.X, x.Y, x.Z)), Values("_i0"), Values("_w0"),
-            Array.ConvertAll(Values("_u0"), x => new Vector2(x.X, x.Y)),
-            decoded.ToDictionary(x => x.Key, x => (ReadOnlyMemory<Vector4>)x.Value));
+        return buffers;
     }
 
-    private Vector4 DecodeVertex(long at, ushort format)
+    // Attributes are named _ and a kind, then a digit: position, normal, bone index, weight, uv, tangent, bitangent or color.
+    private static bool IsDecodedAttribute(string name) => name.Length == 3 && name[0] == '_' && "pniwutbc".Contains(name[1]);
+
+    private Vector4[] ReadVertexAttribute(long attribute, (long Offset, int Stride)[] buffers, int vertexCount)
     {
-        if (format == 0x020e)
+        // The attribute format is the only big endian field.
+        ushort format = BinaryPrimitives.ReverseEndianness(reader.ReadUInt16At(attribute + 8));
+        var (bufferOffset, stride) = buffers[reader.ReadByteAt(attribute + 14)];
+        long first = bufferOffset + reader.ReadUInt16At(attribute + 12);
+
+        var values = new Vector4[vertexCount];
+        for (int i = 0; i < vertexCount; i++)
         {
-            // Packed signed 10-10-10-2.
-            uint packed = reader.ReadUInt32At(at);
-            static float Signed(uint v) => Math.Max(((int)(v << 22) >> 22) / 511f, -1);
-            return new(Signed(packed & 1023), Signed((packed >> 10) & 1023), Signed((packed >> 20) & 1023), (packed >> 30) / 3f);
+            if ((i & 4095) == 0) cancellation.ThrowIfCancellationRequested();
+            values[i] = DecodeVertexValue(first + (long)i * stride, format);
         }
-        var (bits, count) = (format & 255) switch
+        return values;
+    }
+
+    private Vector4 DecodeVertexValue(long at, ushort format)
+    {
+        const ushort PackedSigned10102 = 0x020e;
+        if (format == PackedSigned10102) return DecodePackedSigned10102(reader.ReadUInt32At(at));
+
+        int layout = format & 255;
+        var (bits, count) = layout switch
         {
-            0x02 => (8, 1), 0x09 => (8, 2), 0x0b => (8, 4), 0x0a => (16, 1), 0x12 => (16, 2), 0x15 => (16, 4),
-            0x16 => (32, 1), 0x17 => (32, 2), 0x18 => (32, 3), 0x19 => (32, 4),
+            0x02 => (8, 1),
+            0x09 => (8, 2),
+            0x0b => (8, 4),
+            0x0a => (16, 1),
+            0x12 => (16, 2),
+            0x15 => (16, 4),
+            0x16 => (32, 1),
+            0x17 => (32, 2),
+            0x18 => (32, 3),
+            0x19 => (32, 4),
             _ => throw new NotSupportedException($"Vertex format 0x{format:X4} is unsupported.")
         };
+
         int kind = format >> 8;
         // Nintendo's scalar 16-bit UNorm and SNorm values swap their kind codes.
-        if ((format & 255) == 0x0a && kind is 2 or 3) kind ^= 1;
+        if (layout == 0x0a && kind is 2 or 3) kind ^= 1;
+
         Vector4 value = default;
         for (int i = 0; i < count; i++)
         {
-            long p = at + i * bits / 8;
-            uint raw = bits switch { 8 => reader.ReadByteAt(p), 16 => reader.ReadUInt16At(p), _ => reader.ReadUInt32At(p) };
-            int signed = bits switch { 8 => (sbyte)raw, 16 => (short)raw, _ => (int)raw };
+            long component = at + i * bits / 8;
+            uint raw = bits switch
+            {
+                8 => reader.ReadByteAt(component),
+                16 => reader.ReadUInt16At(component),
+                _ => reader.ReadUInt32At(component)
+            };
+            int signed = bits switch
+            {
+                8 => (sbyte)raw,
+                16 => (short)raw,
+                _ => (int)raw
+            };
             value[i] = kind switch
             {
                 1 => raw / (bits == 8 ? 255f : bits == 16 ? 65535f : uint.MaxValue),
@@ -243,30 +356,58 @@ public sealed class BfresFileReader
         return value;
     }
 
+    private static Vector4 DecodePackedSigned10102(uint packed)
+    {
+        static float Signed(uint value) => Math.Max(((int)(value << 22) >> 22) / 511f, -1);
+
+        return new(Signed(packed & 1023), Signed((packed >> 10) & 1023), Signed((packed >> 20) & 1023), (packed >> 30) / 3f);
+    }
+
     private uint[] ReadIndices(long at)
     {
-        int topology = reader.ReadInt32At(at + 36), count = reader.ReadInt32At(at + 44);
+        const int TriangleList = 3, TriangleStrip = 4;
+
         long offset = gpuBase + reader.ReadUInt32At(at + 32);
-        uint first = reader.ReadUInt32At(at + 48);
-        var (raw, restart) = reader.ReadInt32At(at + 40) switch
+        int topology = reader.ReadInt32At(at + 36);
+        int count = reader.ReadInt32At(at + 44);
+        uint firstVertex = reader.ReadUInt32At(at + 48);
+        var (indices, restart) = reader.ReadInt32At(at + 40) switch
         {
-            0 => (Array.ConvertAll(reader.ReadByteArrayAt(offset, count), x => (uint)x), byte.MaxValue),
-            1 => (Array.ConvertAll(reader.ReadUInt16ArrayAt(offset, count), x => (uint)x), ushort.MaxValue),
+            0 => (Array.ConvertAll(reader.ReadByteArrayAt(offset, count), index => (uint)index), byte.MaxValue),
+            1 => (Array.ConvertAll(reader.ReadUInt16ArrayAt(offset, count), index => (uint)index), ushort.MaxValue),
             2 => (reader.ReadUInt32ArrayAt(offset, count), uint.MaxValue),
             _ => throw new NotSupportedException("Unsupported index format.")
         };
-        for (int i = 0; i < raw.Length; i++) raw[i] = topology == 4 && raw[i] == restart ? uint.MaxValue : raw[i] + first;
-        if (topology == 3) return raw;
-        if (topology != 4) throw new NotSupportedException($"Primitive topology {topology} is unsupported.");
 
-        // Convert the restartable triangle strip into a list, dropping degenerate triangles.
-        var triangles = new List<uint>();
-        for (int i = 0, start = 0; i < raw.Length; i++)
+        for (int i = 0; i < indices.Length; i++)
+            indices[i] = topology == TriangleStrip && indices[i] == restart ? uint.MaxValue : indices[i] + firstVertex;
+
+        return topology switch
         {
-            if (raw[i] == uint.MaxValue) { start = i + 1; continue; }
+            TriangleList => indices,
+            TriangleStrip => TriangulateStrip(indices),
+            _ => throw new NotSupportedException($"Primitive topology {topology} is unsupported.")
+        };
+    }
+
+    // Converts a triangle strip, restarting at uint.MaxValue, into a list, dropping degenerate triangles.
+    private static uint[] TriangulateStrip(uint[] strip)
+    {
+        var triangles = new List<uint>();
+        int start = 0;
+        for (int i = 0; i < strip.Length; i++)
+        {
+            if (strip[i] == uint.MaxValue)
+            {
+                start = i + 1;
+                continue;
+            }
             if (i - start < 2) continue;
-            uint a = raw[i - 2], b = raw[i - 1], c = raw[i];
+
+            uint a = strip[i - 2], b = strip[i - 1], c = strip[i];
             if (a == b || b == c || a == c) continue;
+
+            // Every other triangle of a strip is wound the other way.
             if (((i - start) & 1) != 0) (a, b) = (b, a);
             triangles.AddRange(a, b, c);
         }
@@ -279,8 +420,10 @@ public sealed class BfresFileReader
         for (int i = 0; i < indices.Length; i += 3)
         {
             uint a = indices[i], b = indices[i + 1], c = indices[i + 2];
-            var n = Vector3.Cross(positions[b] - positions[a], positions[c] - positions[a]);
-            normals[a] += n; normals[b] += n; normals[c] += n;
+            var normal = Vector3.Cross(positions[b] - positions[a], positions[c] - positions[a]);
+            normals[a] += normal;
+            normals[b] += normal;
+            normals[c] += normal;
         }
         for (int i = 0; i < normals.Length; i++)
             normals[i] = normals[i].LengthSquared() > 1e-12f ? Vector3.Normalize(normals[i]) : Vector3.UnitY;
@@ -291,55 +434,90 @@ public sealed class BfresFileReader
 
     #region Skeleton
 
-    private (BfresBone[] Bones, Matrix4x4[] World, Matrix4x4[] Palette) ReadSkeleton(long at)
+    private const int MayaScaling = 2, SoftimageScaling = 3;
+    private const int BoneParentOffset = 42, BoneScaleOffset = 56;
+
+    private sealed record SkeletonData(BfresBone[] Bones, Matrix4x4[] World, Matrix4x4[] Palette);
+
+    private enum BoneState : byte { Pending, Visiting, Done }
+
+    private SkeletonData ReadSkeleton(long at)
     {
-        if (at == 0) return ([], [], []);
-        long boneArray = reader.ReadPointerAt(at + 16), paletteArray = reader.ReadPointerAt(at + 24), inverseArray = reader.ReadPointerAt(at + 32);
-        int count = reader.ReadUInt16At(at + 56), smooth = reader.ReadUInt16At(at + 58), rigid = reader.ReadUInt16At(at + 60);
+        if (at == 0) return new([], [], []);
+
+        long boneArray = reader.ReadPointerAt(at + 16);
+        int boneCount = reader.ReadUInt16At(at + 56);
         int scalingMode = (int)((reader.ReadUInt32At(at + 4) >> 8) & 3);
-        if (scalingMode == 3) warnings.Add("Softimage skeleton scaling uses standard inheritance; its compensation rules are not implemented.");
+        if (scalingMode == SoftimageScaling) warnings.Add("Softimage skeleton scaling uses standard inheritance; its compensation rules are not implemented.");
 
-        var world = new Matrix4x4[count];
-        var state = new byte[count];
-        Vector3 Vector(long p) => new(reader.ReadSingleAt(p), reader.ReadSingleAt(p + 4), reader.ReadSingleAt(p + 8));
-        Matrix4x4 World(int i)
+        var world = new Matrix4x4[boneCount];
+        var state = new BoneState[boneCount];
+        Matrix4x4 World(int index)
         {
-            if (state[i] == 2) return world[i];
-            if (state[i] == 1) throw new InvalidDataException("Cycle in bone hierarchy.");
-            state[i] = 1;
-            long bone = boneArray + i * 96;
-            int parent = reader.ReadInt16At(bone + 42);
-            var r = reader.ReadSingleArrayAt(bone + 68, 4);
-            var rotation = (reader.ReadUInt32At(bone + 52) & 0x1000) != 0
-                ? Matrix4x4.CreateRotationX(r[0]) * Matrix4x4.CreateRotationY(r[1]) * Matrix4x4.CreateRotationZ(r[2])
-                : Matrix4x4.CreateFromQuaternion(new(r[0], r[1], r[2], r[3]));
-            var local = Matrix4x4.CreateScale(Vector(bone + 56)) * rotation;
-            // Maya row-vector order: S * R * inverseParentScale * T.
-            if (parent >= 0 && scalingMode == 2) local *= Matrix4x4.CreateScale(Vector3.One / Vector(boneArray + parent * 96 + 56));
-            local *= Matrix4x4.CreateTranslation(Vector(bone + 84));
-            world[i] = parent < 0 ? local : local * World(parent);
-            state[i] = 2;
-            return world[i];
+            if (state[index] == BoneState.Done) return world[index];
+            if (state[index] == BoneState.Visiting) throw new InvalidDataException("Cycle in bone hierarchy.");
+            state[index] = BoneState.Visiting;
+
+            int parent = reader.ReadInt16At(boneArray + index * BoneSize + BoneParentOffset);
+            var local = ReadBoneTransform(boneArray, index, parent, scalingMode);
+            world[index] = parent < 0 ? local : local * World(parent);
+            state[index] = BoneState.Done;
+            return world[index];
         }
 
-        var bones = new BfresBone[count];
-        for (int i = 0; i < count; i++)
+        var bones = new BfresBone[boneCount];
+        for (int i = 0; i < boneCount; i++)
         {
-            string name = reader.ReadNameAt(boneArray + i * 96);
-            bones[i] = new(i, name.Length == 0 ? $"Bone {i}" : name, reader.ReadInt16At(boneArray + i * 96 + 42), World(i));
+            long bone = boneArray + i * BoneSize;
+            string name = reader.ReadNameAt(bone);
+            bones[i] = new(i, name.Length == 0 ? $"Bone {i}" : name, reader.ReadInt16At(bone + BoneParentOffset), World(i));
         }
+        return new(bones, world, ReadSkinPalette(at, world));
+    }
 
-        // Smooth skinning matrices bind through the inverse bind pose; rigid ones use the bone directly.
-        var palette = new Matrix4x4[smooth + rigid];
+    private Matrix4x4 ReadBoneTransform(long boneArray, int index, int parent, int scalingMode)
+    {
+        const uint EulerRotationFlag = 0x1000;
+
+        long bone = boneArray + index * BoneSize;
+        float[] r = reader.ReadSingleArrayAt(bone + 68, 4);
+        var rotation = (reader.ReadUInt32At(bone + 52) & EulerRotationFlag) != 0
+            ? Matrix4x4.CreateRotationX(r[0]) * Matrix4x4.CreateRotationY(r[1]) * Matrix4x4.CreateRotationZ(r[2])
+            : Matrix4x4.CreateFromQuaternion(new(r[0], r[1], r[2], r[3]));
+
+        var transform = Matrix4x4.CreateScale(ReadVector3(bone + BoneScaleOffset)) * rotation;
+        // Maya row-vector order: S * R * inverseParentScale * T.
+        if (parent >= 0 && scalingMode == MayaScaling)
+            transform *= Matrix4x4.CreateScale(Vector3.One / ReadVector3(boneArray + parent * BoneSize + BoneScaleOffset));
+        return transform * Matrix4x4.CreateTranslation(ReadVector3(bone + 84));
+    }
+
+    // Smooth skinning matrices bind through the inverse bind pose; rigid ones use the bone directly.
+    private Matrix4x4[] ReadSkinPalette(long skeleton, Matrix4x4[] world)
+    {
+        long paletteArray = reader.ReadPointerAt(skeleton + 24);
+        long inverseArray = reader.ReadPointerAt(skeleton + 32);
+        int smoothCount = reader.ReadUInt16At(skeleton + 58);
+        int rigidCount = reader.ReadUInt16At(skeleton + 60);
+
+        var palette = new Matrix4x4[smoothCount + rigidCount];
         for (int i = 0; i < palette.Length; i++)
         {
             var boneWorld = world[reader.ReadUInt16At(paletteArray + i * 2)];
-            if (i >= smooth) { palette[i] = boneWorld; continue; }
-            // File matrices are row-major 3x4 column-vector transforms; transpose for Numerics.
-            var m = reader.ReadSingleArrayAt(inverseArray + i * 48, 12);
-            palette[i] = new Matrix4x4(m[0], m[4], m[8], 0, m[1], m[5], m[9], 0, m[2], m[6], m[10], 0, m[3], m[7], m[11], 1) * boneWorld;
+            palette[i] = i < smoothCount ? ReadInverseBind(inverseArray + i * 48) * boneWorld : boneWorld;
         }
-        return (bones, world, palette);
+        return palette;
+    }
+
+    // File matrices are row-major 3x4 column-vector transforms; transpose for Numerics.
+    private Matrix4x4 ReadInverseBind(long at)
+    {
+        float[] m = reader.ReadSingleArrayAt(at, 12);
+        return new Matrix4x4(
+            m[0], m[4], m[8], 0,
+            m[1], m[5], m[9], 0,
+            m[2], m[6], m[10], 0,
+            m[3], m[7], m[11], 1);
     }
 
     #endregion
@@ -348,165 +526,299 @@ public sealed class BfresFileReader
 
     private BfresMaterial ReadMaterial(long at)
     {
-        long shader = reader.ReadPointerAt(at + 32), textureNames = reader.ReadPointerAt(at + 48), samplerArray = reader.ReadPointerAt(at + 64);
-        var samplerNames = reader.ReadNamesAt(reader.ReadPointerAt(at + 72));
-        var samplers = new BfresSampler[reader.ReadByteAt(at + 157)];
-        for (int i = 0; i < samplers.Length; i++)
-        {
-            long s = samplerArray + i * 32;
-            string textureName = reader.ReadNameAt(textureNames + i * 8);
-            samplers[i] = new(samplerNames[i], textures.GetValueOrDefault(textureName),
-                reader.ReadByteAt(s), reader.ReadByteAt(s + 1), reader.ReadUInt16At(s + 6), reader.ReadByteAt(s + 4), reader.ReadByteAt(s + 5),
-                reader.ReadSingleAt(s + 8), reader.ReadSingleAt(s + 12), reader.ReadSingleAt(s + 16)) { TextureName = textureName };
-        }
-
-        var infos = new Dictionary<string, BfresRenderInfo>();
-        long infoArray = reader.ReadPointerAt(at + 16);
-        for (int i = 0, count = reader.ReadUInt16At(at + 154); i < count; i++)
-        {
-            long p = infoArray + i * 24, values = reader.ReadPointerAt(p + 8);
-            int valueCount = values == 0 ? 0 : reader.ReadUInt16At(p + 16);
-            byte type = reader.ReadByteAt(p + 18);
-            infos.Add(reader.ReadNameAt(p), valueCount == 0 ? new([], [], []) : type switch
-            {
-                0 => new([], [], reader.ReadInt32ArrayAt(values, valueCount)),
-                1 => new([], reader.ReadSingleArrayAt(values, valueCount), []),
-                2 => new([.. Enumerable.Range(0, valueCount).Select(j => reader.ReadNameAt(values + j * 8))], [], []),
-                _ => throw new NotSupportedException($"Render info type {type} is unsupported.")
-            });
-        }
-
-        var parameters = new Dictionary<string, BfresShaderParameter>();
-        long parameterArray = reader.ReadPointerAt(at + 80), source = reader.ReadPointerAt(at + 96);
-        for (int i = 0, count = reader.ReadUInt16At(at + 158); i < count; i++)
-        {
-            long p = parameterArray + i * 32;
-            parameters.Add(reader.ReadNameAt(p + 8),
-                new(reader.ReadByteAt(p + 16), reader.ReadByteArrayAt(source + reader.ReadUInt16At(p + 18), reader.ReadByteAt(p + 17))));
-        }
+        var samplers = ReadSamplers(at);
+        var renderInfos = ReadRenderInfos(at);
+        var parameters = ReadShaderParameters(at);
 
         // Shader info: archive and model names, then attribute, sampler and option assignments.
-        Dictionary<string, string> Assignments(int offset) => shader == 0 ? [] : StringDictionary(shader + offset);
+        long shader = reader.ReadPointerAt(at + 32);
+        Dictionary<string, string> Assignments(int offset) => shader == 0 ? [] : ReadStringDictionary(shader + offset);
+
         return new BfresMaterial
         {
             Name = reader.ReadNameAt(at + 8),
             ShaderArchive = shader == 0 ? "" : reader.ReadNameAt(shader),
             ShadingModel = shader == 0 ? "" : reader.ReadNameAt(shader + 8),
-            AttributeAssignments = Assignments(16), SamplerAssignments = Assignments(32), ShaderOptions = Assignments(48),
-            OriginalParameters = parameters, RenderInfos = infos, Samplers = samplers
+            AttributeAssignments = Assignments(16),
+            SamplerAssignments = Assignments(32),
+            ShaderOptions = Assignments(48),
+            OriginalParameters = parameters,
+            RenderInfos = renderInfos,
+            Samplers = samplers
         };
     }
 
-    private Dictionary<string, string> StringDictionary(long at)
+    private BfresSampler[] ReadSamplers(long material)
+    {
+        long textureNames = reader.ReadPointerAt(material + 48);
+        long samplerArray = reader.ReadPointerAt(material + 64);
+        string[] names = reader.ReadNamesAt(reader.ReadPointerAt(material + 72));
+
+        var samplers = new BfresSampler[reader.ReadByteAt(material + 157)];
+        for (int i = 0; i < samplers.Length; i++)
+        {
+            long at = samplerArray + i * SamplerSize;
+            string textureName = reader.ReadNameAt(textureNames + i * PointerSize);
+            samplers[i] = new BfresSampler(
+                Name: names[i],
+                Texture: textures.GetValueOrDefault(textureName),
+                WrapU: reader.ReadByteAt(at),
+                WrapV: reader.ReadByteAt(at + 1),
+                FilterFlags: reader.ReadUInt16At(at + 6),
+                BorderColor: reader.ReadByteAt(at + 4),
+                MaxAnisotropy: reader.ReadByteAt(at + 5),
+                MinLod: reader.ReadSingleAt(at + 8),
+                MaxLod: reader.ReadSingleAt(at + 12),
+                LodBias: reader.ReadSingleAt(at + 16))
+            {
+                TextureName = textureName
+            };
+        }
+        return samplers;
+    }
+
+    private Dictionary<string, BfresRenderInfo> ReadRenderInfos(long material)
+    {
+        long array = reader.ReadPointerAt(material + 16);
+        int count = reader.ReadUInt16At(material + 154);
+
+        var infos = new Dictionary<string, BfresRenderInfo>();
+        for (int i = 0; i < count; i++)
+        {
+            long at = array + i * RenderInfoSize;
+            infos.Add(reader.ReadNameAt(at), ReadRenderInfo(at));
+        }
+        return infos;
+    }
+
+    private BfresRenderInfo ReadRenderInfo(long at)
+    {
+        long values = reader.ReadPointerAt(at + 8);
+        int count = values == 0 ? 0 : reader.ReadUInt16At(at + 16);
+        if (count == 0) return new(Strings: [], Floats: [], Integers: []);
+
+        byte type = reader.ReadByteAt(at + 18);
+        return type switch
+        {
+            0 => new(Strings: [], Floats: [], Integers: reader.ReadInt32ArrayAt(values, count)),
+            1 => new(Strings: [], Floats: reader.ReadSingleArrayAt(values, count), Integers: []),
+            2 => new(Strings: [.. Enumerable.Range(0, count).Select(i => reader.ReadNameAt(values + i * PointerSize))], Floats: [], Integers: []),
+            _ => throw new NotSupportedException($"Render info type {type} is unsupported.")
+        };
+    }
+
+    private Dictionary<string, BfresShaderParameter> ReadShaderParameters(long material)
+    {
+        long array = reader.ReadPointerAt(material + 80);
+        long source = reader.ReadPointerAt(material + 96);
+        int count = reader.ReadUInt16At(material + 158);
+
+        var parameters = new Dictionary<string, BfresShaderParameter>();
+        for (int i = 0; i < count; i++)
+        {
+            long at = array + i * ShaderParameterSize;
+            byte type = reader.ReadByteAt(at + 16);
+            int length = reader.ReadByteAt(at + 17);
+            int offset = reader.ReadUInt16At(at + 18);
+            parameters.Add(reader.ReadNameAt(at + 8), new(type, reader.ReadByteArrayAt(source + offset, length)));
+        }
+        return parameters;
+    }
+
+    private Dictionary<string, string> ReadStringDictionary(long at)
     {
         long values = reader.ReadPointerAt(at);
-        return reader.ReadNamesAt(reader.ReadPointerAt(at + 8)).Select((key, i) => (key, reader.ReadNameAt(values + i * 8))).ToDictionary();
+        string[] keys = reader.ReadNamesAt(reader.ReadPointerAt(at + 8));
+        return keys.Select((key, i) => (key, reader.ReadNameAt(values + i * PointerSize))).ToDictionary();
     }
 
     #endregion
 
     #region Textures
 
+    // The two tile modes of a BNTX surface.
+    private const int BlockLinear = 0, PitchLinear = 1;
+
+    // The first BCn format; everything from here on is stored in blocks of several texels.
+    private const int FirstBlockFormat = 0x1a;
+
+    // The format's low byte.
+    private const int TypeUnorm = 1, TypeSnorm = 2, TypeSrgb = 6;
+
     // Checks the header and reads the textures of every BNTX among the external files.
     private void ReadEmbeddedTextures(byte[] data)
     {
         cancellation.ThrowIfCancellationRequested();
-        if (reader.ReadStringAt(4, 4) != "    " || reader.ReadUInt16At(12) != 0xfeff)
-            throw new NotSupportedException("Only little endian Nintendo Switch BFRES is supported.");
-        uint version = reader.ReadUInt32At(8);
-        if (version >> 16 != 9)
-            throw new NotSupportedException($"BFRES version 0x{version:X8} is not supported. This reader targets ACNH's Switch v9 layout.");
+        CheckHeader();
 
         long external = reader.ReadPointerAt(184);
-        for (int i = 0, count = reader.ReadUInt16At(236); i < count; i++)
+        int count = reader.ReadUInt16At(236);
+        for (int i = 0; i < count; i++)
         {
-            int offset = checked((int)reader.ReadPointerAt(external + i * 16)), length = checked((int)reader.ReadInt64At(external + i * 16 + 8));
+            long file = external + i * ExternalFileSize;
+            int offset = checked((int)reader.ReadPointerAt(file));
+            int length = checked((int)reader.ReadInt64At(file + 8));
             if (!data.AsSpan(offset, length).StartsWith("BNTX"u8)) continue;
+
             using var bntx = Open(data, offset, length);
             ReadTextures(bntx);
         }
     }
 
+    private void CheckHeader()
+    {
+        if (reader.ReadStringAt(4, 4) != "    " || reader.ReadUInt16At(12) != LittleEndianMark)
+            throw new NotSupportedException("Only little endian Nintendo Switch BFRES is supported.");
+
+        uint version = reader.ReadUInt32At(8);
+        if (version >> 16 != 9)
+            throw new NotSupportedException($"BFRES version 0x{version:X8} is not supported. This reader targets ACNH's Switch v9 layout.");
+    }
+
     private void ReadTextures(BinaryReader bntx)
     {
-        if (bntx.ReadUInt16At(12) != 0xfeff || bntx.ReadStringAt(32, 4) != "NX  ") throw new InvalidDataException("Invalid Switch BNTX header.");
+        if (bntx.ReadUInt16At(12) != LittleEndianMark || bntx.ReadStringAt(32, 4) != "NX  ")
+            throw new InvalidDataException("Invalid Switch BNTX header.");
+
         long array = bntx.ReadPointerAt(40);
-        for (int i = 0, count = bntx.ReadInt32At(36); i < count; i++)
+        int count = bntx.ReadInt32At(36);
+        for (int i = 0; i < count; i++)
         {
             cancellation.ThrowIfCancellationRequested();
-            long at = bntx.ReadPointerAt(array + i * 8);
+            long at = bntx.ReadPointerAt(array + i * PointerSize);
             string name = bntx.ReadNameAt(at + 96);
-            try { textures.TryAdd(name, ReadTexture(bntx, at, name)); }
-            catch (NotSupportedException ex) { warnings.Add($"Texture {name}: {ex.Message}"); }
+            try
+            {
+                textures.TryAdd(name, ReadTexture(bntx, at, name));
+            }
+            catch (NotSupportedException ex)
+            {
+                warnings.Add($"Texture {name}: {ex.Message}");
+            }
         }
     }
 
     private static BntxTexture ReadTexture(BinaryReader bntx, long at, string name)
     {
         uint format = bntx.ReadUInt32At(at + 28);
-        int channel = (int)(format >> 8), type = (int)(format & 255);
+        int channel = (int)(format >> 8);
+        int type = (int)(format & 255);
         var astc = AstcFootprint(channel);
-        int blockBytes = channel switch
-        {
-            0x1a or 0x1d => 8, >= 0x1b and <= 0x20 => 16, 0x0b => 4, 0x02 => 1, 0x09 => 2, _ when astc.Width > 0 => 16,
-            _ => throw new NotSupportedException($"Texture format 0x{format:X} is unsupported.")
-        };
-        if (type is not (1 or 2 or 6) || (channel < 0x1a && type == 2) || (astc.Width > 0 && type == 2))
-            throw new NotSupportedException($"Texture type 0x{format:X} is unsupported.");
-        if (bntx.ReadUInt32At(at + 44) != 1 || bntx.ReadUInt32At(at + 48) != 1 || bntx.ReadByteAt(at + 92) != 1)
-            throw new NotSupportedException("Only single-layer 2D textures are previewed.");
-        int tileMode = bntx.ReadUInt16At(at + 18);
-        if (tileMode is not (0 or 1)) throw new NotSupportedException("Unsupported Tegra tile mode.");
+        bool isAstc = astc.Width > 0;
 
-        int width = bntx.ReadInt32At(at + 36), height = bntx.ReadInt32At(at + 40), blockSize = channel >= 0x1a ? 4 : 1;
-        (int blockWidth, int blockHeight) = astc.Width > 0 ? astc : (blockSize, blockSize);
-        int blockHeightLog2 = (int)(bntx.ReadUInt32At(at + 52) & 7);
+        int blockBytes = BlockBytes(channel, isAstc, format);
+        CheckTextureSupported(bntx, at, format, channel, type, isAstc);
+
+        int tileMode = bntx.ReadUInt16At(at + 18);
+        int width = bntx.ReadInt32At(at + 36);
+        int height = bntx.ReadInt32At(at + 40);
+        int blockSize = channel >= FirstBlockFormat ? 4 : 1;
+        (int blockWidth, int blockHeight) = isAstc ? astc : (blockSize, blockSize);
+        int gobsPerBlockLog2 = (int)(bntx.ReadUInt32At(at + 52) & 7);
         // Pitch-linear surfaces have no block-linear mip layout to follow; preview the base level only.
-        int mipCount = tileMode == 1 ? 1 : bntx.ReadUInt16At(at + 22);
-        long mipArray = bntx.ReadPointerAt(at + 112), first = bntx.ReadPointerAt(mipArray);
-        byte[] source = bntx.ReadByteArrayAt(first, bntx.ReadInt32At(at + 80));
+        int mipCount = tileMode == PitchLinear ? 1 : bntx.ReadUInt16At(at + 22);
+
+        long mipArray = bntx.ReadPointerAt(at + 112);
+        long firstMip = bntx.ReadPointerAt(mipArray);
+        byte[] source = bntx.ReadByteArrayAt(firstMip, bntx.ReadInt32At(at + 80));
+
         var mips = new ReadOnlyMemory<byte>[mipCount];
         for (int level = 0; level < mipCount; level++)
         {
-            int offset = (int)(bntx.ReadPointerAt(mipArray + level * 8) - first);
-            int levelWidth = Math.Max(1, width >> level), levelHeight = Math.Max(1, height >> level);
-            int w = (levelWidth + blockWidth - 1) / blockWidth, h = (levelHeight + blockHeight - 1) / blockHeight;
-            var blocks = Deswizzle(source.AsSpan(offset), w, h, blockBytes, tileMode, blockHeightLog2);
-            mips[level] = astc.Width > 0 ? AstcDecoder.Decode(blocks, levelWidth, levelHeight, blockWidth, blockHeight, type == 6) : blocks;
+            int offset = (int)(bntx.ReadPointerAt(mipArray + level * PointerSize) - firstMip);
+            int levelWidth = Math.Max(1, width >> level);
+            int levelHeight = Math.Max(1, height >> level);
+            int columns = (levelWidth + blockWidth - 1) / blockWidth;
+            int rows = (levelHeight + blockHeight - 1) / blockHeight;
+
+            var blocks = Deswizzle(source.AsSpan(offset), columns, rows, blockBytes, tileMode, gobsPerBlockLog2);
+            mips[level] = isAstc ? AstcDecoder.Decode(blocks, levelWidth, levelHeight, blockWidth, blockHeight, type == TypeSrgb) : blocks;
         }
+
         // Decoded ASTC is plain RGBA8, which is what the texture then claims to be.
-        if (astc.Width > 0) format = 0x0b00 | (uint)type;
+        if (isAstc) format = 0x0b00 | (uint)type;
         return new BntxTexture(name, width, height, format, mips, bntx.ReadByteArrayAt(at + 88, 4));
+    }
+
+    private static int BlockBytes(int channel, bool isAstc, uint format) => channel switch
+    {
+        0x1a or 0x1d => 8, // BC1, BC4
+        >= 0x1b and <= 0x20 => 16, // BC2, BC3, BC5, BC6, BC7
+        0x0b => 4, // RGBA8
+        0x02 => 1, // R8
+        0x09 => 2, // RG8
+        _ when isAstc => 16,
+        _ => throw new NotSupportedException($"Texture format 0x{format:X} is unsupported.")
+    };
+
+    private static void CheckTextureSupported(BinaryReader bntx, long at, uint format, int channel, int type, bool isAstc)
+    {
+        bool knownType = type is TypeUnorm or TypeSnorm or TypeSrgb;
+        bool snormAllowed = channel >= FirstBlockFormat && !isAstc;
+        if (!knownType || (type == TypeSnorm && !snormAllowed))
+            throw new NotSupportedException($"Texture type 0x{format:X} is unsupported.");
+
+        if (bntx.ReadUInt32At(at + 44) != 1 || bntx.ReadUInt32At(at + 48) != 1 || bntx.ReadByteAt(at + 92) != 1)
+            throw new NotSupportedException("Only single-layer 2D textures are previewed.");
+
+        if (bntx.ReadUInt16At(at + 18) is not (BlockLinear or PitchLinear))
+            throw new NotSupportedException("Unsupported Tegra tile mode.");
     }
 
     // The texel footprint of an ASTC format's blocks, or zero for other formats.
     private static (int Width, int Height) AstcFootprint(int channel) => channel switch
     {
-        0x2d => (4, 4), 0x2e => (5, 4), 0x2f => (5, 5), 0x30 => (6, 5), 0x31 => (6, 6), 0x32 => (8, 5), 0x33 => (8, 6),
-        0x34 => (8, 8), 0x35 => (10, 5), 0x36 => (10, 6), 0x37 => (10, 8), 0x38 => (10, 10), 0x39 => (12, 10), 0x3a => (12, 12),
+        0x2d => (4, 4),
+        0x2e => (5, 4),
+        0x2f => (5, 5),
+        0x30 => (6, 5),
+        0x31 => (6, 6),
+        0x32 => (8, 5),
+        0x33 => (8, 6),
+        0x34 => (8, 8),
+        0x35 => (10, 5),
+        0x36 => (10, 6),
+        0x37 => (10, 8),
+        0x38 => (10, 10),
+        0x39 => (12, 10),
+        0x3a => (12, 12),
         _ => (0, 0)
     };
 
-    // w and h are in format blocks (4x4 texels for BCn, single texels otherwise).
-    private static byte[] Deswizzle(ReadOnlySpan<byte> source, int w, int h, int blockBytes, int tileMode, int blockHeightLog2)
+    // columns and rows count format blocks (4x4 texels for BCn, single texels otherwise).
+    private static byte[] Deswizzle(ReadOnlySpan<byte> source, int columns, int rows, int blockBytes, int tileMode, int gobsPerBlockLog2)
     {
-        var linear = new byte[w * h * blockBytes];
         // Each mip shrinks its GOB block height until it no longer exceeds the level's height.
-        int blockHeight = 1 << blockHeightLog2;
-        while (blockHeight > 1 && h <= (blockHeight / 2) * 8) blockHeight /= 2;
-        int pitch = ((w * blockBytes + (tileMode == 1 ? 31 : 63)) / (tileMode == 1 ? 32 : 64)) * (tileMode == 1 ? 32 : 64);
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
+        int gobsPerBlock = 1 << gobsPerBlockLog2;
+        while (gobsPerBlock > 1 && rows <= (gobsPerBlock / 2) * 8) gobsPerBlock /= 2;
+
+        int pitchAlignment = tileMode == PitchLinear ? 32 : 64;
+        int pitch = (columns * blockBytes + pitchAlignment - 1) / pitchAlignment * pitchAlignment;
+
+        var linear = new byte[columns * rows * blockBytes];
+        for (int y = 0; y < rows; y++)
+        {
+            for (int x = 0; x < columns; x++)
             {
-                int xb = x * blockBytes;
-                int address = tileMode == 1 ? y * pitch + xb
-                    : (y / (8 * blockHeight)) * 512 * blockHeight * (pitch / 64)
-                        + (xb / 64) * 512 * blockHeight + ((y % (8 * blockHeight)) / 8) * 512
-                        + ((xb % 64) / 32) * 256 + ((y % 8) / 2) * 64 + ((xb % 32) / 16) * 32
-                        + (y % 2) * 16 + xb % 16;
-                source.Slice(address, blockBytes).CopyTo(linear.AsSpan((y * w + x) * blockBytes, blockBytes));
+                int xBytes = x * blockBytes;
+                int address = tileMode == PitchLinear ? y * pitch + xBytes : BlockLinearAddress(xBytes, y, pitch, gobsPerBlock);
+                source.Slice(address, blockBytes).CopyTo(linear.AsSpan((y * columns + x) * blockBytes, blockBytes));
             }
+        }
         return linear;
+    }
+
+    // Tegra's block-linear layout: 512-byte GOBs of 64x8 bytes, stacked into blocks of gobsPerBlock.
+    private static int BlockLinearAddress(int xBytes, int y, int pitch, int gobsPerBlock)
+    {
+        const int GobBytes = 512, GobWidth = 64, GobHeight = 8;
+        int blockBytes = GobBytes * gobsPerBlock;
+        int blockHeight = GobHeight * gobsPerBlock;
+
+        int block = (y / blockHeight) * blockBytes * (pitch / GobWidth) + (xBytes / GobWidth) * blockBytes;
+        int gob = ((y % blockHeight) / GobHeight) * GobBytes;
+        int insideGob = ((xBytes % 64) / 32) * 256 + ((y % 8) / 2) * 64 + ((xBytes % 32) / 16) * 32 + (y % 2) * 16 + xBytes % 16;
+        return block + gob + insideGob;
     }
 
     #endregion

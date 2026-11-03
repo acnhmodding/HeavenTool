@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 
@@ -6,7 +7,10 @@ namespace HeavenTool.IO.FileFormats.BFRES;
 
 public sealed record BfresAsset(string EntryName, BfresDocument Document);
 
-public sealed record BfresDocument(IReadOnlyList<BfresModel> Models, IReadOnlyList<string> Warnings);
+public sealed record BfresDocument(IReadOnlyList<BfresModel> Models, IReadOnlyList<string> Warnings)
+{
+    public IReadOnlyList<BfresSkeletalAnimation> SkeletalAnimations { get; init; } = [];
+}
 
 public sealed record BfresModel(string Name, IReadOnlyList<BfresMesh> Meshes, IReadOnlyList<BfresMaterial> Materials, IReadOnlyList<BfresBone> Bones);
 
@@ -28,6 +32,23 @@ public sealed class BfresMesh
     public ReadOnlyMemory<Matrix4x4> BonePalette { get; init; }
     public Matrix4x4 ShapeTransform { get; init; } = Matrix4x4.Identity;
 
+    public BfresMesh() { }
+
+    [SetsRequiredMembers]
+    private BfresMesh(BfresMesh source)
+    {
+        Name = source.Name;
+        Material = source.Material;
+        VertexSkinCount = source.VertexSkinCount;
+        Positions = source.Positions;
+        Normals = source.Normals;
+        Indices = source.Indices;
+        TexCoords = source.TexCoords;
+        NativeAttributes = source.NativeAttributes;
+        BonePalette = source.BonePalette;
+        ShapeTransform = source.ShapeTransform;
+    }
+
     /// <summary>A copy moved by <paramref name="transform"/>, such as a part placed on a bone of another model.</summary>
     public BfresMesh Transformed(Matrix4x4 transform)
     {
@@ -44,21 +65,11 @@ public sealed class BfresMesh
         for (int i = 0; i < palette.Length; i++) palette[i] = BonePalette.Span[i] * transform;
 
         // Native shaders read the raw vertices with the shape and bone matrices, so those move too.
-        return new BfresMesh
-        {
-            Name = Name, Material = Material, VertexSkinCount = VertexSkinCount, Positions = positions, Normals = normals,
-            Indices = Indices, TexCoords = TexCoords, NativeAttributes = NativeAttributes, BonePalette = palette,
-            ShapeTransform = ShapeTransform * transform,
-        };
+        return new BfresMesh(this) { Positions = positions, Normals = normals, BonePalette = palette, ShapeTransform = ShapeTransform * transform };
     }
 
     /// <summary>A copy drawn with another material, such as one with textures from another file.</summary>
-    public BfresMesh WithMaterial(BfresMaterial material) => new()
-    {
-        Name = Name, Material = material, VertexSkinCount = VertexSkinCount, Positions = Positions, Normals = Normals,
-        Indices = Indices, TexCoords = TexCoords, NativeAttributes = NativeAttributes, BonePalette = BonePalette,
-        ShapeTransform = ShapeTransform,
-    };
+    public BfresMesh WithMaterial(BfresMaterial material) => new(this) { Material = material };
 }
 
 // Mips holds the deswizzled mip chain, largest level first.
@@ -123,6 +134,18 @@ public sealed class BfresMaterial
     };
 
     public bool IsParkUber => ShaderArchive is "Park_UBER" or "Park_UBER_All" && ShadingModel == "park_uber";
+
+    public bool IsShadowOnly => RenderFlag("gsys_dynamic_depth_shadow_only") || RenderFlag("gsys_static_depth_shadow_only");
+    public bool CastsDynamicShadow => RenderFlag("gsys_dynamic_depth_shadow") || RenderFlag("gsys_dynamic_depth_shadow_only");
+    public bool CastsStaticShadow => RenderFlag("gsys_static_depth_shadow") || RenderFlag("gsys_static_depth_shadow_only");
+
+    private bool RenderFlag(string name)
+    {
+        if (!RenderInfos.TryGetValue(name, out var info)) return false;
+        return info.Strings.Count > 0
+            ? info.Strings[0] is "1" or "true"
+            : info.Integers.Count > 0 && info.Integers[0] != 0;
+    }
 
     public BfresSampler? Sampler(string shaderInput) =>
         SamplerAssignments.TryGetValue(shaderInput, out string? name) ? Samplers.FirstOrDefault(x => x.Name == name) : null;
