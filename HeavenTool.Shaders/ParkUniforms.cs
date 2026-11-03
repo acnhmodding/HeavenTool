@@ -39,9 +39,9 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
 
     // Captured from the running game inside a villager's house at 4:51 PM, with the room's middle moved to the origin. The
     // room is lit by a light over its middle and the sun coming in from the side, both local lights. The house shades the
-    // sun itself out, at the room's shadow strength in [17].w, which the viewer has no house to do. The fill stands in for
-    // the room's own light probes, which the viewer lacks. The world AO strength in [4].x is the game's .27563 raised to
-    // .6, as the fill brightens the room past what the game's .28 darkens enough to show.
+    // sun itself out, at the room's shadow strength in [17].w, which the viewer has no house to do. Without an environment
+    // probe, the fill stands in for the room's indirect light. The world AO strength in [4].x is the game's .27563 raised
+    // to .6, as the fill brightens the room past what the game's .28 darkens enough to show.
     public static AcnhLightingPreset Room { get; } = new("Room", new(1, .37058f, .19748f, 1), 20 * (1 - .97731f), new(.81884f, -.57403f, -.00006f), new(.92689f, .52184f, .35713f, 1), new(.36345f, .1f, .087814f, 1), 1.75632f, 1)
     {
         PreviewIndirectLight = new(3, 3, 3),

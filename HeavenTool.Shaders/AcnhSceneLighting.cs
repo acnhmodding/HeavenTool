@@ -22,7 +22,8 @@ public static class AcnhSceneLighting
         float directIntensity = inside ? palette.DirectIntensity * (1 - palette.ShadowIntensity) : palette.DirectIntensity;
         return new(set, palette.DirectColor, directIntensity, direction, palette.SkyColor, palette.GroundColor, palette.HemisphereIntensity, stage.IndirectIntensity)
         {
-            PreviewIndirectLight = baseline.PreviewIndirectLight,
+            // Inside, the environment probe gives the room the indirect light the preset's fill stands in for.
+            PreviewIndirectLight = inside ? Vector3.Zero : baseline.PreviewIndirectLight,
             User0 = User0(baseline, palette, stage, resources.SkyScatter, resources.SunOrbit.SkyDirection(hour, inside), inside),
             Environment = baseline.Environment,
             LocalLights = inside ? RoomLights(resources.VillagerRoomLight, palette) : [],
@@ -39,8 +40,7 @@ public static class AcnhSceneLighting
         AcnhStageEnvironment stage, AcnhSkyScatterParameters sky, Vector3 skyDirection, bool inside)
     {
         var user0 = baseline.User0.ToDictionary();
-        // The room preset raises the captured .27563 to .6 against its fill; scale the evaluated strength the same way.
-        user0[4] = new(palette.WorldAoIntensity * (inside ? baseline.User0[4].X / .27563f : 1), 0, 0, 0);
+        user0[4] = new(palette.WorldAoIntensity, 0, 0, 0);
         // SkyScatter update 710155b970 -> RuntimeUBO upload 710152d700, declarations 4–7 and 10.
         user0[6] = new(sky.VirtualCameraHeight, palette.RayleighIntensity, palette.MieIntensity, sky.EarthColorIntensity);
         user0[8] = new(new Vector3(palette.SunColor.X, palette.SunColor.Y, palette.SunColor.Z) * palette.SkyLightIntensity, 0);
