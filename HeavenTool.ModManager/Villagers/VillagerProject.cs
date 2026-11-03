@@ -52,7 +52,7 @@ public sealed class VillagerProject
         var uniqueId = table.ColumnIndex(VillagerColumns.UniqueId);
         var nextId = (ushort)(table.Entries.Max(row => (ushort)row[uniqueId]) + 1);
 
-        var row = table.Entries[donor.Row].CopyRow();
+        var row = table.CopyRow(donor.Row);
         row[uniqueId] = nextId;
         row[table.ColumnIndex(VillagerColumns.UniqueIdCopy)] = nextId;
         row[table.ColumnIndex(VillagerColumns.Label)] = label;

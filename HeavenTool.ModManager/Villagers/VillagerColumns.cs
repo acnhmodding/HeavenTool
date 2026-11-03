@@ -1,8 +1,5 @@
 #nullable enable
 
-using HeavenTool.IO;
-using HeavenTool.IO.FileFormats.BCSV;
-
 namespace HeavenTool.ModManager.Villagers;
 
 /// <summary>The NmlNpcParam columns the villager creator edits, by the string the game hashes for each.</summary>
@@ -30,34 +27,4 @@ public static class VillagerColumns
     public const uint UniqueIdCopy = 0x504428b5;
     public const uint Style1 = 0x5ef86f1f;
     public const uint Style2 = 0x195815cf;
-}
-
-/// <summary>The AmiiboData columns.</summary>
-public static class AmiiboColumns
-{
-    public const string CharacterId = "CharacterId u32";
-    public const string NumberingId = "NumberingId u16";
-    public const string SpecialNpcCloth = "SpNpcCloth s16";
-    public const string NfpType = "NfpType u8";
-    public const string NpcLabel = "NpcLabel string8";
-    public const string NpcType = "NpcType u8";
-    public const string Reaction = "Reaction u8";
-    public const string SeriesId = "SeriesId u8";
-    public const string Studio = "Studio u8";
-}
-
-public static class TableExtensions
-{
-    public static int ColumnIndex(this BinaryCSV table, string column) => table.ColumnIndex(column.ToCRC32(), column);
-
-    public static int ColumnIndex(this BinaryCSV table, uint hash) => table.ColumnIndex(hash, $"0x{hash:x8}");
-
-    /// <summary>A copy of a row that can be edited without changing the table, including its bit fields.</summary>
-    public static object[] CopyRow(this object[] row) => [.. row.Select(cell => cell is byte[] bytes ? bytes.ToArray() : cell)];
-
-    private static int ColumnIndex(this BinaryCSV table, uint hash, string name)
-    {
-        var index = Array.FindIndex(table.Fields, field => field.Hash == hash);
-        return index >= 0 ? index : throw new KeyNotFoundException($"The table has no {name} column.");
-    }
 }

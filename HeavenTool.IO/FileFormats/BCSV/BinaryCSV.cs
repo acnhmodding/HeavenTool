@@ -117,6 +117,19 @@ public class BinaryCSV
         set => Entries[row][Array.IndexOf(Fields, field)] = value;
     }
 
+    public int ColumnIndex(string column) => ColumnIndex(column.ToCRC32(), column);
+
+    public int ColumnIndex(uint hash) => ColumnIndex(hash, $"0x{hash:x8}");
+
+    /// <summary>A copy of a row that can be edited without changing the table, including its bit fields.</summary>
+    public object[] CopyRow(int row) => [.. Entries[row].Select(cell => cell is byte[] bytes ? bytes.ToArray() : cell)];
+
+    private int ColumnIndex(uint hash, string name)
+    {
+        var index = Array.FindIndex(Fields, field => field.Hash == hash);
+        return index >= 0 ? index : throw new KeyNotFoundException($"The table has no {name} column.");
+    }
+
     public BinaryCSV(int entrySize, Field[] fields, List<object[]> entries, byte hasExtendedHeader, byte unknownField, int version)
     {
         EntrySize = entrySize;
