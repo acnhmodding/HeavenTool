@@ -31,6 +31,9 @@ public static class NativeShaderTranslator
         return new(vk + "-" + fk, vertex, fragment, program, model);
     }
 
+    /// <summary>Translates a native stage from either a material or process archive.</summary>
+    public static string TranslateStage(SwitchShaderStage stage, CancellationToken cancellation = default) => Stage(stage, cancellation, out _);
+
     private static string Stage(SwitchShaderStage stage, CancellationToken cancellation, out string key)
     {
         byte[] code = stage.MaxwellCode.ToArray();
