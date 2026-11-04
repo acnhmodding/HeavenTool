@@ -46,6 +46,9 @@ public sealed partial class BfresRenderer
             GL.ClearColor(1, 1, 1, 1);
             GL.Clear(ClearBufferMask.ColorBufferBit);
             GL.ClearColor(0, 0, 0, 0);
+            // The shaders read a level down, which would keep the last occlusion drawn.
+            GL.BindTexture(TextureTarget.Texture2D, ssaoMaps[1]);
+            GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
             RestoreFrameTarget();
             return;
         }
