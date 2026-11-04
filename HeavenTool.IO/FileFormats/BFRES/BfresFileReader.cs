@@ -202,6 +202,7 @@ public sealed partial class BfresFileReader
             TexCoords = vertices.TexCoords,
             NativeAttributes = vertices.Attributes,
             BonePalette = skeleton.Palette,
+            PaletteBones = skeleton.PaletteBones,
             ShapeTransform = shapeTransform
         };
     }
@@ -437,13 +438,13 @@ public sealed partial class BfresFileReader
     private const int MayaScaling = 2, SoftimageScaling = 3;
     private const int BoneParentOffset = 42, BoneScaleOffset = 56;
 
-    private sealed record SkeletonData(BfresBone[] Bones, Matrix4x4[] World, Matrix4x4[] Palette);
+    private sealed record SkeletonData(BfresBone[] Bones, Matrix4x4[] World, Matrix4x4[] Palette, int[] PaletteBones);
 
     private enum BoneState : byte { Pending, Visiting, Done }
 
     private SkeletonData ReadSkeleton(long at)
     {
-        if (at == 0) return new([], [], []);
+        if (at == 0) return new([], [], [], []);
 
         long boneArray = reader.ReadPointerAt(at + 16);
         int boneCount = reader.ReadUInt16At(at + 56);
@@ -472,7 +473,8 @@ public sealed partial class BfresFileReader
             string name = reader.ReadNameAt(bone);
             bones[i] = new(i, name.Length == 0 ? $"Bone {i}" : name, reader.ReadInt16At(bone + BoneParentOffset), World(i));
         }
-        return new(bones, world, ReadSkinPalette(at, world));
+        var (palette, paletteBones) = ReadSkinPalette(at, world);
+        return new(bones, world, palette, paletteBones);
     }
 
     private Matrix4x4 ReadBoneTransform(long boneArray, int index, int parent, int scalingMode)
@@ -493,7 +495,7 @@ public sealed partial class BfresFileReader
     }
 
     // Smooth skinning matrices bind through the inverse bind pose; rigid ones use the bone directly.
-    private Matrix4x4[] ReadSkinPalette(long skeleton, Matrix4x4[] world)
+    private (Matrix4x4[] Palette, int[] Bones) ReadSkinPalette(long skeleton, Matrix4x4[] world)
     {
         long paletteArray = reader.ReadPointerAt(skeleton + 24);
         long inverseArray = reader.ReadPointerAt(skeleton + 32);
@@ -501,12 +503,14 @@ public sealed partial class BfresFileReader
         int rigidCount = reader.ReadUInt16At(skeleton + 60);
 
         var palette = new Matrix4x4[smoothCount + rigidCount];
+        var bones = new int[palette.Length];
         for (int i = 0; i < palette.Length; i++)
         {
-            var boneWorld = world[reader.ReadUInt16At(paletteArray + i * 2)];
+            bones[i] = reader.ReadUInt16At(paletteArray + i * 2);
+            var boneWorld = world[bones[i]];
             palette[i] = i < smoothCount ? ReadInverseBind(inverseArray + i * 48) * boneWorld : boneWorld;
         }
-        return palette;
+        return (palette, bones);
     }
 
     // File matrices are row-major 3x4 column-vector transforms; transpose for Numerics.

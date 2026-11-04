@@ -30,6 +30,8 @@ public sealed class BfresMesh
     public ReadOnlyMemory<Vector2> TexCoords { get; init; }
     public required IReadOnlyDictionary<string, ReadOnlyMemory<Vector4>> NativeAttributes { get; init; }
     public ReadOnlyMemory<Matrix4x4> BonePalette { get; init; }
+    /// <summary>The skeleton bone each <see cref="BonePalette"/> entry follows.</summary>
+    public ReadOnlyMemory<int> PaletteBones { get; init; }
     public Matrix4x4 ShapeTransform { get; init; } = Matrix4x4.Identity;
 
     public BfresMesh() { }
@@ -46,6 +48,7 @@ public sealed class BfresMesh
         TexCoords = source.TexCoords;
         NativeAttributes = source.NativeAttributes;
         BonePalette = source.BonePalette;
+        PaletteBones = source.PaletteBones;
         ShapeTransform = source.ShapeTransform;
     }
 
@@ -66,6 +69,31 @@ public sealed class BfresMesh
 
         // Native shaders read the raw vertices with the shape and bone matrices, so those move too.
         return new BfresMesh(this) { Positions = positions, Normals = normals, BonePalette = palette, ShapeTransform = ShapeTransform * transform };
+    }
+
+    /// <summary>
+    /// A rigidly skinned copy whose bones moved from their bind pose by <paramref name="moves"/>, each bone's
+    /// <c>inverse(bind world) * posed world</c>.
+    /// </summary>
+    public BfresMesh Posed(IReadOnlyList<Matrix4x4> moves)
+    {
+        if (VertexSkinCount != 1 || !NativeAttributes.TryGetValue("_i0", out var indices))
+            throw new NotSupportedException("Only rigidly skinned meshes can be posed.");
+
+        var palette = new Matrix4x4[BonePalette.Length];
+        for (int i = 0; i < palette.Length; i++) palette[i] = BonePalette.Span[i] * moves[PaletteBones.Span[i]];
+        var positions = new Vector3[Positions.Length];
+        var normals = new Vector3[Normals.Length];
+        for (int i = 0; i < positions.Length; i++)
+        {
+            var move = moves[PaletteBones.Span[(int)indices.Span[i].X]];
+            positions[i] = Vector3.Transform(Positions.Span[i], move);
+            if (i >= normals.Length) continue;
+            var normal = Matrix4x4.Invert(move, out var inverse) ? Vector3.TransformNormal(Normals.Span[i], Matrix4x4.Transpose(inverse)) : Normals.Span[i];
+            normals[i] = normal.LengthSquared() > 1e-12f ? Vector3.Normalize(normal) : normal;
+        }
+        // Native shaders skin the raw vertices with the palette, so it moves with them.
+        return new BfresMesh(this) { Positions = positions, Normals = normals, BonePalette = palette };
     }
 
     /// <summary>A copy drawn with another material, such as one with textures from another file.</summary>
@@ -131,6 +159,14 @@ public sealed class BfresMaterial
         SamplerAssignments = SamplerAssignments, ShaderOptions = ShaderOptions, OriginalParameters = OriginalParameters,
         RenderInfos = RenderInfos,
         Samplers = [.. Samplers.Select(sampler => textures.TryGetValue(sampler.TextureName, out var texture) ? sampler with { Texture = texture } : sampler)],
+    };
+
+    /// <summary>A copy left out of the dynamic depth shadow, such as a piece whose shadow its model draws with a shadow-only stand-in.</summary>
+    public BfresMaterial WithoutDynamicShadow() => new()
+    {
+        Name = Name, ShaderArchive = ShaderArchive, ShadingModel = ShadingModel, AttributeAssignments = AttributeAssignments,
+        SamplerAssignments = SamplerAssignments, ShaderOptions = ShaderOptions, OriginalParameters = OriginalParameters, Samplers = Samplers,
+        RenderInfos = new Dictionary<string, BfresRenderInfo>(RenderInfos) { ["gsys_dynamic_depth_shadow"] = new(["0"], [], []) },
     };
 
     public bool IsParkUber => ShaderArchive is "Park_UBER" or "Park_UBER_All" && ShadingModel == "park_uber";
