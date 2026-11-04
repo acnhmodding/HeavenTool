@@ -67,12 +67,16 @@ public sealed partial class BfresRenderer
         GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
         GL.Enable(EnableCap.PolygonOffsetFill);
         GL.PolygonOffset(2, 4);
+        // Casters past the near plane, such as a room's shadow boxes outside its walls, still shade at the plane.
+        GL.Enable(EnableCap.DepthClamp);
         foreach (var mesh in meshes)
         {
-            if (!Shown(mesh.Source) || !mesh.Source.Material.CastsDynamicShadow
+            // Pieces drawn only into the environment probe, such as a room's ceiling and front wall, still block the light.
+            if (hidden.Contains(mesh.Source) || !mesh.Source.Material.CastsDynamicShadow
                 || !nativeShadowMeshes.TryGetValue(mesh.Source, out var native)) continue;
             DrawNativeMesh(mesh, native, shadowContext);
         }
+        GL.Disable(EnableCap.DepthClamp);
         GL.Disable(EnableCap.PolygonOffsetFill);
         GL.ColorMask(true, true, true, true);
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, outputFramebuffer);
