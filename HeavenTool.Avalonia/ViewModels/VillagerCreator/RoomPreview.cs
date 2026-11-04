@@ -119,9 +119,21 @@ public sealed class RoomPreview(VillagerGameData data)
         if ((specialWall ?? Model(WallModel)) is { } wall)
         {
             var wallpaper = specialWall != null ? NoSwap : Surface(room.Wallpaper, WallMaterial);
+            var window = specialWall != null ? null : Window(room.Wallpaper);
             foreach (var layer in (RoomLayer[])[RoomLayer.BackWall, RoomLayer.LeftWall, RoomLayer.RightWall, RoomLayer.FrontWall])
                 for (float along = -HalfRoom + WallPiece / 2; along < HalfRoom; along += WallPiece)
-                    Place(wall, Facing(layer) * Matrix4x4.CreateTranslation(WallPoint(layer, along, 0)), wallpaper, layer == RoomLayer.FrontWall);
+                {
+                    var at = Facing(layer) * Matrix4x4.CreateTranslation(WallPoint(layer, along, 0));
+                    bool unseen = layer == RoomLayer.FrontWall;
+                    // The side walls' middle pieces are the room's windows.
+                    if (window is { } w && along == 0 && layer is RoomLayer.LeftWall or RoomLayer.RightWall)
+                    {
+                        Place(w.Wall, at, wallpaper, unseen);
+                        if (w.Frame != null) Place(w.Frame, at, NoSwap, unseen);
+                        if (w.Curtain != null) Place(w.Curtain, at, w.CurtainTextures, unseen);
+                    }
+                    else Place(wall, at, wallpaper, unseen);
+                }
             var specialCeiling = Special(room.Wallpaper, CeilingModel["RoomMdl".Length..]);
             if ((specialCeiling ?? Model(CeilingModel)) is { } ceiling)
                 Place(ceiling, Matrix4x4.Identity, specialCeiling != null ? NoSwap : Surface(room.Wallpaper, WallMaterial), unseen: true);
@@ -298,6 +310,69 @@ public sealed class RoomPreview(VillagerGameData data)
     }
 
     private static readonly Dictionary<string, BntxTexture> NoSwap = [];
+
+    private const string CurtainMaterial = "mDummyCurtain";
+
+    // The wall piece each RoomWindowParam wall type cuts its opening with, by the type's name hash.
+    private static readonly Dictionary<uint, string> WindowWalls = new()
+    {
+        [3394203039] = "RoomMdlWindowWallSquare2m",
+        [3541786703] = "RoomMdlWindowWallCircle2m",
+        [1478528372] = "RoomMdlWindowWallArch2m",
+    };
+
+    private sealed record RoomWindow(BfresModel Wall, BfresModel? Frame, BfresModel? Curtain, IReadOnlyDictionary<string, BntxTexture> CurtainTextures);
+
+    /// <summary>
+    /// The window a wallpaper comes with: its RoomWallParam row names a RoomWindowParam frame, whose wall type picks the wall
+    /// piece with the opening, and a RoomCurtainParam curtain painted with a RoomCurtainTexParam texture. Null for none.
+    /// </summary>
+    private RoomWindow? Window(int wallpaper)
+    {
+        var walls = data.Table("RoomWallParam");
+        int item = walls.ColumnIndex("ItemTableId u16");
+        var row = walls.Entries.FirstOrDefault(entry => Convert.ToInt32(entry[item]) == wallpaper);
+        if (row == null) return null;
+
+        string? Resource(string table, int id, out object[]? found)
+        {
+            var param = data.Table(table);
+            int unique = param.ColumnIndex("UniqueID u16"), resource = param.ColumnIndex("ResourceName string64");
+            found = param.Entries.FirstOrDefault(entry => Convert.ToInt32(entry[unique]) == id);
+            return found?[resource] is string { Length: > 0 } name ? name : null;
+        }
+
+        var windows = data.Table("RoomWindowParam");
+        string? frame = Resource("RoomWindowParam", Convert.ToInt32(row[walls.ColumnIndex("WindowUniqueID u16")]), out var windowRow);
+        if (windowRow == null || !WindowWalls.TryGetValue(Convert.ToUInt32(windowRow[windows.ColumnIndex("RoomWindowWallType.hshCstringRef")]), out var piece)
+            || Model(piece) is not { } wall)
+            return null;
+
+        string? curtain = Resource("RoomCurtainParam", Convert.ToInt32(row[walls.ColumnIndex("CurtainUniqueID u16")]), out _);
+        string? fabric = Resource("RoomCurtainTexParam", Convert.ToInt32(row[walls.ColumnIndex("CurtainTexUniqueID u16")]), out _);
+        // A curtain texture file names its maps by its own name, as a wallpaper's does: BlindPlastic00_Alb for mDummyCurtain_Alb.
+        var swap = new Dictionary<string, BntxTexture>();
+        if (fabric != null)
+            foreach (var texture in Textures(fabric))
+                if (texture.Name.LastIndexOf('_') is var split and > 0) swap.TryAdd(CurtainMaterial + texture.Name[split..], texture);
+        return new(wall, frame != null ? Model(frame) : null, curtain != null ? Opened(curtain) : null, swap);
+    }
+
+    /// <summary>A curtain held at the end of its Open animation, as the game shows it by day; one without the animation as authored.</summary>
+    private BfresModel? Opened(string name)
+    {
+        if (Open(name) is not { } stream) return null;
+        using (stream)
+        {
+            var document = BfresFileReader.Load(stream).Select(asset => asset.Document).FirstOrDefault(document => document.Models.Count > 0);
+            if (document == null) return null;
+            var open = document.SkeletalAnimations.FirstOrDefault(animation => animation.Name == "Open");
+            var model = open != null ? document.Models[0].Posed(open, open.FrameCount) : document.Models[0];
+            // A blind's shadow slats stand in for its visible ones, which would shut out the sun the game lets through them.
+            if (!model.Meshes.Any(mesh => mesh.Material.IsShadowOnly)) return model;
+            return model with { Meshes = [.. model.Meshes.Select(mesh => mesh.Material.IsShadowOnly ? mesh : mesh.WithMaterial(mesh.Material.WithoutDynamicShadow()))] };
+        }
+    }
 
     /// <summary>
     /// A special wallpaper's or flooring's own room piece, such as <c>RoomSpWallHighLands00Wall</c>, or null for a plain one. The

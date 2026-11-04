@@ -17,10 +17,8 @@ public static class AcnhSceneLighting
         var baseline = inside ? AcnhLightingPreset.Room : AcnhLightingPreset.Day;
         var direction = resources.SunOrbit.DirectDirection(hour, inside, stage.MinimumLightAngle);
 
-        // The preset's viewer stand-ins, which its exposure was matched with: inside, the house shades the sun out at the
-        // room's shadow strength, which the viewer has no house to do.
-        float directIntensity = inside ? palette.DirectIntensity * (1 - palette.ShadowIntensity) : palette.DirectIntensity;
-        return new(set, palette.DirectColor, directIntensity, direction, palette.SkyColor, palette.GroundColor, palette.HemisphereIntensity, stage.IndirectIntensity)
+        // Inside, the room's walls, ceiling and window pieces cast the shadows that leave only the sun through its windows.
+        return new(set, palette.DirectColor, palette.DirectIntensity, direction, palette.SkyColor, palette.GroundColor, palette.HemisphereIntensity, stage.IndirectIntensity)
         {
             // Inside, the environment probe gives the room the indirect light the preset's fill stands in for.
             PreviewIndirectLight = inside ? Vector3.Zero : baseline.PreviewIndirectLight,
