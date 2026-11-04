@@ -74,6 +74,8 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     public AcnhEnvironmentProbe? EnvironmentProbe { get; init; }
     // agl's screen-space AO passes and the stage's settings for them; none leaves gsys_ssao white.
     public AcnhScreenOcclusion? ScreenOcclusion { get; init; }
+    // The shade gsys_projection0 casts over direct light; none leaves it white.
+    public AcnhProjectionShadow? ProjectionShadow { get; init; }
 }
 
 /// <summary>
@@ -146,7 +148,9 @@ public static class ParkUniforms
     }
 
     // shadow maps world space into the depth shadow map's [0, 1] texture and depth range; texel is its PCF tap step.
-    public static byte[] Context(Matrix4x4 view, Matrix4x4 projection, float near, float far, Vector2 screen, Matrix4x4 shadow, float texel)
+    // projected is the shade gsys_projection0 is bound to, if any.
+    public static byte[] Context(Matrix4x4 view, Matrix4x4 projection, float near, float far, Vector2 screen, Matrix4x4 shadow, float texel,
+        AcnhProjectionShadow? projected = null)
     {
         var result = new byte[ContextSize];
         float aspect = screen.X / screen.Y;
@@ -157,10 +161,15 @@ public static class ParkUniforms
         Vector(result, 256, new(far - near, 0, 0, 0));
         // The target's size; screen-space maps such as the SSAO are looked up by pixel position times its inverse.
         Vector(result, 288, new(screen.X, screen.Y, 1 / screen.X, 1 / screen.Y));
-        Float(result, 656, .55f); Integer(result, 660, 1);
+        // The shade's strength, which the shaders take max() with the depth shadow's; .55 was captured outside, where
+        // the viewer has no shade bound.
+        Float(result, 656, projected?.Density ?? .55f); Integer(result, 660, 1);
         for (int offset = 664; offset < ContextSize; offset += 4) Float(result, offset, 1);
-        // Projected-shadow texture matrix; it only needs a non-zero w, since the viewer binds a white texture there.
-        Vector(result, 560, default); Vector(result, 576, default); Vector(result, 592, new(0, 0, 0, 1));
+        // Projected-shadow texture rows, read as texture(gsys_projection0, xy / z); without one, only a non-zero w
+        // is needed, since the viewer binds a white texture there.
+        var p = projected?.TextureProjection ?? new Matrix4x4 { M44 = 1 };
+        Vector(result, 560, new(p.M11, p.M21, p.M31, p.M41)); Vector(result, 576, new(p.M12, p.M22, p.M32, p.M42));
+        Vector(result, 592, new(p.M14, p.M24, p.M34, p.M44));
         Matrix4(result, 672, shadow);
         Float(result, 944, texel); Float(result, 948, texel);
         Vector(result, 1024, new(512, 4, 1, 1));

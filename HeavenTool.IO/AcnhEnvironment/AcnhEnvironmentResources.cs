@@ -26,11 +26,13 @@ public sealed class AcnhEnvironmentResources
     public SwitchProcessShaderProgram ColorCorrectionMap { get; }
     public AcnhPanoramaEnvironment Panorama { get; }
     public AcnhAmbientOcclusion AmbientOcclusion { get; }
+    // The house's projected shade; none when the game leaves it off.
+    public AcnhProjectionShadow? InsideProjectionShadow { get; }
 
     private AcnhEnvironmentResources(AcnhEnvironmentPalettes palettes, AcnhSunOrbit sunOrbit, AcnhStageEnvironment outdoorStage,
         AcnhStageEnvironment roomStage, AcnhRoomLightParameters villagerRoomLight, AcnhSkyScatterParameters skyScatter,
         AcnhColorCorrection roomColorCorrection, SwitchProcessShaderProgram colorCorrectionMap, AcnhPanoramaEnvironment panorama,
-        AcnhAmbientOcclusion ambientOcclusion)
+        AcnhAmbientOcclusion ambientOcclusion, AcnhProjectionShadow? insideProjectionShadow)
     {
         Palettes = palettes;
         SunOrbit = sunOrbit;
@@ -42,6 +44,7 @@ public sealed class AcnhEnvironmentResources
         ColorCorrectionMap = colorCorrectionMap;
         Panorama = panorama;
         AmbientOcclusion = ambientOcclusion;
+        InsideProjectionShadow = insideProjectionShadow;
     }
 
     public static AcnhEnvironmentResources Load(string romfs) => Read(OpenStaticParam(romfs), romfs);
@@ -55,7 +58,7 @@ public sealed class AcnhEnvironmentResources
 
         return new(AcnhEnvironmentPalettes.Read(read), AcnhSunOrbit.Load(romfs), ReadStage(read, "Stage"), ReadStage(read, "Stage_Inside"),
             roomLights[1], AcnhSkyScatterParameters.Read(read), AcnhColorCorrection.Load(romfs, "envroom"), AcnhColorCorrection.LoadMapProgram(romfs),
-            AcnhPanoramaEnvironment.Read(read, romfs), AcnhAmbientOcclusion.Load(romfs));
+            AcnhPanoramaEnvironment.Read(read, romfs), AcnhAmbientOcclusion.Load(romfs), AcnhProjectionShadow.LoadInside(romfs));
     }
 
     private static AcnhRoomLightParameters ReadRoomLight(IBymlNode entry)

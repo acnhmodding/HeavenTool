@@ -37,7 +37,7 @@ public sealed partial class BfresRenderer
     private readonly Dictionary<string, int> studioBuffers = [];
     private IReadOnlyDictionary<BfresMesh, BfresMeshShaders> nativePending = new Dictionary<BfresMesh, BfresMeshShaders>();
     private bool nativeDirty;
-    private int nativeContext, whiteTexture, blackTexture, shadowTexture, environmentTexture;
+    private int nativeContext, whiteTexture, blackTexture, shadowTexture, environmentTexture, projectionTexture;
     private AcnhLightingPreset lighting = AcnhLightingPreset.Day;
     private bool lightingDirty;
     public void SetLighting(AcnhLightingPreset value)
@@ -314,7 +314,7 @@ public sealed partial class BfresRenderer
     {
         if (nativeContext == 0) return;
         byte[] bytes = ParkUniforms.Context(Numerics(view), Numerics(projection), near, far, new(width, height),
-            Numerics(shadowMatrix), 1f / ShadowSize);
+            Numerics(shadowMatrix), 1f / ShadowSize, lighting.ProjectionShadow);
         GL.BindBuffer(BufferTarget.UniformBuffer, nativeContext);
         GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, bytes.Length, bytes);
     }
@@ -348,6 +348,7 @@ public sealed partial class BfresRenderer
             // The environment probe's capture reads the shadow map, but not the camera's screen-space occlusion.
             int texture = passContext == shadowContext && bound == shadowMap ? DefaultNativeTexture("shadow")
                 : passContext != 0 && passContext == probeContext && bound != 0 && bound == ssaoMaps[1] ? DefaultNativeTexture("white")
+                : bound != 0 && bound == projectionTexture ? ProjectionTexture(bound)
                 : EnvironmentTexture(bound, passContext);
             GL.ActiveTexture(TextureUnit.Texture0 + unit);
             GL.BindTexture(TextureTarget.Texture2D, texture);
@@ -366,6 +367,18 @@ public sealed partial class BfresRenderer
             return environmentTexture;
         }
         if (name == "gsys_depth_shadow") return ShadowMap();
+        // A white stand-in of its own, so a draw can swap in the lighting's projected shade.
+        if (name == "gsys_projection0")
+        {
+            if (projectionTexture == 0)
+            {
+                projectionTexture = GL.GenTexture();
+                GL.BindTexture(TextureTarget.Texture2D, projectionTexture);
+                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, 1, 1, 0, PixelFormat.Rgba, PixelType.UnsignedByte, new byte[] { 255, 255, 255, 255 });
+                TextureParameters(TextureMinFilter.Linear);
+            }
+            return projectionTexture;
+        }
         if (occlusion && name == "gsys_user2") return WorldAoMap();
         if (occlusion && name == "gsys_ssao") return SsaoMap();
         // Placeholder for the other shadow maps: its comparison always passes, which the game shaders read as lit.
@@ -382,7 +395,6 @@ public sealed partial class BfresRenderer
             }
             return shadowTexture;
         }
-        // A white projection texture casts no projected shadow.
         // The game's shared context defaults the ground-color sampler to Black2D until FieldUnitMapDrawer supplies it.
         bool black = name == "gsys_user0" || name.Contains("color_buffer");
         int id = black ? blackTexture : whiteTexture;
@@ -397,6 +409,10 @@ public sealed partial class BfresRenderer
         }
         return id;
     }
+
+    // The lighting's projected shade, mipmapped and repeating; the white stand-in when there is none.
+    private int ProjectionTexture(int standIn) =>
+        lighting.ProjectionShadow is { } shade && UploadTexture(shade.Texture) is var texture and not 0 ? texture : standIn;
 
     private static void TextureParameters(TextureMinFilter filter)
     {
@@ -449,11 +465,11 @@ public sealed partial class BfresRenderer
         nativePrograms.Clear();
         if (nativeContext != 0) GL.DeleteBuffer(nativeContext);
         nativeContext = 0;
-        foreach (int texture in new[] { whiteTexture, blackTexture, shadowTexture, environmentTexture }) if (texture != 0) GL.DeleteTexture(texture);
+        foreach (int texture in new[] { whiteTexture, blackTexture, shadowTexture, environmentTexture, projectionTexture }) if (texture != 0) GL.DeleteTexture(texture);
         ReleaseShadows();
         ReleaseOcclusion();
         ReleaseNormalizedLinearDepth();
-        whiteTexture = blackTexture = shadowTexture = environmentTexture = 0;
+        whiteTexture = blackTexture = shadowTexture = environmentTexture = projectionTexture = 0;
         nativeDirty = nativePending.Count > 0;
     }
 

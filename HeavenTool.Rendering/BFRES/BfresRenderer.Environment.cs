@@ -102,7 +102,7 @@ public sealed partial class BfresRenderer
                     throw new InvalidOperationException("Environment probe framebuffer is incomplete.");
                 var view = Matrix4.CreateTranslation(-position) * Matrix4.CreateScale(1, 1, -1) * Matrix4.LookAt(Vector3.Zero, faces[face].Forward, faces[face].Up);
                 byte[] bytes = ParkUniforms.Context(Numerics(view), Numerics(projection), probe.Near, probe.Far, new(ProbeFaceSize),
-                    Numerics(shadowMatrix), 1f / ShadowSize);
+                    Numerics(shadowMatrix), 1f / ShadowSize, lighting.ProjectionShadow);
                 GL.BindBuffer(BufferTarget.UniformBuffer, probeContext);
                 GL.BufferSubData(BufferTarget.UniformBuffer, IntPtr.Zero, bytes.Length, bytes);
                 GL.ClearColor(0, 0, 0, 0);

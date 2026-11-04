@@ -152,6 +152,14 @@ public sealed class AcnhColorCorrection
             return objects;
         }
 
+        public Dictionary<uint, int> Lists(int list)
+        {
+            int first = list + BinaryPrimitives.ReadUInt16LittleEndian(Span(list + 4, 2)) * 4, count = BinaryPrimitives.ReadUInt16LittleEndian(Span(list + 6, 2));
+            var lists = new Dictionary<uint, int>();
+            for (int i = 0; i < count; i++) lists[(uint)Int(first + i * 12)] = first + i * 12;
+            return lists;
+        }
+
         public Dictionary<uint, (int Type, int Data)> Parameters(int obj)
         {
             if (obj < 0) throw new InvalidDataException("Missing AAMP object.");
@@ -188,6 +196,27 @@ public sealed class AcnhColorCorrection
         {
             int at = Data(p, name, 5);
             return new(Float(at), Float(at + 4), Float(at + 8), Float(at + 12));
+        }
+
+        public System.Numerics.Vector2 Vector2(Dictionary<uint, (int Type, int Data)> p, string name)
+        {
+            int at = Data(p, name, 3);
+            return new(Float(at), Float(at + 4));
+        }
+
+        public System.Numerics.Vector3 Vector3(Dictionary<uint, (int Type, int Data)> p, string name)
+        {
+            int at = Data(p, name, 4);
+            return new(Float(at), Float(at + 4), Float(at + 8));
+        }
+
+        // A string32 parameter: the string section packs it NUL-terminated, so it may end before a full 32 bytes.
+        public string String(Dictionary<uint, (int Type, int Data)> p, string name)
+        {
+            int at = Data(p, name, 7);
+            var bytes = Span(at, Math.Min(32, data.Length - at));
+            int end = bytes.IndexOf((byte)0);
+            return System.Text.Encoding.UTF8.GetString(end < 0 ? bytes : bytes[..end]);
         }
 
         // A curve4 parameter: four curves of (u32 used, u32 type, 30 floats).
