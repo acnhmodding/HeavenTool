@@ -6,7 +6,7 @@ public sealed partial class BfresRenderer
 {
     private const int Samples = 4;
     // Lit frames render into a multisampled HDR target, resolved into hdrColor before tone mapping.
-    private int hdrFramebuffer, hdrSamples, hdrDepth, resolveFramebuffer, resolveDepth, hdrColor, toneProgram, toneVao, toneExposure, toneGraded;
+    private int hdrFramebuffer, hdrSamples, hdrDepth, resolveFramebuffer, resolveDepth, hdrColor, toneProgram, toneVao, toneExposure, toneGraded, toneBloom, toneBloomColors;
     private int hdrWidth, hdrHeight;
     private float previewExposure = 1;
     public void SetExposure(float value)
@@ -52,7 +52,11 @@ public sealed partial class BfresRenderer
         GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, hdrFramebuffer);
         GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, resolveFramebuffer);
         GL.BlitFramebuffer(0, 0, hdrWidth, hdrHeight, 0, 0, hdrWidth, hdrHeight, ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit, BlitFramebufferFilter.Nearest);
+        GL.Disable(EnableCap.DepthTest); GL.Disable(EnableCap.Blend); GL.Disable(EnableCap.CullFace); GL.Disable(EnableCap.FramebufferSrgb);
+        GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
+        bool bloomed = RenderBloom();
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, outputFramebuffer);
+        GL.Viewport(0, 0, width, height);
         GL.Disable(EnableCap.DepthTest); GL.Disable(EnableCap.Blend); GL.Disable(EnableCap.CullFace); GL.Disable(EnableCap.FramebufferSrgb);
         GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
         if (toneProgram == 0)
@@ -64,10 +68,14 @@ public sealed partial class BfresRenderer
                     """, """
                     #version 330 core
                     in vec2 uv; out vec4 color;
-                    uniform sampler2D frame; uniform sampler3D grading; uniform float exposure; uniform bool graded;
+                    uniform sampler2D frame; uniform sampler3D grading; uniform float exposure; uniform bool graded, bloomed;
+                    uniform sampler2D bloom0, bloom1, bloom2, bloom3; uniform vec3 bloomColors[4];
                     void main() {
                         vec4 source=texture(frame,uv);
-                        vec3 x=max(source.rgb,vec3(0))*exposure;
+                        // ToneMapping adds the bloom to the HDR color ahead of exposure.
+                        vec3 glow=bloomed?texture(bloom0,uv).rgb*bloomColors[0]+texture(bloom1,uv).rgb*bloomColors[1]
+                            +texture(bloom2,uv).rgb*bloomColors[2]+texture(bloom3,uv).rgb*bloomColors[3]:vec3(0);
+                        vec3 x=(max(source.rgb,vec3(0))+glow)*exposure;
                         // Park_Proc ToneMapping, cExponentialLuminance: exponential on luminance, blended toward
                         // per-channel 1-exp(-x) as the pixel brightens. mSaturateBias 0 leaves saturation as is.
                         float luminance=dot(x,vec3(.298912,.586611,.114478)), k=1.0-exp(-luminance);
@@ -81,11 +89,25 @@ public sealed partial class BfresRenderer
                     }
                     """);
             toneVao = GL.GenVertexArray(); toneExposure = GL.GetUniformLocation(toneProgram, "exposure"); toneGraded = GL.GetUniformLocation(toneProgram, "graded");
+            toneBloom = GL.GetUniformLocation(toneProgram, "bloomed"); toneBloomColors = GL.GetUniformLocation(toneProgram, "bloomColors");
             GL.UseProgram(toneProgram); GL.Uniform1(GL.GetUniformLocation(toneProgram, "frame"), 0); GL.Uniform1(GL.GetUniformLocation(toneProgram, "grading"), 1);
+            for (int level = 0; level < BloomLevels; level++) GL.Uniform1(GL.GetUniformLocation(toneProgram, $"bloom{level}"), 2 + level);
         }
         bool graded = PrepareGrading();
         GL.UseProgram(toneProgram);
         GL.Uniform1(toneGraded, graded ? 1 : 0);
+        GL.Uniform1(toneBloom, bloomed ? 1 : 0);
+        // Each level's compose weight times the palette's tint for it.
+        var colors = new float[BloomLevels * 3];
+        if (lighting.Bloom is { } bloom)
+            for (int level = 0; level < BloomLevels; level++)
+            {
+                float weight = level switch { 0 => bloom.LevelWeights.X, 1 => bloom.LevelWeights.Y, 2 => bloom.LevelWeights.Z, _ => bloom.LevelWeights.W };
+                var tint = bloom.LevelColors[level];
+                colors[level * 3] = tint.X * weight; colors[level * 3 + 1] = tint.Y * weight; colors[level * 3 + 2] = tint.Z * weight;
+            }
+        GL.Uniform3(toneBloomColors, BloomLevels, colors);
+        BindBloomLevels(bloomed);
         GL.ActiveTexture(TextureUnit.Texture1); GL.BindTexture(TextureTarget.Texture3D, graded ? gradingTexture : 0); GL.BindSampler(1, 0);
         // The game exposes by exp(mExpose); ToneMapping.byml ships mExpose 0, so scenes at game scale use 1.
         GL.Uniform1(toneExposure, previewExposure);
@@ -100,6 +122,7 @@ public sealed partial class BfresRenderer
         if (hdrDepth != 0) GL.DeleteRenderbuffer(hdrDepth);
         if (resolveDepth != 0) GL.DeleteRenderbuffer(resolveDepth);
         if (hdrColor != 0) GL.DeleteTexture(hdrColor);
+        ReleaseBloomTargets();
         hdrFramebuffer = resolveFramebuffer = hdrSamples = hdrDepth = resolveDepth = hdrColor = 0;
     }
     private void ReleaseLighting()
@@ -107,6 +130,7 @@ public sealed partial class BfresRenderer
         ReleaseLightingTarget();
         ReleaseGrading();
         ReleaseProbe();
+        ReleaseBloom();
         if (toneProgram != 0) GL.DeleteProgram(toneProgram);
         if (toneVao != 0) GL.DeleteVertexArray(toneVao);
         toneProgram = toneVao = 0;

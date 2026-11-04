@@ -17,6 +17,12 @@ public sealed record AcnhEnvironmentPalette(
     public float SkyLightIntensity { get; init; }
     public float RayleighIntensity { get; init; }
     public float MieIntensity { get; init; }
+    // The bloom threshold and the four compose colors the palette sets on agl's bloom.
+    public float BloomThreshold { get; init; }
+    public Vector4 BloomBlendColor0 { get; init; }
+    public Vector4 BloomBlendColor1 { get; init; }
+    public Vector4 BloomBlendColor2 { get; init; }
+    public Vector4 BloomBlendColor3 { get; init; }
 }
 
 public sealed record AcnhRoomSpotPalette(Vector4 Color, float Intensity, Vector2 Position, float Size, Vector3 Direction, float Far, float Fovy);

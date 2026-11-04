@@ -76,6 +76,8 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     public AcnhScreenOcclusion? ScreenOcclusion { get; init; }
     // The shade gsys_projection0 casts over direct light; none leaves it white.
     public AcnhProjectionShadow? ProjectionShadow { get; init; }
+    // agl's bloom, added to the HDR color before tone mapping; none leaves the frame without glow.
+    public AcnhBloom? Bloom { get; init; }
 }
 
 /// <summary>

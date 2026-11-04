@@ -28,11 +28,13 @@ public sealed class AcnhEnvironmentResources
     public AcnhAmbientOcclusion AmbientOcclusion { get; }
     // The house's projected shade; none when the game leaves it off.
     public AcnhProjectionShadow? InsideProjectionShadow { get; }
+    // GameEnv's single bloom setting, used inside and out; none when it is disabled.
+    public AcnhBloom? Bloom { get; }
 
     private AcnhEnvironmentResources(AcnhEnvironmentPalettes palettes, AcnhSunOrbit sunOrbit, AcnhStageEnvironment outdoorStage,
         AcnhStageEnvironment roomStage, AcnhRoomLightParameters villagerRoomLight, AcnhSkyScatterParameters skyScatter,
         AcnhColorCorrection roomColorCorrection, SwitchProcessShaderProgram colorCorrectionMap, AcnhPanoramaEnvironment panorama,
-        AcnhAmbientOcclusion ambientOcclusion, AcnhProjectionShadow? insideProjectionShadow)
+        AcnhAmbientOcclusion ambientOcclusion, AcnhProjectionShadow? insideProjectionShadow, AcnhBloom? bloom)
     {
         Palettes = palettes;
         SunOrbit = sunOrbit;
@@ -45,6 +47,7 @@ public sealed class AcnhEnvironmentResources
         Panorama = panorama;
         AmbientOcclusion = ambientOcclusion;
         InsideProjectionShadow = insideProjectionShadow;
+        Bloom = bloom;
     }
 
     public static AcnhEnvironmentResources Load(string romfs) => Read(OpenStaticParam(romfs), romfs);
@@ -58,7 +61,7 @@ public sealed class AcnhEnvironmentResources
 
         return new(AcnhEnvironmentPalettes.Read(read), AcnhSunOrbit.Load(romfs), ReadStage(read, "Stage"), ReadStage(read, "Stage_Inside"),
             roomLights[1], AcnhSkyScatterParameters.Read(read), AcnhColorCorrection.Load(romfs, "envroom"), AcnhColorCorrection.LoadMapProgram(romfs),
-            AcnhPanoramaEnvironment.Read(read, romfs), AcnhAmbientOcclusion.Load(romfs), AcnhProjectionShadow.LoadInside(romfs));
+            AcnhPanoramaEnvironment.Read(read, romfs), AcnhAmbientOcclusion.Load(romfs), AcnhProjectionShadow.LoadInside(romfs), AcnhBloom.Load(romfs));
     }
 
     private static AcnhRoomLightParameters ReadRoomLight(IBymlNode entry)

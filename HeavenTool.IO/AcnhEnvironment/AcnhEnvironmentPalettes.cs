@@ -83,7 +83,12 @@ public sealed partial class AcnhEnvironmentPalettes
         SunColor = Lerp(a.SunColor, b.SunColor, t),
         SkyLightIntensity = Lerp(a.SkyLightIntensity, b.SkyLightIntensity, t),
         RayleighIntensity = Lerp(a.RayleighIntensity, b.RayleighIntensity, t),
-        MieIntensity = Lerp(a.MieIntensity, b.MieIntensity, t)
+        MieIntensity = Lerp(a.MieIntensity, b.MieIntensity, t),
+        BloomThreshold = Lerp(a.BloomThreshold, b.BloomThreshold, t),
+        BloomBlendColor0 = Lerp(a.BloomBlendColor0, b.BloomBlendColor0, t),
+        BloomBlendColor1 = Lerp(a.BloomBlendColor1, b.BloomBlendColor1, t),
+        BloomBlendColor2 = Lerp(a.BloomBlendColor2, b.BloomBlendColor2, t),
+        BloomBlendColor3 = Lerp(a.BloomBlendColor3, b.BloomBlendColor3, t)
     };
 
     private static AcnhRoomSpotPalette Blend(AcnhRoomSpotPalette a, AcnhRoomSpotPalette b, float t) => new(

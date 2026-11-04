@@ -33,6 +33,7 @@ public static class AcnhSceneLighting
             // its authored (40, 20, 40) is not kept; the room's middle is the origin here.
             EnvironmentProbe = inside ? new(new(0, 20, 0), 1, 10000, resources.Panorama) : null,
             ProjectionShadow = inside ? resources.InsideProjectionShadow : null,
+            Bloom = resources.Bloom?.WithPalette(palette),
             ScreenOcclusion = new(resources.AmbientOcclusion, inside ? resources.AmbientOcclusion.Inside : resources.AmbientOcclusion.Outside),
         };
     }
