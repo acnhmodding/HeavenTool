@@ -108,8 +108,10 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
             });
             Data = data;
             Catalog = catalog;
-            Preview = new HousePreview(romfs, () => data.Environment);
-            RoomPreview = new RoomPreview(data);
+            // Both previews translate the game's shaders from the same archive.
+            var shaders = HousePreview.LoadShaders(romfs);
+            Preview = new HousePreview(romfs, () => data.Environment, shaders);
+            RoomPreview = new RoomPreview(data, shaders);
             Donor.Initialize();
             Traits.Initialize();
             House.Initialize();

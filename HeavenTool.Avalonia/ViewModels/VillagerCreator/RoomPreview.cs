@@ -21,9 +21,10 @@ public sealed record RoomScene(BfresRenderer.PreparedScene Geometry, IReadOnlyDi
 /// <summary>
 /// Builds room previews from the romfs models: the floor and the four walls of a 6×6 room, with its wallpaper and flooring, and
 /// the items in it. The walls show only from inside, so the room can be seen into from any side. The ceiling is left out, but
-/// the environment probe still sees it, as the game's does. Models, textures and translated game shaders load once and are reused.
+/// the environment probe still sees it, as the game's does. The last few rooms' models, textures and translated game shaders are
+/// kept for when they're shown again; <paramref name="shaders"/> shares the game's material archive with the house preview.
 /// </summary>
-public sealed class RoomPreview(VillagerGameData data)
+public sealed class RoomPreview(VillagerGameData data, Lazy<SwitchShaderArchive?>? shaders = null)
 {
     // One half tile is 5 units, and the room's middle is between cells 31 and 32.
     private const float Cell = 5;
@@ -81,12 +82,11 @@ public sealed class RoomPreview(VillagerGameData data)
         Samplers = [],
     };
 
-    private readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<BfresModel>>> models = new();
-    private readonly ConcurrentDictionary<string, Lazy<IReadOnlyList<BntxTexture>>> textures = new();
-    private readonly ConcurrentDictionary<BfresMesh, BfresMeshShaders?> programs = new();
-    private readonly ConcurrentDictionary<BfresMesh, string> shaderErrors = new();
-    private readonly Lazy<SwitchShaderArchive?> shaders = new(() =>
-        BfresScene.FindRomfsShaderArchive(data.Romfs) is { } path ? SwitchShaderArchive.Load(path) : null);
+    private const int KeptRooms = 3;
+    private readonly RecentCache<string, IReadOnlyList<BfresModel>> models = new(KeptRooms);
+    private readonly RecentCache<string, IReadOnlyList<BntxTexture>> textures = new(KeptRooms);
+    private readonly RecentCache<BfresMesh, (BfresMeshShaders? Program, string? Error)> translations = new(KeptRooms);
+    private readonly Lazy<SwitchShaderArchive?> shaders = shaders ?? HousePreview.LoadShaders(data.Romfs);
 
     /// <summary>The room, or null when <paramref name="cancellation"/> stops it first.</summary>
     public Task<RoomScene?> BuildAsync(VillagerRoom room, CancellationToken cancellation) =>
@@ -99,6 +99,7 @@ public sealed class RoomPreview(VillagerGameData data)
 
     private RoomScene? Build(VillagerRoom room, CancellationToken cancellation)
     {
+        var build = (Models: models.Begin(), Textures: textures.Begin(), Translations: translations.Begin());
         var warnings = new List<string>();
         AcnhLightingPreset? lighting = null;
         try
@@ -216,21 +217,26 @@ public sealed class RoomPreview(VillagerGameData data)
             if (shaders.Value is { } archive)
             {
                 var sources = placed.Select(piece => piece.Source).OfType<BfresMesh>().Distinct().ToList();
-                var unprepared = sources.Where(source => !programs.ContainsKey(source)).ToList();
+                var unprepared = sources.Where(source => !translations.TryGet(source, out _)).ToList();
                 var prepared = BfresScene.PrepareShaders(unprepared, archive, cancellation);
-                foreach (var source in unprepared) programs.TryAdd(source, prepared.Programs.GetValueOrDefault(source));
-                foreach (var error in prepared.Errors) shaderErrors.TryAdd(error.Key, error.Value);
+                foreach (var source in unprepared)
+                    translations.Add(source, (prepared.Programs.GetValueOrDefault(source), prepared.Errors.GetValueOrDefault(source)));
 
                 foreach (var (source, mesh) in placed)
-                    if (source != null && programs.GetValueOrDefault(source) is { } program) translated[mesh] = program;
+                    if (source != null && translations.TryGet(source, out var translation) && translation.Program is { } program)
+                        translated[mesh] = program;
                 foreach (var source in sources)
-                    if (shaderErrors.TryGetValue(source, out var error)) warnings.Add($"{source.Name}: {error}");
+                    if (translations.TryGet(source, out var translation) && translation.Error is { } error) warnings.Add($"{source.Name}: {error}");
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             warnings.Add($"Couldn't load the game materials: {ex.Message}");
         }
+        // The scene holds what it uses; the caches let go of what the last few rooms didn't.
+        models.Trim(build.Models);
+        textures.Trim(build.Textures);
+        translations.Trim(build.Translations);
         return new RoomScene(geometry, translated, warnings, lighting);
     }
 
@@ -435,17 +441,17 @@ public sealed class RoomPreview(VillagerGameData data)
 
     private BfresModel? Model(string name) => Models(name).FirstOrDefault();
 
-    private IReadOnlyList<BfresModel> Models(string name) => models.GetOrAdd(name, _ => new(() =>
+    private IReadOnlyList<BfresModel> Models(string name) => models.Get(name, _ =>
     {
         if (Open(name) is not { } stream) return [];
         using (stream) return [.. BfresFileReader.Load(stream).SelectMany(asset => asset.Document.Models)];
-    })).Value;
+    });
 
-    private IReadOnlyList<BntxTexture> Textures(string name) => textures.GetOrAdd(name, _ => new(() =>
+    private IReadOnlyList<BntxTexture> Textures(string name) => textures.Get(name, _ =>
     {
         if (Open(name) is not { } stream) return [];
         using (stream) return BfresFileReader.LoadTextures(stream);
-    })).Value;
+    });
 
     private FileStream? Open(string name)
     {

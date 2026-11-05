@@ -23,9 +23,10 @@ public sealed record HouseScene(BfresRenderer.PreparedScene Geometry, IReadOnlyD
 
 /// <summary>
 /// Builds house previews from the romfs models. Wall and roof models share the house's origin; the door sits on the wall's
-/// <c>DoorModel0</c> bone. Models and the game's material archive load once and are reused.
+/// <c>DoorModel0</c> bone. The last few houses' models are kept for when they're picked again, and the game's material archive
+/// loads once; <paramref name="shaders"/> shares it with the room preview.
 /// </summary>
-public sealed class HousePreview(string romfs, Func<AcnhEnvironmentResources> environment)
+public sealed class HousePreview(string romfs, Func<AcnhEnvironmentResources> environment, Lazy<SwitchShaderArchive?>? shaders = null)
 {
     private const string DoorBone = "DoorModel0";
     // Snow only shows in winter, over the roof.
@@ -34,9 +35,13 @@ public sealed class HousePreview(string romfs, Func<AcnhEnvironmentResources> en
     private const string CurtainMaterial = "mCurtain";
     private const string CurtainColor = "const_color2";
 
-    private readonly ConcurrentDictionary<string, Lazy<BfresModel?>> models = new();
-    private readonly Lazy<SwitchShaderArchive?> shaders = new(() =>
-        BfresScene.FindRomfsShaderArchive(romfs) is { } path ? SwitchShaderArchive.Load(path) : null);
+    // The parts of the last few houses, so picking one again doesn't load it again. A part takes about 2 MB.
+    private readonly RecentCache<string, BfresModel?> models = new(4);
+    private readonly Lazy<SwitchShaderArchive?> shaders = shaders ?? LoadShaders(romfs);
+
+    /// <summary>The game's material archive in <paramref name="romfs"/>, loaded the first time it's needed; it takes about 40 MB.</summary>
+    public static Lazy<SwitchShaderArchive?> LoadShaders(string romfs) =>
+        new(() => BfresScene.FindRomfsShaderArchive(romfs) is { } path ? SwitchShaderArchive.Load(path) : null);
 
     /// <summary>The house with these parts, or null when <paramref name="cancellation"/> stops it first.</summary>
     public Task<HouseScene?> BuildAsync(HousePart wall, HousePart roof, HousePart door, CancellationToken cancellation) =>
@@ -49,6 +54,7 @@ public sealed class HousePreview(string romfs, Func<AcnhEnvironmentResources> en
 
     private HouseScene? Build(HousePart wall, HousePart roof, HousePart door, CancellationToken cancellation)
     {
+        var build = models.Begin();
         var warnings = new List<string>();
         AcnhLightingPreset? lighting = null;
         try
@@ -62,7 +68,7 @@ public sealed class HousePreview(string romfs, Func<AcnhEnvironmentResources> en
 
         BfresModel? Load(HousePart part)
         {
-            var model = models.GetOrAdd(part.ModelName, _ => new(() => Read(part))).Value;
+            var model = models.Get(part.ModelName, _ => Read(part));
             if (model == null) warnings.Add($"The {part.Name} model ({part.ModelName}) isn't in the romfs.");
             return model;
         }
@@ -97,6 +103,7 @@ public sealed class HousePreview(string romfs, Func<AcnhEnvironmentResources> en
             .Where(material => material.Name == CurtainMaterial && material.Parameters.ContainsKey(CurtainColor))
             .Distinct()
             .ToList();
+        models.Trim(build);
         return new HouseScene(geometry, programs, curtains, warnings, lighting);
     }
 
