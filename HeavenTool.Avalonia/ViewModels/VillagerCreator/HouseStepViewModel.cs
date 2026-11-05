@@ -61,7 +61,6 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
     internal void Initialize()
     {
         Shapes = creator.Catalog.Shapes;
-        Doors = creator.Catalog.Doors;
     }
 
     /// <summary>Connects the viewport the preview draws in.</summary>
@@ -96,16 +95,20 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
     partial void OnShapeChanged(int? value)
     {
         if (value is not { } id) return;
-        // Walls and roofs only fit their own shape, so keep the current ones only if they still fit.
-        var (wall, roof) = (Wall, Roof);
+        // Walls and roofs only fit their own shape, and doors only the doorways of some, so keep the current ones only if they
+        // still fit. A door of the other top keeps its name.
+        var (wall, roof, door) = (Wall, Roof, Door);
         // The new wall and roof go in together, as one house.
         changingShape = true;
         try
         {
             Walls = [.. creator.Catalog.WallsFor(id)];
             Roofs = [.. creator.Catalog.RoofsFor(id)];
+            Doors = [.. creator.Catalog.DoorsFor(id)];
             Wall = Walls.FirstOrDefault(part => part.Name == wall?.Name) ?? Walls.FirstOrDefault();
             Roof = Roofs.FirstOrDefault(part => part.Name == roof?.Name) ?? Roofs.FirstOrDefault();
+            Door = Doors.FirstOrDefault(part => part.Id == door?.Id) ?? Doors.FirstOrDefault(part => part.Name == door?.Name)
+                ?? Doors.FirstOrDefault();
         }
         finally { changingShape = false; }
         Commit();

@@ -6,8 +6,11 @@ using System.Numerics;
 
 namespace HeavenTool.ModManager.Villagers;
 
-/// <summary>A wall, roof or door a house can use. <see cref="Shape"/> is the house shape it fits, or -1 when it fits any.</summary>
-public sealed record HousePart(int Id, string Name, string ModelName, int Shape)
+/// <summary>
+/// A wall, roof or door a house can use. <see cref="Shape"/> is the house shape it fits, or -1 when it fits any. A door's
+/// <see cref="Top"/> is the CRC32 of the shape of its top, "Square" or "Round", and 0 for walls and roofs.
+/// </summary>
+public sealed record HousePart(int Id, string Name, string ModelName, int Shape, uint Top = 0)
 {
     public override string ToString() => Name;
 }
@@ -17,6 +20,8 @@ public sealed class HouseCatalog
 {
     private const string ModelColumn = "ModelName string32";
     private const string ShapeColumn = "HouseShapeUniqueID u16";
+    // The door's top, square or round. Its name isn't known.
+    private const uint DoorTopColumn = 0x0aa76edd;
 
     public const string StructureParamsPath = "Param/Structure/StructureParams.byml";
     // The param names hash to these keys: the Structure object, and its mNpcHouseCurtainColorArray.
@@ -30,6 +35,12 @@ public sealed class HouseCatalog
     public required IReadOnlyList<HousePart> Doors { get; init; }
 
     /// <summary>
+    /// The door tops each shape takes, from the vanilla houses: its walls' doorways are square or round, and a door with the
+    /// other top doesn't fit them. No table says this, but no vanilla house mixes them.
+    /// </summary>
+    public required IReadOnlyDictionary<int, IReadOnlySet<uint>> DoorTops { get; init; }
+
+    /// <summary>
     /// The curtain colors as linear RGBA, by <see cref="HouseExterior.Curtain"/>; empty when StructureParams doesn't list them.
     /// The game tints the wall model's <c>mCurtain</c> material with them.
     /// </summary>
@@ -37,20 +48,25 @@ public sealed class HouseCatalog
 
     public static HouseCatalog Load(VillagerGameData data)
     {
-        var shapes = data.StaticParam.Files
+        var houses = data.StaticParam.Files
             .Where(file => file.Name.StartsWith("Param/NpcHouse/", StringComparison.Ordinal))
-            .Select(file => data.ReadParam(file.Name) is { } root ? HouseExterior.Read(root).Shape : -1)
-            .Where(shape => shape >= 0)
-            .Distinct()
-            .Order()
+            .Select(file => data.ReadParam(file.Name) is { } root ? HouseExterior.Read(root) : null)
+            .OfType<HouseExterior>()
+            .Where(house => house.Shape >= 0)
             .ToList();
+        var doors = Parts(data, "StructureHouseDoorParam", "STR_HouseDoorName.msbt", hasShape: false);
+        var doorTops = doors.ToDictionary(door => door.Id, door => door.Top);
 
         return new HouseCatalog
         {
-            Shapes = shapes,
+            Shapes = [.. houses.Select(house => house.Shape).Distinct().Order()],
             Walls = Parts(data, "StructureHouseWallParam", "STR_HouseWallName.msbt", hasShape: true),
             Roofs = Parts(data, "StructureHouseRoofParam", "STR_HouseRoofName.msbt", hasShape: true),
-            Doors = Parts(data, "StructureHouseDoorParam", "STR_HouseDoorName.msbt", hasShape: false),
+            Doors = doors,
+            DoorTops = houses
+                .Where(house => doorTops.ContainsKey(house.Door))
+                .GroupBy(house => house.Shape)
+                .ToDictionary(group => group.Key, group => (IReadOnlySet<uint>)group.Select(house => doorTops[house.Door]).ToHashSet()),
             CurtainColors = data.ReadParam(StructureParamsPath) is { } structure ? ReadCurtainColors(structure) : [],
         };
     }
@@ -69,6 +85,10 @@ public sealed class HouseCatalog
     public IEnumerable<HousePart> WallsFor(int shape) => Walls.Where(part => part.Shape == shape);
     public IEnumerable<HousePart> RoofsFor(int shape) => Roofs.Where(part => part.Shape == shape);
 
+    /// <summary>The doors that fit a shape's doorway, or all of them for a shape no vanilla house has.</summary>
+    public IEnumerable<HousePart> DoorsFor(int shape) =>
+        DoorTops.TryGetValue(shape, out var tops) ? Doors.Where(part => tops.Contains(part.Top)) : Doors;
+
     /// <summary>The model file of a part, under the romfs.</summary>
     public static string ModelPath(string romfs, HousePart part) => Path.Combine(romfs, "Model", part.ModelName + ".Nin_NX_NVN.zs");
 
@@ -78,6 +98,7 @@ public sealed class HouseCatalog
         var id = parts.ColumnIndex(VillagerColumns.UniqueId);
         var model = parts.ColumnIndex(ModelColumn);
         var shape = hasShape ? parts.ColumnIndex(ShapeColumn) : -1;
+        var top = hasShape ? -1 : parts.ColumnIndex(DoorTopColumn);
         // Names are labelled by the part's UniqueID, padded to five digits.
         var names = data.Messages("String", VillagerGameData.NameLanguage, namesFile)?.Messages
             .ToDictionary(message => message.Label, message => VillagerGameData.PlainText(message.Text)) ?? [];
@@ -90,7 +111,7 @@ public sealed class HouseCatalog
                 var partId = (ushort)row[id];
                 var modelName = (string)row[model];
                 var name = names.GetValueOrDefault(partId.ToString("00000")) is { Length: > 0 } text ? text : modelName;
-                return new HousePart(partId, name, modelName, shape >= 0 ? (ushort)row[shape] : -1);
+                return new HousePart(partId, name, modelName, shape >= 0 ? (ushort)row[shape] : -1, top >= 0 ? (uint)row[top] : 0);
             })
             .OrderBy(part => part.Name, StringComparer.CurrentCultureIgnoreCase)];
     }
