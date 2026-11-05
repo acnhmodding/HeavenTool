@@ -74,9 +74,12 @@ public sealed partial class BfresRenderer
             // Pieces drawn only into the environment probe, such as a room's ceiling and front wall, still block the light.
             if (hidden.Contains(mesh.Source) || !mesh.Source.Material.CastsDynamicShadow
                 || !nativeShadowMeshes.TryGetValue(mesh.Source, out var native)) continue;
+            // The game culls a one-sided caster here as on screen, so a wall lit from behind lets the sun through.
+            ApplyDisplayFace(mesh.Material.Profile);
             DrawNativeMesh(mesh, native, shadowContext);
         }
         GL.Disable(EnableCap.DepthClamp);
+        GL.Disable(EnableCap.CullFace);
         GL.Disable(EnableCap.PolygonOffsetFill);
         GL.ColorMask(true, true, true, true);
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, outputFramebuffer);

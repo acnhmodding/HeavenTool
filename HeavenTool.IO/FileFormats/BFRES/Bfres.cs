@@ -161,14 +161,6 @@ public sealed class BfresMaterial
         Samplers = [.. Samplers.Select(sampler => textures.TryGetValue(sampler.TextureName, out var texture) ? sampler with { Texture = texture } : sampler)],
     };
 
-    /// <summary>A copy left out of the dynamic depth shadow, such as a piece whose shadow its model draws with a shadow-only stand-in.</summary>
-    public BfresMaterial WithoutDynamicShadow() => new()
-    {
-        Name = Name, ShaderArchive = ShaderArchive, ShadingModel = ShadingModel, AttributeAssignments = AttributeAssignments,
-        SamplerAssignments = SamplerAssignments, ShaderOptions = ShaderOptions, OriginalParameters = OriginalParameters, Samplers = Samplers,
-        RenderInfos = new Dictionary<string, BfresRenderInfo>(RenderInfos) { ["gsys_dynamic_depth_shadow"] = new(["0"], [], []) },
-    };
-
     public bool IsParkUber => ShaderArchive is "Park_UBER" or "Park_UBER_All" && ShadingModel == "park_uber";
 
     public bool IsShadowOnly => RenderFlag("gsys_dynamic_depth_shadow_only") || RenderFlag("gsys_static_depth_shadow_only");

@@ -367,10 +367,7 @@ public sealed class RoomPreview(VillagerGameData data)
             var document = BfresFileReader.Load(stream).Select(asset => asset.Document).FirstOrDefault(document => document.Models.Count > 0);
             if (document == null) return null;
             var open = document.SkeletalAnimations.FirstOrDefault(animation => animation.Name == "Open");
-            var model = open != null ? document.Models[0].Posed(open, open.FrameCount) : document.Models[0];
-            // A blind's shadow slats stand in for its visible ones, which would shut out the sun the game lets through them.
-            if (!model.Meshes.Any(mesh => mesh.Material.IsShadowOnly)) return model;
-            return model with { Meshes = [.. model.Meshes.Select(mesh => mesh.Material.IsShadowOnly ? mesh : mesh.WithMaterial(mesh.Material.WithoutDynamicShadow()))] };
+            return open != null ? document.Models[0].Posed(open, open.FrameCount) : document.Models[0];
         }
     }
 

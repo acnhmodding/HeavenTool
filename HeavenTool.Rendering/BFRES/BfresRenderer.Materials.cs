@@ -171,19 +171,25 @@ public sealed partial class BfresRenderer
     }
 
 
-    private static void ApplyRasterState(ParkMaterialProfile p)
+    /// <summary>Culls the faces a material hides, in every pass that draws it, the game's depth shadow included.</summary>
+    private static void ApplyDisplayFace(ParkMaterialProfile p)
     {
-        var source = p.Source;
-        if (p.DepthTest) GL.Enable(EnableCap.DepthTest); else GL.Disable(EnableCap.DepthTest);
-        GL.DepthMask(p.DepthWrite);
-        GL.DepthFunc((DepthFunction)((int)DepthFunction.Never + ParkMaterialProfile.Comparison(source.Info("gsys_depth_test_func", "lequal"))));
-        string faces = source.Info("gsys_render_state_display_face", "both");
+        string faces = p.Source.Info("gsys_render_state_display_face", "both");
         if (faces is "front" or "back")
         {
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(faces == "front" ? TriangleFace.Back : TriangleFace.Front);
         }
         else GL.Disable(EnableCap.CullFace);
+    }
+
+    private static void ApplyRasterState(ParkMaterialProfile p)
+    {
+        var source = p.Source;
+        if (p.DepthTest) GL.Enable(EnableCap.DepthTest); else GL.Disable(EnableCap.DepthTest);
+        GL.DepthMask(p.DepthWrite);
+        GL.DepthFunc((DepthFunction)((int)DepthFunction.Never + ParkMaterialProfile.Comparison(source.Info("gsys_depth_test_func", "lequal"))));
+        ApplyDisplayFace(p);
         if (p.Translucent)
         {
             GL.Enable(EnableCap.Blend);
