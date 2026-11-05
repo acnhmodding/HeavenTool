@@ -19,9 +19,9 @@ public sealed record RoomScene(BfresRenderer.PreparedScene Geometry, IReadOnlyDi
     IReadOnlyList<string> Warnings, AcnhLightingPreset? Lighting);
 
 /// <summary>
-/// Builds room previews from the romfs models: the floor and the back and side walls of a 6×6 room, with its wallpaper and
-/// flooring, and the items in it. The front wall and the ceiling are left out so the room can be seen into, but the environment
-/// probe still sees them, as the game's does. Models, textures and translated game shaders load once and are reused.
+/// Builds room previews from the romfs models: the floor and the four walls of a 6×6 room, with its wallpaper and flooring, and
+/// the items in it. The walls show only from inside, so the room can be seen into from any side. The ceiling is left out, but
+/// the environment probe still sees it, as the game's does. Models, textures and translated game shaders load once and are reused.
 /// </summary>
 public sealed class RoomPreview(VillagerGameData data)
 {
@@ -40,6 +40,12 @@ public sealed class RoomPreview(VillagerGameData data)
     private const string WallMaterial = "mDummyWall";
     // Keep authored shadow-only meshes for the light pass; only the outside floor strip is excluded from the scene.
     private static readonly string[] HiddenMaterials = ["mOutside"];
+    // The doorway in the front wall's middle piece, and the mat outside it, with the default landing's and arch's textures.
+    private const string EntranceModel = "RoomMdlEntranceNml2m";
+    private const string MatModel = "RoomMdlStairsNml";
+    private const string MatTextures = "RoomTexStairsWood00", MatMaterial = "mDummyStairs";
+    private const string ArchTextures = "RoomTexArchWood00", ArchMaterial = "mDummyLanding";
+
 
     private const string SharedTextures = "RoomTexShareTexture";
     // The room maps the placeholder materials ask for, by the shared texture the game gives them. Without them the floor reads
@@ -115,24 +121,36 @@ public sealed class RoomPreview(VillagerGameData data)
         // A special wallpaper or flooring brings its own room pieces, which the game draws in place of the plain ones.
         if (Special(room.Flooring, FloorModel["RoomMdl".Length..]) is { } specialFloor) Place(specialFloor, Matrix4x4.Identity, NoSwap);
         else if (Model(FloorModel) is { } floor) Place(floor, Matrix4x4.Identity, Surface(room.Flooring, FloorMaterial));
+        // The mat lies outside the door, facing away from the front wall.
+        if (Model(MatModel) is { } mat)
+            Place(mat, Matrix4x4.CreateTranslation(WallPoint(RoomLayer.FrontWall, 0, 0)), Retexture(MatTextures, MatMaterial));
         var specialWall = Special(room.Wallpaper, WallModel["RoomMdl".Length..]);
         if ((specialWall ?? Model(WallModel)) is { } wall)
         {
             var wallpaper = specialWall != null ? NoSwap : Surface(room.Wallpaper, WallMaterial);
             var window = specialWall != null ? null : Window(room.Wallpaper);
+            var entrance = Model(EntranceModel);
             foreach (var layer in (RoomLayer[])[RoomLayer.BackWall, RoomLayer.LeftWall, RoomLayer.RightWall, RoomLayer.FrontWall])
                 for (float along = -HalfRoom + WallPiece / 2; along < HalfRoom; along += WallPiece)
                 {
                     var at = Facing(layer) * Matrix4x4.CreateTranslation(WallPoint(layer, along, 0));
-                    bool unseen = layer == RoomLayer.FrontWall;
-                    // The side walls' middle pieces are the room's windows.
-                    if (window is { } w && along == 0 && layer is RoomLayer.LeftWall or RoomLayer.RightWall)
+                    // The front wall's middle piece is the doorway. Only its piece of the wall shows; the passage behind it is
+                    // for the environment probe, as the game draws it.
+                    if (entrance != null && along == 0 && layer == RoomLayer.FrontWall)
                     {
-                        Place(w.Wall, at, wallpaper, unseen);
-                        if (w.Frame != null) Place(w.Frame, at, NoSwap, unseen);
-                        if (w.Curtain != null) Place(w.Curtain, at, w.CurtainTextures, unseen);
+                        var doorway = new Dictionary<string, BntxTexture>(wallpaper.Concat(Retexture(ArchTextures, ArchMaterial)));
+                        var front = entrance.Meshes.ToLookup(mesh => mesh.Material.Name == WallMaterial);
+                        Place(entrance with { Meshes = [.. front[true]] }, at, doorway);
+                        Place(entrance with { Meshes = [.. front[false]] }, at, doorway, unseen: true);
                     }
-                    else Place(wall, at, wallpaper, unseen);
+                    // The side walls' middle pieces are the room's windows.
+                    else if (window is { } w && along == 0 && layer is RoomLayer.LeftWall or RoomLayer.RightWall)
+                    {
+                        Place(w.Wall, at, wallpaper);
+                        if (w.Frame != null) Place(w.Frame, at, NoSwap);
+                        if (w.Curtain != null) Place(w.Curtain, at, w.CurtainTextures);
+                    }
+                    else Place(wall, at, wallpaper);
                 }
             var specialCeiling = Special(room.Wallpaper, CeilingModel["RoomMdl".Length..]);
             if ((specialCeiling ?? Model(CeilingModel)) is { } ceiling)
@@ -282,15 +300,21 @@ public sealed class RoomPreview(VillagerGameData data)
     /// </summary>
     private Dictionary<string, BntxTexture> Surface(int item, string material)
     {
-        var swap = new Dictionary<string, BntxTexture>();
-        if (data.ItemResource(item) is { Length: > 0 } resource)
-            foreach (var texture in Textures(resource))
-                if (texture.Name.LastIndexOf('_') is var split and > 0) swap.TryAdd(material + texture.Name[split..], texture);
+        var swap = data.ItemResource(item) is { Length: > 0 } resource ? Retexture(resource, material) : [];
         // The maps every room shares come from one file, under names of their own.
         var shared = Textures(SharedTextures);
         foreach (var (name, from) in SharedMaps)
             if (name.StartsWith(material, StringComparison.Ordinal) && shared.FirstOrDefault(texture => texture.Name == from) is { } texture)
                 swap.TryAdd(name, texture);
+        return swap;
+    }
+
+    /// <summary>The textures of <paramref name="file"/>, renamed by their suffixes for <paramref name="material"/>.</summary>
+    private Dictionary<string, BntxTexture> Retexture(string file, string material)
+    {
+        var swap = new Dictionary<string, BntxTexture>();
+        foreach (var texture in Textures(file))
+            if (texture.Name.LastIndexOf('_') is var split and > 0) swap.TryAdd(material + texture.Name[split..], texture);
         return swap;
     }
 
