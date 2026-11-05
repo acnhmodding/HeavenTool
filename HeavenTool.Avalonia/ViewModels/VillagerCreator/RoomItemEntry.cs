@@ -72,13 +72,13 @@ public sealed partial class RoomItemEntry : ObservableObject
     /// </summary>
     public bool IsMarker => Item.Value is { } id && data.RoomMarkers.ContainsKey((int)id);
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(OnWall), nameof(Summary), nameof(ZTitle))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(OnWall), nameof(ZTitle))]
     public partial int Layer { get; set; }
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))]
+    [ObservableProperty]
     public partial int Facing { get; set; }
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))]
+    [ObservableProperty]
     public partial decimal? X { get; set; }
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(Summary))]
+    [ObservableProperty]
     public partial decimal? Z { get; set; }
     [ObservableProperty]
     public partial decimal? Body { get; set; }
@@ -91,7 +91,7 @@ public sealed partial class RoomItemEntry : ObservableObject
     /// <summary>Items on a wall face away from it, so they can't be turned.</summary>
     public bool OnWall => RoomItem.WallRotation((RoomLayer)Layer) != null;
 
-    /// <summary>The row's name and summary, which the item field takes the place of while it's open.</summary>
+    /// <summary>The row's name, which the item field takes the place of while it's open.</summary>
     public bool ShowsHeader => !IsSelected || IsMarker;
 
     public string ZTitle => OnWall ? "Row" : "Z";
@@ -99,10 +99,6 @@ public sealed partial class RoomItemEntry : ObservableObject
     public string Name => Item.Value is not { } id ? "No item"
         : data.RoomMarkers.TryGetValue((int)id, out var marker) ? MarkerName(marker)
         : data.ItemNames.TryGetValue((int)id, out var name) ? name : $"Item {id}";
-
-    public string Summary => OnWall
-        ? $"{Layers[Layer]} · row {Z}, at {X}"
-        : $"{Layers[Layer]} · {X}, {Z} · facing {Facings[Facing & 3].ToLowerInvariant()}";
 
     public RoomItem ToRoomItem()
     {

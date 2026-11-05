@@ -129,15 +129,28 @@
                           HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource DimText}" />
                       </Panel>
                     </Border>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Text="{Binding Summary}" FontSize="12" Foreground="{StaticResource DimText}" TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                   </Grid>
 
                   <!-- The selected item opens up to show what can be changed about it. Its item field stands in for the name. -->
                   <StackPanel IsVisible="{Binding IsSelected}">
-                    <ContentControl Content="{Binding Item}" IsVisible="{Binding !IsMarker}" />
+                    <!-- The item's name stands over its ID, so the open row needs no title. -->
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="0,4,0,0" IsVisible="{Binding !IsMarker}">
+                      <Border Classes="icon" IsVisible="{Binding Item.Icon, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <Image Source="{Binding Item.Icon}" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Spacing="6">
+                        <TextBlock Text="{Binding Item.ItemName}" TextTrimming="CharacterEllipsis" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                          <NumericUpDown Value="{Binding Item.Value}" Minimum="{Binding Item.Minimum}" Maximum="{Binding Item.Maximum}"
+                            Increment="1" FormatString="0" />
+                          <Button Grid.Column="1" Command="{Binding Item.PickCommand}" Width="36" Height="32" Padding="0"
+                            ToolTip.Tip="Find an item by name">
+                            <icons:PackIconFontAwesome6 Kind="MagnifyingGlassSolid" Width="13" Height="13" />
+                          </Button>
+                        </Grid>
+                      </StackPanel>
+                    </Grid>
                     <TextBlock Classes="field" TextWrapping="Wrap" IsVisible="{Binding IsMarker}" Margin="44,6,0,0"
                       Text="The game puts things the player gives this villager here." />
                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10" Margin="0,10,0,4">
