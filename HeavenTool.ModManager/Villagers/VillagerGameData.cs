@@ -176,11 +176,13 @@ public sealed partial class VillagerGameData
     }
 
     /// <summary>A table from <c>Bcsv/</c>, by name without extension.</summary>
-    public BinaryCSV Table(string name) => tables.GetOrAdd(name, _ =>
+    public BinaryCSV Table(string name) => tables.GetOrAdd(name, ReadTable);
+
+    private BinaryCSV ReadTable(string name)
     {
         using var stream = File.OpenRead(Path.Combine(Romfs, "Bcsv", name + ".bcsv"));
         return new BinaryCSV(stream);
-    });
+    }
 
     /// <summary>A BYML file from StaticParam.pack, or null when the pack has no such file.</summary>
     public IBymlNode? ReadParam(string path)
@@ -261,7 +263,8 @@ public sealed partial class VillagerGameData
     private Dictionary<int, ItemRow> LoadItemParam()
     {
         if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemParam.bcsv"))) return [];
-        var table = Table("ItemParam");
+
+        var table = ReadTable("ItemParam");
         int id = table.ColumnIndex("UniqueID u16"), resource = table.ColumnIndex("ResName string64");
         int label = table.ColumnIndex("Label string50"), kind = table.ColumnIndex("ItemKind.hshCstringRef");
         int size = table.ColumnIndex("ItemSize.hshCstringRef");
