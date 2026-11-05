@@ -16,7 +16,8 @@ namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 public sealed record GiftSpot(string Name, IRelayCommand Add);
 
 /// <summary>
-/// The inside of the house: wallpaper, flooring, music and the items in the room, with a 3D preview. The room starts as the donor's.
+/// The inside of the house: wallpaper, flooring, music, the items in the room and where the villager crafts and cooks, with a 3D
+/// preview. The room starts as the donor's.
 /// </summary>
 public partial class RoomStepViewModel : ObservableObject, IDisposable
 {
@@ -45,6 +46,18 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
 
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(RemoveItemCommand))]
     public partial RoomItemEntry? SelectedItem { get; set; }
+
+    /// <summary>Where the villager crafts, or null when the room has no workbench.</summary>
+    [ObservableProperty]
+    public partial RoomActivityEntry? Crafting { get; set; }
+
+    /// <summary>Where the villager cooks, or null when the room has no kitchen.</summary>
+    [ObservableProperty]
+    public partial RoomActivityEntry? Cooking { get; set; }
+
+    /// <summary>Whether the flooring is turned a quarter turn, as Chai's and Chelsea's are.</summary>
+    [ObservableProperty]
+    public partial bool FloorRotated { get; set; }
 
     [ObservableProperty]
     public partial bool IsPreviewLoading { get; set; }
@@ -120,6 +133,11 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
             Items.Clear();
             foreach (var item in room?.Items ?? []) Items.Add(Entry(item));
             SelectedItem = null;
+            Crafting = room?.Crafting is { } crafting
+                ? new RoomActivityEntry("Workbench", crafting, creator.Data.CraftingItems, creator.Data, Commit) : null;
+            Cooking = room?.Cooking is { } cooking
+                ? new RoomActivityEntry("Kitchen", cooking, creator.Data.CookingItems, creator.Data, Commit) : null;
+            FloorRotated = room?.FloorRotated ?? false;
         }
         finally { loading = false; }
         RefreshPreview();
@@ -165,11 +183,13 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
         Commit();
     }
 
+    partial void OnFloorRotatedChanged(bool value) => Commit();
+
     private void Commit()
     {
         if (loading || project == null) return;
         project.Room = new VillagerRoom((int)(Wallpaper?.Value ?? 0), (int)(Flooring?.Value ?? 0), (int)(Music?.Value ?? 0),
-            [.. Items.Select(entry => entry.ToRoomItem())]);
+            [.. Items.Select(entry => entry.ToRoomItem())], Crafting?.Activity, Cooking?.Activity, FloorRotated);
         RefreshPreview();
     }
 
@@ -225,7 +245,8 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
 
     // Records compare their item lists by reference, so the items are compared one by one. Music doesn't show.
     private static bool Same(VillagerRoom room, VillagerRoom? other) => other != null && room.Wallpaper == other.Wallpaper
-        && room.Flooring == other.Flooring && room.Items.SequenceEqual(other.Items);
+        && room.Flooring == other.Flooring && room.Items.SequenceEqual(other.Items) && room.Crafting == other.Crafting
+        && room.Cooking == other.Cooking && (room.FloorRotated ?? false) == (other.FloorRotated ?? false);
 
     private static string Capitalized(string text) => text.Length > 0 ? char.ToUpperInvariant(text[0]) + text[1..] : text;
 

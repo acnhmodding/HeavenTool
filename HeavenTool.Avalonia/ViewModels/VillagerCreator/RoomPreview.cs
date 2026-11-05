@@ -56,16 +56,21 @@ public sealed class RoomPreview(VillagerGameData data)
         ("mDummyFloor_OclMlp", "RoomTexShareTextureFloorAO6x6_OclMlp"),
     ];
 
-    // Gift spots show as faint boxes, drawn by the preview's own shader: a flat color, mostly see-through.
-    private const float SpotHeight = 4, SpotDepth = 1, SpotInset = .5f;
-    private static readonly BfresMaterial SpotMaterial = new()
+    // Gift spots show as faint boxes, drawn by the preview's own shader: a flat color, mostly see-through. The areas the villager
+    // crafts and cooks in show as thin slabs on the floor, in colors of their own.
+    private const float SpotHeight = 4, SpotDepth = 1, SpotInset = .5f, AreaHeight = .6f, AreaLift = .05f;
+    private static readonly BfresMaterial SpotMaterial = Flat("GiftSpot", .12f, .3f, .4f);
+    private static readonly BfresMaterial CraftingMaterial = Flat("CraftingArea", .45f, .3f, .1f);
+    private static readonly BfresMaterial CookingMaterial = Flat("CookingArea", .45f, .12f, .12f);
+
+    private static BfresMaterial Flat(string name, float red, float green, float blue) => new()
     {
-        Name = "GiftSpot", ShaderArchive = "Park_UBER", ShadingModel = "park_uber",
+        Name = name, ShaderArchive = "Park_UBER", ShadingModel = "park_uber",
         AttributeAssignments = new Dictionary<string, string>(), SamplerAssignments = new Dictionary<string, string>(),
         ShaderOptions = new Dictionary<string, string> { ["material_diffuse_color"] = "100" },
         OriginalParameters = new Dictionary<string, BfresShaderParameter>
         {
-            ["const_color0"] = new(15, MemoryMarshal.AsBytes<float>([.12f, .3f, .4f, 1]).ToArray()),
+            ["const_color0"] = new(15, MemoryMarshal.AsBytes<float>([red, green, blue, 1]).ToArray()),
             ["material_force_alpha"] = new(12, MemoryMarshal.AsBytes<float>([.3f]).ToArray()),
         },
         RenderInfos = new Dictionary<string, BfresRenderInfo>
@@ -118,9 +123,11 @@ public sealed class RoomPreview(VillagerGameData data)
             }
         }
 
-        // A special wallpaper or flooring brings its own room pieces, which the game draws in place of the plain ones.
-        if (Special(room.Flooring, FloorModel["RoomMdl".Length..]) is { } specialFloor) Place(specialFloor, Matrix4x4.Identity, NoSwap);
-        else if (Model(FloorModel) is { } floor) Place(floor, Matrix4x4.Identity, Surface(room.Flooring, FloorMaterial));
+        // A special wallpaper or flooring brings its own room pieces, which the game draws in place of the plain ones. A turned
+        // flooring turns the whole square floor about its middle.
+        var floorTurn = room.FloorRotated == true ? Matrix4x4.CreateRotationY(MathF.PI / 2) : Matrix4x4.Identity;
+        if (Special(room.Flooring, FloorModel["RoomMdl".Length..]) is { } specialFloor) Place(specialFloor, floorTurn, NoSwap);
+        else if (Model(FloorModel) is { } floor) Place(floor, floorTurn, Surface(room.Flooring, FloorMaterial));
         // The mat lies outside the door, facing away from the front wall.
         if (Model(MatModel) is { } mat)
             Place(mat, Matrix4x4.CreateTranslation(WallPoint(RoomLayer.FrontWall, 0, 0)), Retexture(MatTextures, MatMaterial));
@@ -184,6 +191,20 @@ public sealed class RoomPreview(VillagerGameData data)
             if (item.Layer == RoomLayer.Floor)
                 floorItems.Add((Area(item, size), data.ItemRideHeight(item.Id)));
         }
+        // The workbench and kitchen, which the game brings out only while the villager uses them, with the area each takes.
+        foreach (var (activity, material) in (ReadOnlySpan<(RoomActivity?, BfresMaterial)>)[(room.Crafting, CraftingMaterial), (room.Cooking, CookingMaterial)])
+        {
+            if (activity == null) continue;
+            placed.Add((null, ActivityArea(activity, material)));
+            var resource = data.ItemResource(activity.Item.Id);
+            if (string.IsNullOrEmpty(resource)) continue;
+            if (Model(resource) is not { } model)
+            {
+                missing.Add(data.ItemNames.GetValueOrDefault(activity.Item.Id) ?? activity.Item.Id.ToString());
+                continue;
+            }
+            Place(model, Placement(activity.Item, data.ItemSize(activity.Item.Id), []), Remake(resource, activity.Item.Variant));
+        }
         if (missing.Count > 0)
             warnings.Add($"No model to show for {string.Join(", ", missing.Distinct())}.");
 
@@ -243,6 +264,16 @@ public sealed class RoomPreview(VillagerGameData data)
         var (min, max) = onWall
             ? (new Vector3(-width, -depth, 0), new Vector3(width, depth, SpotDepth))
             : (new Vector3(-width, 0, -depth), new Vector3(width, SpotHeight, depth));
+        return Box("GiftSpot", SpotMaterial, min, max);
+    }
+
+    /// <summary>The area a villager crafts or cooks in, as a thin slab just over the floor, a little inside its cells.</summary>
+    private static BfresMesh ActivityArea(RoomActivity activity, BfresMaterial material) => Box(material.Name, material,
+        new Vector3(Edge(activity.AreaX) + SpotInset, AreaLift, Edge(activity.AreaZ) + SpotInset),
+        new Vector3(Edge(activity.AreaX + activity.AreaWidth) - SpotInset, AreaLift + AreaHeight, Edge(activity.AreaZ + activity.AreaDepth) - SpotInset));
+
+    private static BfresMesh Box(string name, BfresMaterial material, Vector3 min, Vector3 max)
+    {
         var positions = new List<Vector3>();
         var normals = new List<Vector3>();
         var indices = new List<uint>();
@@ -261,7 +292,7 @@ public sealed class RoomPreview(VillagerGameData data)
         }
         return new BfresMesh
         {
-            Name = "GiftSpot", Material = SpotMaterial, Positions = positions.ToArray(), Normals = normals.ToArray(),
+            Name = name, Material = material, Positions = positions.ToArray(), Normals = normals.ToArray(),
             Indices = indices.ToArray(), NativeAttributes = new Dictionary<string, ReadOnlyMemory<Vector4>>(),
         };
     }

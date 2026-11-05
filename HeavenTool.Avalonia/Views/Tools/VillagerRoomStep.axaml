@@ -16,6 +16,47 @@
     </Style>
   </UserControl.Styles>
 
+  <UserControl.DataTemplates>
+    <DataTemplate x:DataType="vc:RoomActivityEntry">
+      <Border Classes="row">
+        <StackPanel Spacing="10">
+          <!-- The labels share a row, so they line up over controls of different heights. -->
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+            <TextBlock Classes="field" Text="{Binding Title}" />
+            <TextBlock Classes="field" Grid.Column="1" Text="Body" Margin="10,0,0,4" IsVisible="{Binding HasBody}" />
+            <ComboBox Grid.Row="1" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}" HorizontalAlignment="Stretch"
+              VerticalAlignment="Center">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vc:ActivityItemOption">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Image Source="{Binding Icon}" Width="24" Height="24" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                  </StackPanel>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding Body}" Minimum="0" Maximum="{Binding BodyMaximum}" Increment="1"
+              FormatString="0" ShowButtonSpinner="False" VerticalAlignment="Center" Width="64" Margin="10,0,0,0" IsVisible="{Binding HasBody}" />
+          </Grid>
+          <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+            <StackPanel>
+              <TextBlock Classes="field" Text="Facing" />
+              <ComboBox ItemsSource="{x:Static vc:RoomItemEntry.Facings}" SelectedIndex="{Binding Facing}" HorizontalAlignment="Stretch" />
+            </StackPanel>
+            <StackPanel Grid.Column="1">
+              <TextBlock Classes="field" Text="X" ToolTip.Tip="In half tiles, 26 to 37 across the floor, left to right." />
+              <NumericUpDown Value="{Binding X}" Minimum="26" Maximum="37" Increment="1" FormatString="0" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="field" Text="Z" ToolTip.Tip="In half tiles, 26 to 37 from the back of the floor to the front." />
+              <NumericUpDown Value="{Binding Z}" Minimum="26" Maximum="37" Increment="1" FormatString="0" />
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
   <Grid ColumnDefinitions="460,*">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
       <StackPanel Margin="28,0,20,20">
@@ -28,6 +69,22 @@
             <ContentControl Content="{Binding Wallpaper}" />
             <ContentControl Content="{Binding Flooring}" />
             <ContentControl Content="{Binding Music}" />
+            <Border Classes="row">
+              <CheckBox IsChecked="{Binding FloorRotated}" Content="Turn the flooring a quarter turn" />
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <StackPanel Classes="section">
+          <icons:PackIconFontAwesome6 Kind="HammerSolid" />
+          <TextBlock Text="Crafting and cooking" />
+        </StackPanel>
+        <TextBlock Classes="field" TextWrapping="Wrap" Margin="2,0,0,8"
+          Text="The game puts these in the room only while the villager crafts or cooks, so they can stand where other things do." />
+        <Border Classes="card">
+          <StackPanel>
+            <ContentControl Content="{Binding Crafting}" />
+            <ContentControl Content="{Binding Cooking}" />
           </StackPanel>
         </Border>
 

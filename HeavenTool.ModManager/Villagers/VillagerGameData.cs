@@ -39,6 +39,7 @@ public sealed partial class VillagerGameData
     private const string RoomMarkerKind = "NnpcRoomMarker";
 
     private readonly ConcurrentDictionary<string, BinaryCSV> tables = new();
+    private readonly ConcurrentDictionary<int, int> bodyCounts = new();
     private readonly ConcurrentDictionary<(string Archive, string Language), Lazy<SarcFile>> messageArchives = new();
     private readonly Lazy<SarcFile> staticParam;
     private readonly Lazy<AcnhEnvironmentResources> environment;
@@ -49,6 +50,7 @@ public sealed partial class VillagerGameData
     private readonly Lazy<IReadOnlyList<ItemInfo>> items;
     private readonly Lazy<IReadOnlyDictionary<uint, ItemFootprint>> itemSizes;
     private readonly Lazy<IReadOnlyDictionary<int, string>> roomMarkers;
+    private readonly Lazy<(IReadOnlyList<int> Crafting, IReadOnlyList<int> Cooking)> activityItems;
 
     public string Romfs { get; }
 
@@ -70,6 +72,7 @@ public sealed partial class VillagerGameData
         roomMarkers = new(() => itemParam.Value
             .Where(item => item.Value.Kind == RoomMarkerKind.ToCRC32() && item.Value.Label.StartsWith(RoomMarkerKind, StringComparison.Ordinal))
             .ToDictionary(item => item.Key, item => item.Value.Label[RoomMarkerKind.Length..]));
+        activityItems = new(LoadActivityItems);
     }
 
     /// <summary>Opens a romfs folder, after checking it has the files the villager creator needs.</summary>
@@ -127,10 +130,28 @@ public sealed partial class VillagerGameData
     public string? ItemResource(int id) => itemParam.Value.TryGetValue(id, out var item) ? item.Resource : null;
 
     /// <summary>
+    /// How many body colors an item comes in, from its <c>&lt;resource&gt;ReBody&lt;n&gt;</c> texture files, or 0 when it
+    /// comes in one only.
+    /// </summary>
+    public int ItemBodyCount(int id) => bodyCounts.GetOrAdd(id, _ =>
+    {
+        if (ItemResource(id) is not { Length: > 0 } resource) return 0;
+        int count = 0;
+        while (File.Exists(Path.Combine(Romfs, "Model", $"{resource}ReBody{count}.Nin_NX_NVN.zs"))) count++;
+        return count;
+    });
+
+    /// <summary>
     /// The room markers, by ID: placeholder items that hold a spot in a villager's room for the game to fill, such as with things
     /// the player gives them. Each is named by what its label says goes there, such as <c>FtrFloor2x1</c> or <c>ClothWall</c>.
     /// </summary>
     public IReadOnlyDictionary<int, string> RoomMarkers => roomMarkers.Value;
+
+    /// <summary>The workbenches vanilla villagers craft at, by ID, from all their rooms.</summary>
+    public IReadOnlyList<int> CraftingItems => activityItems.Value.Crafting;
+
+    /// <summary>The kitchens vanilla villagers cook at, by ID, from all their rooms.</summary>
+    public IReadOnlyList<int> CookingItems => activityItems.Value.Cooking;
 
     /// <summary>The space an item takes, from its ItemSize; one tile when the romfs doesn't say.</summary>
     public ItemFootprint ItemSize(int id) =>
@@ -141,6 +162,18 @@ public sealed partial class VillagerGameData
     /// with shelves over its counter.
     /// </summary>
     public float ItemRideHeight(int id) => itemParam.Value.TryGetValue(id, out var item) ? item.RideHeight : 0;
+
+    private (IReadOnlyList<int>, IReadOnlyList<int>) LoadActivityItems()
+    {
+        var rooms = StaticParam.Files
+            .Where(file => file.Name.StartsWith("Param/NpcRoom/", StringComparison.Ordinal) && file.Name.EndsWith(".byml", StringComparison.Ordinal))
+            .Select(file => VillagerRoom.Read(new BymlFileReader().Read(new MemoryStream(file.Data)).RootNode))
+            .ToList();
+        return (Distinct(rooms.Select(room => room.Crafting)), Distinct(rooms.Select(room => room.Cooking)));
+
+        static IReadOnlyList<int> Distinct(IEnumerable<RoomActivity?> activities) =>
+            [.. activities.OfType<RoomActivity>().Select(activity => activity.Item.Id).Distinct().Order()];
+    }
 
     /// <summary>A table from <c>Bcsv/</c>, by name without extension.</summary>
     public BinaryCSV Table(string name) => tables.GetOrAdd(name, _ =>
