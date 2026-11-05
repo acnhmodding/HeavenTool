@@ -22,7 +22,7 @@ public static class AcnhSceneLighting
         {
             // Inside, the environment probe gives the room the indirect light the preset's fill stands in for.
             PreviewIndirectLight = inside ? Vector3.Zero : baseline.PreviewIndirectLight,
-            User0 = User0(baseline, palette, stage, resources.SkyScatter, resources.SunOrbit.SkyDirection(hour, inside), inside),
+            User0 = User0(baseline, palette, stage, resources.SkyScatter, resources.SunOrbit.SkyDirection(hour, inside)),
             Environment = baseline.Environment,
             LocalLights = inside ? RoomLights(resources.VillagerRoomLight, palette) : [],
             // The villager room's EnvRoom grading; the outdoor Env grading is disabled.
@@ -38,7 +38,7 @@ public static class AcnhSceneLighting
 
     // Keep unrelated shared-block inputs until their own producers are recovered. Replace only established fields.
     private static Dictionary<int, Vector4> User0(AcnhLightingPreset baseline, AcnhEnvironmentPalette palette,
-        AcnhStageEnvironment stage, AcnhSkyScatterParameters sky, Vector3 skyDirection, bool inside)
+        AcnhStageEnvironment stage, AcnhSkyScatterParameters sky, Vector3 skyDirection)
     {
         var user0 = baseline.User0.ToDictionary();
         user0[4] = new(palette.WorldAoIntensity, 0, 0, 0);
