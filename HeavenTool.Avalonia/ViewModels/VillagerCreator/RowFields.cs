@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
@@ -53,7 +54,13 @@ public static class RowValues
             .Select(option)];
     }
 
-    public static string Unquote(string json) => json.Length >= 2 && json[0] == '"' ? json[1..^1] : json;
+    /// <summary>A value as text: a string or a tagged hash (<c>{"crc32": "Normal"}</c>) as its string, anything else as written.</summary>
+    public static string Unquote(string json) => JsonNode.Parse(json) switch
+    {
+        JsonValue value when value.GetValueKind() == JsonValueKind.String => value.GetValue<string>(),
+        JsonObject { Count: 1 } tagged when tagged.Single().Value is JsonValue text => text.GetValue<string>(),
+        _ => json,
+    };
 }
 
 /// <summary>A row column picked from a list.</summary>

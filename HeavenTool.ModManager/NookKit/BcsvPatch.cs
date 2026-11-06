@@ -14,8 +14,9 @@ namespace HeavenTool.ModManager.NookKit;
 /// </summary>
 /// <remarks>
 /// Each row lists every column. A column is keyed by the string the game hashes for it (<c>UniqueID u16</c>), or by
-/// <c>0x</c> and its hash when that string isn't known. Values are numbers, strings for string columns, a string or a number for
-/// hash columns (the string gets hashed), and a hex string for bit fields.
+/// <c>0x</c> and its hash when that string isn't known. Values are numbers, strings for string columns, a hex string for bit
+/// fields, and for hash columns a number or the hashed string tagged as <c>{"crc32": ...}</c> or <c>{"mmh3": ...}</c>, since
+/// NookKit can't tell which hash a column holds from its name.
 /// </remarks>
 public sealed record BcsvPatch(string File, IReadOnlyList<JsonObject> Rows)
 {
@@ -37,7 +38,7 @@ public sealed record BcsvPatch(string File, IReadOnlyList<JsonObject> Rows)
         for (var i = 0; i < table.Fields.Length; i++)
         {
             var field = table.Fields[i];
-            entry[i] = row[ColumnKey(field)] is JsonValue value ? ReadValue(field, value) : field.GetFieldDefaultValue();
+            entry[i] = row[ColumnKey(field)] is { } value ? ReadValue(field, value) : field.GetFieldDefaultValue();
         }
         return entry;
     }
@@ -49,22 +50,38 @@ public sealed record BcsvPatch(string File, IReadOnlyList<JsonObject> Rows)
     {
         DataType.String => JsonValue.Create((string)cell),
         DataType.Float32 => NookKitJson.Number((float)cell),
-        DataType.CRC32 => HashValue((uint)cell, HashManager.GetHashTranslationOrNull, HashUtility.ToCRC32),
-        DataType.MMH3 => HashValue((uint)cell, HashManager.GetMurmurHashTranslationOrNull, HashUtility.ToMurmur),
+        DataType.CRC32 => HashValue((uint)cell, HashManager.GetHashTranslationOrNull, HashUtility.ToCRC32, Crc32Tag),
+        DataType.MMH3 => HashValue((uint)cell, HashManager.GetMurmurHashTranslationOrNull, HashUtility.ToMurmur, Mmh3Tag),
         DataType.BitField => JsonValue.Create(Convert.ToHexStringLower((byte[])cell)),
         _ => JsonValue.Create(Convert.ToInt64(cell)),
     };
 
-    // A known string is clearer than its hash, but only when it hashes back to the same value.
-    private static JsonNode HashValue(uint hash, Func<uint, string?> translate, Func<string, uint> rehash) =>
-        translate(hash) is { } text && rehash(text) == hash ? JsonValue.Create(text) : JsonValue.Create(hash);
+    private const string Crc32Tag = "crc32", Mmh3Tag = "mmh3";
 
-    private static object ReadValue(Field field, JsonValue value) => field.DataType switch
+    // A known string is clearer than its hash, but only when it hashes back to the same value.
+    private static JsonNode HashValue(uint hash, Func<uint, string?> translate, Func<string, uint> rehash, string tag) =>
+        translate(hash) is { } text && rehash(text) == hash ? new JsonObject { [tag] = text } : JsonValue.Create(hash);
+
+    // A plain string is still read, from rows saved before hashes were tagged.
+    private static uint ReadHash(JsonNode node, string tag, Func<string, uint> hash) => node switch
+    {
+        JsonObject tagged when tagged.Count == 1 && tagged[tag] is JsonValue text => hash(text.GetValue<string>()),
+        JsonValue value when value.GetValueKind() == JsonValueKind.String => hash(value.GetValue<string>()),
+        JsonValue value => checked((uint)Integer(value)),
+        _ => throw new JsonException($"Expected a number, a string or {{\"{tag}\": ...}}, not {node.ToJsonString()}."),
+    };
+
+    private static object ReadValue(Field field, JsonNode node) => field.DataType switch
+    {
+        DataType.CRC32 => ReadHash(node, Crc32Tag, HashUtility.ToCRC32),
+        DataType.MMH3 => ReadHash(node, Mmh3Tag, HashUtility.ToMurmur),
+        _ => ReadPlainValue(field, node as JsonValue ?? throw new JsonException($"Expected a value, not {node.ToJsonString()}.")),
+    };
+
+    private static object ReadPlainValue(Field field, JsonValue value) => field.DataType switch
     {
         DataType.String => value.GetValue<string>(),
         DataType.Float32 => float.Parse(value.ToJsonString(), CultureInfo.InvariantCulture),
-        DataType.CRC32 => value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>().ToCRC32() : checked((uint)Integer(value)),
-        DataType.MMH3 => value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>().ToMurmur() : checked((uint)Integer(value)),
         DataType.BitField => Convert.FromHexString(value.GetValue<string>()),
         DataType.S8 => checked((sbyte)Integer(value)),
         DataType.U8 => checked((byte)Integer(value)),

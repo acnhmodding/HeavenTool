@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HeavenTool.Avalonia.Settings;
 using HeavenTool.Avalonia.Views;
+using HeavenTool.ModManager.NookKit;
 using HeavenTool.ModManager.Villagers;
 using System;
 using System.IO;
@@ -137,6 +138,8 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
     internal void Open(VillagerProject value, string? folder)
     {
         ProjectFolder = folder;
+        // Rewritten in the current form, so a row saved before hashes were tagged matches the steps' choices.
+        value.Row = BcsvPatch.Row(Data.NmlNpcParam, BcsvPatch.ReadRow(Data.NmlNpcParam, value.Row));
         Project = value;
         Donor.Load(value);
         Identity.Load(value);
