@@ -43,7 +43,7 @@
     <None Update="Assets\Icons\FontAwesome-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\ThirdParty\Ryujinx\LICENSE.md" Link="Ryujinx-LICENSE.md" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\HeavenTool.WinForms\extra\**\*.txt" Exclude="..\HeavenTool.WinForms\extra\romfs-files.txt">
+    <Content Include="..\HeavenTool.IO\extra\**\*.txt">
       <Link>extra\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

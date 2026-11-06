@@ -1612,6 +1612,10 @@ Stage1 string32
 Stage10 string32
 Stage11 string32
 Stage12 string32
+Stage13 string32
+Stage14 string32
+Stage15 string32
+Stage16 string32
 Stage2 string32
 Stage3 string32
 Stage4 string32
@@ -1896,3 +1900,13 @@ XUnitIndex s8
 ZK1Index s16
 ZK2Index s16
 ZUnitIndex s8
+UnlockRoom u8
+MessageLabel string8
+SortID u16
+MaterialID u16
+VIPTheme u8
+TradeBasePrice u16
+BaseItem u16
+RepresentativeItem u16
+IsFurnitureAction u8
+HasRoofLight u8
