@@ -288,7 +288,7 @@
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                       <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
                         <TextBlock Classes="title" Text="Generate NookKit patches" />
-                        <TextBlock Classes="description" Text="Compares each enabled library mod with the game files and writes its table rows, messages and pack files as NookKit JSON: NookKit/Bcsv, NookKit/Message and NookKit/Pack, one file per mod." />
+                        <TextBlock Classes="description" Text="Compares each enabled library mod with the game files and writes its table rows, messages and pack files as NookKit JSON: NookKit/Bcsv, NookKit/Message and NookKit/Pack, one file per mod. Files a mod adds to a pack are copied out as loose files." />
                       </StackPanel>
                       <Button Grid.Column="1" Command="{Binding GenerateNookKitCommand}" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="6">

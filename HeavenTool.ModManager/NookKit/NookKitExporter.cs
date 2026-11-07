@@ -18,17 +18,20 @@ public sealed record NookKitModExport(InstalledMod Mod, string Name, IReadOnlyLi
 
 /// <summary>
 /// Writes what a library mod changes in the game's tables, messages and pack files as NookKit patches: changed and new bcsv rows,
-/// msbt messages and pack BYML files, found by comparing the mod's romfs with the game's.
+/// msbt messages and pack BYML files, found by comparing the mod's romfs with the game's. Files a mod adds to a pack are written
+/// as loose files, since pack patches only replace the pack's own.
 /// </summary>
 public sealed class NookKitExporter(string vanillaRomfs)
 {
     private const string BcsvFolder = "Bcsv", MessageFolder = "Message", PackFolder = "Pack";
 
     private readonly Dictionary<string, SarcFile?> vanillaArchives = new(StringComparer.OrdinalIgnoreCase);
+    // The loose files written so far, since two mods can add the same one.
+    private readonly HashSet<string> written = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Exports each mod to <c>&lt;output&gt;/NookKit/&lt;kind&gt;/&lt;name&gt;.json</c>, one file per kind that has changes. Mods with the
-    /// same name get a number after it.
+    /// Exports each mod to <c>&lt;output&gt;/NookKit/&lt;kind&gt;/&lt;name&gt;.json</c>, one file per kind that has changes, and the files it
+    /// adds to packs at their path in <paramref name="output"/>. Mods with the same name get a number after it.
     /// </summary>
     public List<NookKitModExport> Export(IEnumerable<InstalledMod> mods, string output, CancellationToken cancellation = default)
     {
@@ -55,6 +58,7 @@ public sealed class NookKitExporter(string vanillaRomfs)
         var bcsv = new List<BcsvPatch>();
         var messages = new MessageChanges();
         var packs = new List<PackPatch>();
+        var loose = new List<LooseFile>();
         var others = new List<string>();
 
         foreach (var path in Directory.EnumerateFiles(romfs, "*", SearchOption.AllDirectories).Order(StringComparer.OrdinalIgnoreCase))
@@ -69,7 +73,7 @@ public sealed class NookKitExporter(string vanillaRomfs)
                 else if (folder.Equals(MessageFolder, StringComparison.OrdinalIgnoreCase) && MessageArchive(fileName) is { } archive)
                     messages.Add(this, path, relative, archive.Name, archive.Language, notes);
                 else if (folder.Equals(PackFolder, StringComparison.OrdinalIgnoreCase) && PackName(fileName) is { } pack)
-                    ExportPack(path, relative, pack, packs, notes);
+                    ExportPack(path, relative, pack, packs, loose, notes);
                 // The resource size table is rebuilt on deploy, and NookKit patches need no entry in it.
                 else if (!relative.Equals("System/Resource/ResourceSizeTable.srsizetable", StringComparison.OrdinalIgnoreCase))
                     others.Add(relative);
@@ -94,6 +98,12 @@ public sealed class NookKitExporter(string vanillaRomfs)
         Write(NookKitKind.Bcsv, bcsv);
         Write(NookKitKind.Message, messages.Build(notes));
         Write(NookKitKind.Pack, packs);
+        foreach (var file in loose)
+        {
+            if (!written.Add(file.Path))
+                notes.Add($"{file.Path}: another mod adds it too, so this mod's copy replaces it.");
+            files.Add(file.Write(output));
+        }
         return new(mod, name, files, notes);
     }
 
@@ -137,14 +147,19 @@ public sealed class NookKitExporter(string vanillaRomfs)
             notes.Add($"{relative}: {removed} row{(removed == 1 ? " the mod removes stays" : "s the mod removes stay")}, since NookKit can't remove rows.");
     }
 
-    private void ExportPack(string path, string relative, string pack, List<PackPatch> patches, List<string> notes)
+    private void ExportPack(string path, string relative, string pack, List<PackPatch> patches, List<LooseFile> loose, List<string> notes)
     {
         var sarc = ReadSarc(path);
         var vanilla = VanillaArchive(relative)?.Files.ToDictionary(file => file.Name, file => file.Data) ?? [];
         var skipped = new List<string>();
         foreach (var file in sarc.Files)
         {
-            if (vanilla.TryGetValue(file.Name, out var original) && original.AsSpan().SequenceEqual(file.Data)) continue;
+            if (!vanilla.TryGetValue(file.Name, out var original))
+            {
+                loose.Add(new(file.Name, file.Data));
+                continue;
+            }
+            if (original.AsSpan().SequenceEqual(file.Data)) continue;
             if (!file.Name.EndsWith(".byml", StringComparison.OrdinalIgnoreCase))
             {
                 skipped.Add(file.Name);
@@ -154,7 +169,7 @@ public sealed class NookKitExporter(string vanillaRomfs)
             {
                 var data = BymlJson.ToJson(ReadByml(file.Data)) ?? throw new NotSupportedException("Its root is empty.");
                 // Saved again by a tool, a file can change its bytes but not its contents.
-                if (original != null && SameJson(data, original)) continue;
+                if (SameJson(data, original)) continue;
                 patches.Add(new(file.Name, pack, data));
             }
             catch (NotSupportedException ex) { notes.Add($"{relative}/{file.Name}: {ex.Message}"); }

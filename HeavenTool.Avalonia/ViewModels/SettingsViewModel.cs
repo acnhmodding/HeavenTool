@@ -208,7 +208,7 @@ public partial class SettingsViewModel : ObservableObject
         catch (Exception ex) { Error = $"Could not open {folder}: {ex.Message}"; }
     }
 
-    /// <summary>Writes each enabled library mod's changes as NookKit patches, in the NookKit folder of a folder the user picks.</summary>
+    /// <summary>Writes each enabled library mod's changes as NookKit patches and loose files, in a romfs folder the user picks.</summary>
     [RelayCommand]
     private async Task GenerateNookKit()
     {
@@ -217,7 +217,7 @@ public partial class SettingsViewModel : ObservableObject
             NookKitStatus = new(StatusKind.Error, "Set the extracted romfs in Game Settings first. Mods are compared with the original files.");
             return;
         }
-        if (await PickFolderAsync("Choose where to write the NookKit folder", NookKitFolder ?? "") is not { } output) return;
+        if (await PickFolderAsync("Choose the romfs folder to write the patches to", NookKitFolder ?? "") is not { } output) return;
 
         NookKitResults.Clear();
         NookKitStatus = new(StatusKind.Info, "Comparing the enabled mods with the game files…");
@@ -235,7 +235,7 @@ public partial class SettingsViewModel : ObservableObject
             NookKitStatus = results.Count == 0
                 ? new(StatusKind.Warning, "No mods are enabled in the library.")
                 : new(written == 0 ? StatusKind.Warning : StatusKind.Ok,
-                    $"Wrote {written} file{(written == 1 ? "" : "s")} for {results.Count} mod{(results.Count == 1 ? "" : "s")} to {Path.Combine(output, "NookKit")}");
+                    $"Wrote {written} file{(written == 1 ? "" : "s")} for {results.Count} mod{(results.Count == 1 ? "" : "s")} to {output}");
         }
         catch (Exception ex) { NookKitStatus = new(StatusKind.Error, $"Could not generate the patches: {ex.Message}"); }
     }

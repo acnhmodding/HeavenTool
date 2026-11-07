@@ -7,12 +7,13 @@ namespace HeavenTool.ModManager.Villagers;
 /// <summary>A file the generator wrote, with what it's for.</summary>
 public sealed record GeneratedFile(string Path, string Description);
 
-/// <summary>The NookKit patches for one villager, before they're written.</summary>
-public sealed record VillagerPatches(IReadOnlyList<MessagePatch> Messages, IReadOnlyList<BcsvPatch> Tables, IReadOnlyList<PackPatch> Params);
+/// <summary>The NookKit patches and new param files for one villager, before they're written.</summary>
+public sealed record VillagerPatches(IReadOnlyList<MessagePatch> Messages, IReadOnlyList<BcsvPatch> Tables, LooseFile House, LooseFile Room, LooseFile Gmo);
 
 /// <summary>
-/// Turns a <see cref="VillagerProject"/> into NookKit patch files: the villager's messages, its NmlNpcParam row (and AmiiboData
-/// row), and its house, room and Gmo params. The model (<c>Model/NpcNml&lt;Label&gt;.Nin_NX_NVN.zs</c>) isn't made here.
+/// Turns a <see cref="VillagerProject"/> into the files a villager needs: NookKit patches for its messages and its NmlNpcParam row
+/// (and AmiiboData row), and new house, room and Gmo param files for the romfs. The model
+/// (<c>Model/NpcNml&lt;Label&gt;.Nin_NX_NVN.zs</c>) isn't made here.
 /// </summary>
 public static class VillagerGenerator
 {
@@ -76,6 +77,8 @@ public static class VillagerGenerator
         var room = data.ReadParam(RoomPath(project.RoomFrom)) ?? throw new FileNotFoundException($"{project.RoomFrom} has no room file.");
         var gmo = data.ReadParam(GmoPath(project.GmoFrom)) ?? throw new FileNotFoundException($"{project.GmoFrom} has no Gmo file.");
         var house = project.House ?? HouseExterior.Read(donorHouse);
+        // Each new file keeps the format of the one it's made from.
+        byte[] Like(string path) => data.StaticParam.Files.First(file => file.Name == path).Data;
 
         return new VillagerPatches(
             [
@@ -84,18 +87,15 @@ public static class VillagerGenerator
                 Message(MottoFile, "TalkSys", project.Motto),
             ],
             tables,
-            [
-                PackPatch.FromByml(HouseExterior.PathFor(label), VillagerGameData.StaticParamArchive, house.Write(donorHouse, label)),
-                PackPatch.FromByml(RoomPath(label), VillagerGameData.StaticParamArchive,
-                    project.Room?.Write(room, label) ?? HouseExterior.Rekey(room, label)),
-                // Gmo files all share one root key, so the copy needs no changes.
-                PackPatch.FromByml(GmoPath(label), VillagerGameData.StaticParamArchive, gmo),
-            ]);
+            LooseFile.Byml(HouseExterior.PathFor(label), Like(HouseExterior.PathFor(project.Donor)), house.Write(donorHouse, label)),
+            LooseFile.Byml(RoomPath(label), Like(RoomPath(project.RoomFrom)), project.Room?.Write(room, label) ?? HouseExterior.Rekey(room, label)),
+            // Gmo files all share one root key, so the copy needs no changes.
+            LooseFile.Byml(GmoPath(label), Like(GmoPath(project.GmoFrom)), gmo));
     }
 
     /// <summary>
-    /// Writes the villager to <paramref name="output"/>: the NookKit patches under <c>romfs/NookKit</c>, the emuiibo amiibo
-    /// under <c>emuiibo/amiibo</c> when the project has one, and the project file itself.
+    /// Writes the villager to <paramref name="output"/>: the NookKit patches under <c>romfs/NookKit</c>, the param files under
+    /// <c>romfs/Param</c>, the emuiibo amiibo under <c>emuiibo/amiibo</c> when the project has one, and the project file itself.
     /// </summary>
     public static IReadOnlyList<GeneratedFile> Generate(VillagerGameData data, VillagerProject project, string output)
     {
@@ -116,7 +116,9 @@ public static class VillagerGenerator
 
         Write(NookKitKind.Message, patches.Messages, "Name, catchphrase and motto");
         Write(NookKitKind.Bcsv, patches.Tables, project.Amiibo != null ? "NmlNpcParam and AmiiboData rows" : "NmlNpcParam row");
-        Write(NookKitKind.Pack, patches.Params, "House, room and Gmo params");
+        files.Add(new GeneratedFile(patches.House.Write(romfs), "House exterior"));
+        files.Add(new GeneratedFile(patches.Room.Write(romfs), "Room"));
+        files.Add(new GeneratedFile(patches.Gmo.Write(romfs), "Gmo params"));
 
         if (project.Amiibo is { } ids)
         {
