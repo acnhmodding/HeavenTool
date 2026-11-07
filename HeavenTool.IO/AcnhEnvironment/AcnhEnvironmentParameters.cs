@@ -1,6 +1,7 @@
 #nullable enable
 using AeonSake.NintendoTools.FileFormats.Byml;
 using AeonSake.NintendoTools.FileFormats.Sarc;
+using HeavenTool.IO.FileFormats.BYML;
 using System.Numerics;
 
 namespace HeavenTool.IO.AcnhEnvironment;
@@ -17,7 +18,7 @@ internal static class AcnhEnvironmentParameters
             var file = archive.Files.SingleOrDefault(file => file.Name == path)
                 ?? throw new InvalidDataException($"StaticParam.pack is missing {path}.");
             using var data = new MemoryStream(file.Data, false);
-            return new BymlFileReader().Read(data).RootNode;
+            return AcnhByml.Read(data).RootNode;
         };
     }
 

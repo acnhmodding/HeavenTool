@@ -5,6 +5,7 @@ using AeonSake.NintendoTools.FileFormats.Byml;
 using AeonSake.NintendoTools.FileFormats.Msbt;
 using AeonSake.NintendoTools.FileFormats.Sarc;
 using HeavenTool.IO.FileFormats.BCSV;
+using HeavenTool.IO.FileFormats.BYML;
 using HeavenTool.ModManager.Library;
 using HeavenTool.ModManager.Villagers;
 using System.Collections;
@@ -211,7 +212,7 @@ public sealed class NookKitExporter(string vanillaRomfs)
 
     private static MsbtFile ReadMsbt(byte[] data) => new MsbtFileReader().Read(new MemoryStream(data));
 
-    private static IBymlNode ReadByml(byte[] data) => new BymlFileReader().Read(new MemoryStream(data)).RootNode;
+    private static IBymlNode ReadByml(byte[] data) => AcnhByml.Read(data).RootNode;
 
     private static MemoryStream Decompress(byte[] bytes)
     {

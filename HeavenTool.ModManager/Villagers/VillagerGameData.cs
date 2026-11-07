@@ -5,6 +5,7 @@ using AeonSake.NintendoTools.FileFormats.Msbt;
 using AeonSake.NintendoTools.FileFormats.Sarc;
 using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
+using HeavenTool.IO.FileFormats.BYML;
 using HeavenTool.IO.AcnhEnvironment;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
@@ -167,7 +168,7 @@ public sealed partial class VillagerGameData
     {
         var rooms = StaticParam.Files
             .Where(file => file.Name.StartsWith("Param/NpcRoom/", StringComparison.Ordinal) && file.Name.EndsWith(".byml", StringComparison.Ordinal))
-            .Select(file => VillagerRoom.Read(new BymlFileReader().Read(new MemoryStream(file.Data)).RootNode))
+            .Select(file => VillagerRoom.Read(AcnhByml.Read(file.Data).RootNode))
             .ToList();
         return (Distinct(rooms.Select(room => room.Crafting)), Distinct(rooms.Select(room => room.Cooking)));
 
@@ -188,7 +189,7 @@ public sealed partial class VillagerGameData
     public IBymlNode? ReadParam(string path)
     {
         var content = StaticParam.Files.FirstOrDefault(file => file.Name == path);
-        return content == null ? null : new BymlFileReader().Read(new MemoryStream(content.Data)).RootNode;
+        return content == null ? null : AcnhByml.Read(content.Data).RootNode;
     }
 
     /// <summary>
