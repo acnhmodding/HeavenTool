@@ -100,6 +100,12 @@
               <TextBlock Text="Game Settings" VerticalAlignment="Center" />
             </StackPanel>
           </ListBoxItem>
+          <ListBoxItem x:Name="DebugCategory">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <icons:PackIconFontAwesome6 Kind="BugSolid" Width="16" Height="16" />
+              <TextBlock Text="Debug" VerticalAlignment="Center" />
+            </StackPanel>
+          </ListBoxItem>
         </ListBox>
       </Border>
 
@@ -264,6 +270,66 @@
                     </Grid>
                     <ContentControl Content="{Binding RomfsStatus}" ContentTemplate="{StaticResource StatusTemplate}" />
                   </StackPanel>
+                </Border>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- Debug -->
+          <StackPanel IsVisible="{Binding #DebugCategory.IsSelected}">
+            <StackPanel Classes="section">
+              <icons:PackIconFontAwesome6 Kind="FileCodeSolid" />
+              <TextBlock Text="NookKit" />
+            </StackPanel>
+            <Border Classes="card">
+              <StackPanel>
+                <Border>
+                  <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                      <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                        <TextBlock Classes="title" Text="Generate NookKit patches" />
+                        <TextBlock Classes="description" Text="Compares each enabled library mod with the game files and writes its table rows, messages and pack files as NookKit JSON: NookKit/Bcsv, NookKit/Message and NookKit/Pack, one file per mod." />
+                      </StackPanel>
+                      <Button Grid.Column="1" Command="{Binding GenerateNookKitCommand}" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <icons:PackIconFontAwesome6 Kind="WandMagicSparklesSolid" Width="12" Height="12" />
+                          <TextBlock Text="Generate" />
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding NookKitFolder}" VerticalAlignment="Center"
+                        IsEnabled="{Binding NookKitFolder, Converter={x:Static ObjectConverters.IsNotNull}}" ToolTip.Tip="Open the last export in file manager">
+                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
+                      </Button>
+                    </Grid>
+                    <ContentControl Content="{Binding NookKitStatus}" ContentTemplate="{StaticResource StatusTemplate}"
+                      IsVisible="{Binding NookKitStatus, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                  </StackPanel>
+                </Border>
+                <Border IsVisible="{Binding NookKitResults.Count}">
+                  <ItemsControl ItemsSource="{Binding NookKitResults}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Spacing="10" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:NookKitResult">
+                        <StackPanel>
+                          <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding Summary}" FontSize="12" Foreground="{StaticResource SecondaryText}" />
+                            <TextBlock Classes="title" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                          </DockPanel>
+                          <ItemsControl ItemsSource="{Binding Notes}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="x:String">
+                                <TextBlock Classes="description" Text="{Binding}" />
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
                 </Border>
               </StackPanel>
             </Border>

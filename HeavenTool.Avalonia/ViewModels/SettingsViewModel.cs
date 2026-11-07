@@ -3,8 +3,11 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HeavenTool.Avalonia.Settings;
+using HeavenTool.ModManager.Library;
+using HeavenTool.ModManager.NookKit;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,6 +17,17 @@ namespace HeavenTool.Avalonia.ViewModels;
 public enum StatusKind { Ok, Info, Warning, Error }
 
 public sealed record SettingStatus(StatusKind Kind, string Text);
+
+/// <summary>One mod's line in the NookKit export results: the kinds of patch it got, and what couldn't be exported.</summary>
+public sealed record NookKitResult(string Name, string Summary, IReadOnlyList<string> Notes)
+{
+    public static NookKitResult From(NookKitModExport export)
+    {
+        // Each file is NookKit/<kind>/<name>.json.
+        var kinds = export.Files.Select(file => Path.GetFileName(Path.GetDirectoryName(file))).ToList();
+        return new(export.Name, kinds.Count > 0 ? string.Join(", ", kinds) : "Nothing to export", export.Notes);
+    }
+}
 
 public partial class SettingsViewModel : ObservableObject
 {
@@ -62,6 +76,15 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string? Error { get; set; }
+
+    [ObservableProperty]
+    public partial SettingStatus? NookKitStatus { get; set; }
+
+    /// <summary>The folder the last NookKit export went to.</summary>
+    [ObservableProperty]
+    public partial string? NookKitFolder { get; set; }
+
+    public ObservableCollection<NookKitResult> NookKitResults { get; } = [];
 
     public SettingsViewModel(AppSettings settings, IStorageProvider storage, ILauncher launcher)
     {
@@ -183,6 +206,38 @@ public partial class SettingsViewModel : ObservableObject
         if (folder == null) return;
         try { await launcher.LaunchDirectoryInfoAsync(new DirectoryInfo(folder)); }
         catch (Exception ex) { Error = $"Could not open {folder}: {ex.Message}"; }
+    }
+
+    /// <summary>Writes each enabled library mod's changes as NookKit patches, in the NookKit folder of a folder the user picks.</summary>
+    [RelayCommand]
+    private async Task GenerateNookKit()
+    {
+        if (GameFiles.FindRomfs(settings.RomfsFolder) is not { } romfs)
+        {
+            NookKitStatus = new(StatusKind.Error, "Set the extracted romfs in Game Settings first. Mods are compared with the original files.");
+            return;
+        }
+        if (await PickFolderAsync("Choose where to write the NookKit folder", NookKitFolder ?? "") is not { } output) return;
+
+        NookKitResults.Clear();
+        NookKitStatus = new(StatusKind.Info, "Comparing the enabled mods with the game files…");
+        try
+        {
+            var library = settings.LibraryFolder;
+            var results = await Task.Run(() =>
+            {
+                var mods = new ModLibrary(library).Load().Where(mod => mod.Enabled).ToList();
+                return new NookKitExporter(romfs).Export(mods, output);
+            });
+            NookKitFolder = output;
+            foreach (var result in results) NookKitResults.Add(NookKitResult.From(result));
+            var written = results.Sum(result => result.Files.Count);
+            NookKitStatus = results.Count == 0
+                ? new(StatusKind.Warning, "No mods are enabled in the library.")
+                : new(written == 0 ? StatusKind.Warning : StatusKind.Ok,
+                    $"Wrote {written} file{(written == 1 ? "" : "s")} for {results.Count} mod{(results.Count == 1 ? "" : "s")} to {Path.Combine(output, "NookKit")}");
+        }
+        catch (Exception ex) { NookKitStatus = new(StatusKind.Error, $"Could not generate the patches: {ex.Message}"); }
     }
 
     private async Task<string?> PickFolderAsync(string title, string current)
