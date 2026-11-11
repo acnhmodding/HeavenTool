@@ -101,7 +101,10 @@ public sealed partial class SwitchShadingModel
             ["gsys_renderstate"] = material.Info("gsys_render_state_mode", "opaque") switch
                 { "mask" => "1", "translucent" => "2", "custom" => "3", _ => "0" }
         };
-        if (material.Info("gsys_alpha_test_enable", "false") == "true") choices["gsys_alpha_test_enable"] = "1";
+        // Like the render state mode, the game sets these from the material's render info over its shader options.
+        choices["gsys_alpha_test_enable"] = material.Info("gsys_alpha_test_enable", "false") == "true" ? "1" : "0";
+        if (material.Info("gsys_alpha_test_func", "") is { Length: > 0 } alphaFunc)
+            choices["gsys_alpha_test_func"] = Math.Max(0, Array.IndexOf(CompareFuncs, alphaFunc)).ToString(CultureInfo.InvariantCulture);
 
         var words = new uint[keyWords];
         foreach (var option in Options)
@@ -114,6 +117,9 @@ public sealed partial class SwitchShadingModel
             if (keys.AsSpan(i * keyWords, keyWords).SequenceEqual(words)) return i;
         return -1;
     }
+
+    // A compare function's option choice is its index here; the game treats a name it doesn't know as "never".
+    private static readonly string[] CompareFuncs = ["never", "less", "equal", "lequal", "greater", "nequal", "gequal", "always"];
 
     private static string AssignmentName(BfresShaderPass pass) => pass switch
     {
