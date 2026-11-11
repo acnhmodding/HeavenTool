@@ -72,13 +72,18 @@ public sealed class BfresMesh
     }
 
     /// <summary>
-    /// A rigidly skinned copy whose bones moved from their bind pose by <paramref name="moves"/>, each bone's
-    /// <c>inverse(bind world) * posed world</c>.
+    /// A copy whose bones moved from their bind pose by <paramref name="moves"/>, each bone's
+    /// <c>inverse(bind world) * posed world</c>. Its raw vertices are skinned again with the moved bones, blending each
+    /// vertex's up to four bones by its weights as the game does.
     /// </summary>
     public BfresMesh Posed(IReadOnlyList<Matrix4x4> moves)
     {
-        if (VertexSkinCount != 1 || !NativeAttributes.TryGetValue("_i0", out var indices))
-            throw new NotSupportedException("Only rigidly skinned meshes can be posed.");
+        if (VertexSkinCount is < 1 or > 4 || !NativeAttributes.TryGetValue("_i0", out var indices)
+            || !NativeAttributes.TryGetValue("_p0", out var raw)
+            || VertexSkinCount > 1 && !NativeAttributes.ContainsKey("_w0"))
+            throw new NotSupportedException("Only skinned meshes can be posed.");
+        var weights = VertexSkinCount > 1 ? NativeAttributes["_w0"] : default;
+        var rawNormals = NativeAttributes.GetValueOrDefault("_n0");
 
         var palette = new Matrix4x4[BonePalette.Length];
         for (int i = 0; i < palette.Length; i++) palette[i] = BonePalette.Span[i] * moves[PaletteBones.Span[i]];
@@ -86,10 +91,18 @@ public sealed class BfresMesh
         var normals = new Vector3[Normals.Length];
         for (int i = 0; i < positions.Length; i++)
         {
-            var move = moves[PaletteBones.Span[(int)indices.Span[i].X]];
-            positions[i] = Vector3.Transform(Positions.Span[i], move);
+            Matrix4x4 skin = default;
+            var bones = indices.Span[i];
+            var weight = VertexSkinCount > 1 ? weights.Span[i] : Vector4.UnitX;
+            for (int k = 0; k < VertexSkinCount; k++) skin += palette[(int)bones[k]] * weight[k];
+            var position = raw.Span[i];
+            positions[i] = Vector3.Transform(new Vector3(position.X, position.Y, position.Z), skin);
             if (i >= normals.Length) continue;
-            var normal = Matrix4x4.Invert(move, out var inverse) ? Vector3.TransformNormal(Normals.Span[i], Matrix4x4.Transpose(inverse)) : Normals.Span[i];
+            if (i >= rawNormals.Length) { normals[i] = Normals.Span[i]; continue; }
+            var rawNormal = rawNormals.Span[i];
+            var normal = Matrix4x4.Invert(skin, out var inverse)
+                ? Vector3.TransformNormal(new Vector3(rawNormal.X, rawNormal.Y, rawNormal.Z), Matrix4x4.Transpose(inverse))
+                : Normals.Span[i];
             normals[i] = normal.LengthSquared() > 1e-12f ? Vector3.Normalize(normal) : normal;
         }
         // Native shaders skin the raw vertices with the palette, so it moves with them.

@@ -12,7 +12,17 @@ public enum BfresAnimationChannel : uint
 
 public sealed record BfresSkeletalAnimation(string Name, int FrameCount, IReadOnlyList<BfresBoneAnimation> Bones);
 
-public sealed record BfresBoneAnimation(string Name, IReadOnlyList<BfresAnimationCurve> Curves);
+/// <summary>
+/// A bone's channels in an animation: its curves, and the base values it holds where no curve moves it. A one-frame pose
+/// keeps all of its values in the base.
+/// </summary>
+public sealed record BfresBoneAnimation(string Name, IReadOnlyList<BfresAnimationCurve> Curves)
+{
+    public Vector3? BaseScale { get; init; }
+    /// <summary>Euler angles in radians (X, Y, Z), or a quaternion when the animation rotates by quaternions.</summary>
+    public Vector4? BaseRotation { get; init; }
+    public Vector3? BaseTranslation { get; init; }
+}
 
 /// <summary>A normalized cubic scalar curve decoded from a BFRES animation.</summary>
 public sealed class BfresAnimationCurve

@@ -213,6 +213,7 @@ public sealed partial class BfresRenderer
             EndLightingFrame();
             if (showGround) DrawGround(matrix);
             DrawBones(matrix);
+            DrawMarkers(matrix);
             GL.DepthMask(true);
             for (int i = 0; i < 5; i++) GL.BindSampler(i, 0);
             GL.BindVertexArray(0);
@@ -501,6 +502,7 @@ public sealed partial class BfresRenderer
         ReleaseNativePrograms();
         ReleaseLighting();
         ReleaseBones();
+        ReleaseMarkers();
         ReleaseGround();
         ReleaseOutputTarget();
         if (program != 0) GL.DeleteProgram(program);
