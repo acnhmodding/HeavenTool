@@ -89,8 +89,8 @@ public static class VillagerGenerator
             tables,
             LooseFile.Byml(HouseExterior.PathFor(label), Like(HouseExterior.PathFor(project.Donor)), house.Write(donorHouse, label)),
             LooseFile.Byml(RoomPath(label), Like(RoomPath(project.RoomFrom)), project.Room?.Write(room, label) ?? HouseExterior.Rekey(room, label)),
-            // Gmo files all share one root key, so the copy needs no changes.
-            LooseFile.Byml(GmoPath(label), Like(GmoPath(project.GmoFrom)), gmo));
+            // Gmo files all share one root key, so a copy needs no other changes.
+            LooseFile.Byml(GmoPath(label), Like(GmoPath(project.GmoFrom)), project.Gmo?.Write(gmo) ?? gmo));
     }
 
     /// <summary>

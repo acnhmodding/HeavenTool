@@ -1,8 +1,10 @@
+using AeonSake.NintendoTools.FileFormats.Byml;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HeavenTool.Avalonia.Settings;
 using HeavenTool.Avalonia.Views;
+using HeavenTool.IO.FileFormats.BYML;
 using HeavenTool.ModManager.NookKit;
 using HeavenTool.ModManager.Villagers;
 using System;
@@ -20,8 +22,9 @@ namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
 {
     // The steps, in the order of the window's step list.
-    public const int DonorStep = 0, IdentityStep = 1, TraitsStep = 2, HouseStep = 3, RoomStep = 4, AmiiboStep = 5, GenerateStep = 6;
-    private const int StepCount = 7;
+    public const int DonorStep = 0, IdentityStep = 1, TraitsStep = 2, HouseStep = 3, RoomStep = 4, FitStep = 5, AmiiboStep = 6,
+        GenerateStep = 7;
+    private const int StepCount = 8;
 
     private readonly IStorageProvider storage;
 
@@ -34,6 +37,7 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
         Traits = new(this);
         House = new(this);
         Room = new(this);
+        Fit = new(this);
         Amiibo = new(this);
         Generate = new(this);
         AppSettings.Saved += OnSettingsSaved;
@@ -44,6 +48,7 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
     public TraitsStepViewModel Traits { get; }
     public HouseStepViewModel House { get; }
     public RoomStepViewModel Room { get; }
+    public FitStepViewModel Fit { get; }
     public AmiiboStepViewModel Amiibo { get; }
     public GenerateStepViewModel Generate { get; }
 
@@ -53,6 +58,7 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
     internal HouseCatalog Catalog { get; private set; } = null!;
     internal HousePreview Preview { get; private set; } = null!;
     internal RoomPreview RoomPreview { get; private set; } = null!;
+    internal FitPreview FitPreview { get; private set; } = null!;
 
     /// <summary>Shows an item picker as a dialog; true when an item was chosen. The window sets it.</summary>
     internal Func<ItemPickerViewModel, Task<bool>> PickItem { get; set; } = _ => Task.FromResult(false);
@@ -113,10 +119,12 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
             var shaders = HousePreview.LoadShaders(romfs);
             Preview = new HousePreview(romfs, () => data.Environment, shaders);
             RoomPreview = new RoomPreview(data, shaders);
+            FitPreview = new FitPreview(data, shaders);
             Donor.Initialize();
             Traits.Initialize();
             House.Initialize();
             Room.Initialize();
+            Fit.Initialize();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
@@ -146,6 +154,7 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
         Traits.Load(value);
         House.Load(value);
         Room.Load(value);
+        Fit.Load(value);
         Amiibo.Load(value);
         Generate.Load(value);
         UpdateTitle();
@@ -160,6 +169,7 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
     {
         if (value == HouseStep) House.ShowPreview();
         if (value == RoomStep) Room.ShowPreview();
+        if (value == FitStep) Fit.ShowPreview();
         if (value == GenerateStep) Generate.Check();
     }
 
@@ -195,6 +205,31 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>Asks for a BYML file and reads it with <paramref name="read"/>; null if none was picked or it couldn't be read.</summary>
+    internal async Task<T?> ImportByml<T>(string title, Func<IBymlNode, T> read, Action<string?> report) where T : class
+    {
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            FileTypeFilter = [new("BYML files") { Patterns = ["*.byml"] }],
+        });
+        if (files.Count == 0) return null;
+        try
+        {
+            await using var stream = await files[0].OpenReadAsync();
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            var value = read(AcnhByml.Read(memory.ToArray()).RootNode);
+            report(null);
+            return value;
+        }
+        catch (Exception ex)
+        {
+            report($"Couldn't import {files[0].Name}: {ex.Message}");
+            return null;
+        }
+    }
+
     [RelayCommand]
     private static void OpenSettings() => SettingsWindow.ShowSingle();
 
@@ -206,6 +241,7 @@ public partial class VillagerCreatorViewModel : ObservableObject, IDisposable
         AppSettings.Saved -= OnSettingsSaved;
         House.Dispose();
         Room.Dispose();
+        Fit.Dispose();
         GC.SuppressFinalize(this);
     }
 }

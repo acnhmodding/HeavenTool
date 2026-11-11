@@ -52,6 +52,7 @@ public sealed partial class VillagerGameData
     private readonly Lazy<IReadOnlyDictionary<uint, ItemFootprint>> itemSizes;
     private readonly Lazy<IReadOnlyDictionary<int, string>> roomMarkers;
     private readonly Lazy<(IReadOnlyList<int> Crafting, IReadOnlyList<int> Cooking)> activityItems;
+    private readonly Lazy<ILookup<uint, int>> heldItems;
 
     public string Romfs { get; }
 
@@ -74,6 +75,7 @@ public sealed partial class VillagerGameData
             .Where(item => item.Value.Kind == RoomMarkerKind.ToCRC32() && item.Value.Label.StartsWith(RoomMarkerKind, StringComparison.Ordinal))
             .ToDictionary(item => item.Key, item => item.Value.Label[RoomMarkerKind.Length..]));
         activityItems = new(LoadActivityItems);
+        heldItems = new(LoadHeldItems);
     }
 
     /// <summary>Opens a romfs folder, after checking it has the files the villager creator needs.</summary>
@@ -126,6 +128,23 @@ public sealed partial class VillagerGameData
         ];
         return names.Select(name => Path.Combine(Romfs, "Model", name + ".Nin_NX_NVN.zs")).FirstOrDefault(File.Exists);
     }
+
+    /// <summary>
+    /// The hats or glasses that go in a Gmo slot, such as <c>C_Knit</c>, among the items with an English name, sorted by name.
+    /// </summary>
+    public IReadOnlyList<ItemInfo> ItemsFitting(string slot)
+    {
+        var hash = slot.ToCRC32();
+        return [.. Items.Where(item => itemParam.Value[item.Id].Fit == hash)];
+    }
+
+    /// <summary>The IDs of the items held as the Gmo hand tool <paramref name="tool"/>, such as <c>Tr</c>.</summary>
+    public IReadOnlyList<int> ItemsHeldAs(string tool) => [.. heldItems.Value[tool.ToCRC32()]];
+
+    /// <summary>The model of an item, or null when the romfs has none.</summary>
+    public string? ItemModelPath(int id) =>
+        ItemResource(id) is { Length: > 0 } resource && Path.Combine(Romfs, "Model", resource + ".Nin_NX_NVN.zs") is var path && File.Exists(path)
+            ? path : null;
 
     /// <summary>The resource name of an item, which names its model, or null when ItemParam has no such item.</summary>
     public string? ItemResource(int id) => itemParam.Value.TryGetValue(id, out var item) ? item.Resource : null;
@@ -257,9 +276,13 @@ public sealed partial class VillagerGameData
         return names;
     }
 
-    // An item's resource name and label, which name its models and icons, its kind, the CRC32 of its ItemSize label and
-    // the height other items stand on it.
-    private sealed record ItemRow(string Resource, string Label, uint Kind, uint Size, float RideHeight);
+    // Fit is the CRC32 of the Gmo slot a hat or glasses go in; Held the CRC32 of an ItemOutfitInfo label.
+    private sealed record ItemRow(string Resource, string Label, uint Kind, uint Size, float RideHeight, uint Fit, uint Held);
+
+    // OutfitToolColumn is ItemOutfitInfo's short tool name, such as Tr for Tray.
+    private static readonly uint FitColumn = "NpcOutfit.hshCstringRef".ToCRC32();
+    private static readonly uint HeldColumn = "ItemOutfitInfo.hshCstringRef".ToCRC32();
+    private static readonly uint OutfitToolColumn = "Category.hshCstringRef".ToCRC32();
 
     private Dictionary<int, ItemRow> LoadItemParam()
     {
@@ -270,8 +293,24 @@ public sealed partial class VillagerGameData
         int label = table.ColumnIndex("Label string50"), kind = table.ColumnIndex("ItemKind.hshCstringRef");
         int size = table.ColumnIndex("ItemSize.hshCstringRef");
         int rideHeight = table.ColumnIndex("RideHeight f32");
+        int fit = Array.FindIndex(table.Fields, field => field.Hash == FitColumn);
+        int held = Array.FindIndex(table.Fields, field => field.Hash == HeldColumn);
         return table.Entries.ToDictionary(row => Convert.ToInt32(row[id]),
-            row => new ItemRow((string)row[resource], (string)row[label], Convert.ToUInt32(row[kind]), Convert.ToUInt32(row[size]), Convert.ToSingle(row[rideHeight])));
+            row => new ItemRow((string)row[resource], (string)row[label], Convert.ToUInt32(row[kind]), Convert.ToUInt32(row[size]),
+                Convert.ToSingle(row[rideHeight]), fit >= 0 ? Convert.ToUInt32(row[fit]) : 0, held >= 0 ? Convert.ToUInt32(row[held]) : 0));
+    }
+
+    private ILookup<uint, int> LoadHeldItems()
+    {
+        if (!File.Exists(Path.Combine(Romfs, "Bcsv", "ItemOutfitInfo.bcsv"))) return Array.Empty<int>().ToLookup(_ => 0u);
+        var table = ReadTable("ItemOutfitInfo");
+        int label = table.ColumnIndex("Label string32");
+        int tool = Array.FindIndex(table.Fields, field => field.Hash == OutfitToolColumn);
+        if (tool < 0) return Array.Empty<int>().ToLookup(_ => 0u);
+        var tools = new Dictionary<uint, uint>();
+        foreach (var row in table.Entries) tools.TryAdd(((string)row[label]).ToCRC32(), Convert.ToUInt32(row[tool]));
+        return itemParam.Value.Where(item => tools.ContainsKey(item.Value.Held)).OrderBy(item => item.Key)
+            .ToLookup(item => tools[item.Value.Held], item => item.Key);
     }
 
     // ItemParam names an item's size by the CRC32 of its row's label here, such as 2_0x1_0.

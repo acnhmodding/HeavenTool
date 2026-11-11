@@ -19,7 +19,7 @@
                 <TextBlock Classes="description" Text="Names every file of the villager. The first three letters are its species." />
                 <TextBlock Classes="error" Text="{Binding LabelError}" IsVisible="{Binding LabelError, Converter={x:Static ObjectConverters.IsNotNull}}" />
               </StackPanel>
-              <TextBox Grid.Column="1" Text="{Binding Label}" Width="240" MaxLength="5" VerticalAlignment="Center" FontFamily="Consolas,Menlo,monospace" />
+              <TextBox Grid.Column="1" Text="{Binding Label}" Width="240" MaxLength="5" VerticalAlignment="Center" FontFamily="{StaticResource CodeFont}" />
             </Grid>
           </Border>
           <Border Classes="row">
@@ -37,7 +37,7 @@
             <StackPanel>
               <TextBlock Classes="title" Text="Model" />
               <TextBlock Classes="description" Text="The Villager Creator doesn't make the model. Put the villager's model here in your mod:" />
-              <SelectableTextBlock Text="{Binding ModelPath}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Margin="0,6,0,0" />
+              <SelectableTextBlock Classes="code" Text="{Binding ModelPath}" Margin="0,6,0,0" />
             </StackPanel>
           </Border>
         </StackPanel>
@@ -82,11 +82,11 @@
         <icons:PackIconFontAwesome6 Kind="LanguageSolid" />
         <TextBlock Text="Translations" />
       </StackPanel>
-      <TextBlock Classes="intro" FontSize="12" Margin="2,0,0,8" Text="Languages you leave empty use the text above." />
+      <TextBlock Classes="note" Text="Languages you leave empty use the text above." />
       <Border Classes="card">
         <StackPanel>
-          <Grid ColumnDefinitions="170,*,*,*" ColumnSpacing="8" Margin="16,10,16,6">
-            <TextBlock Classes="description" Text="Language" />
+          <Grid ColumnDefinitions="150,*,*,*" ColumnSpacing="8" Margin="16,10,16,6">
+
             <TextBlock Grid.Column="1" Classes="description" Text="Name" />
             <TextBlock Grid.Column="2" Classes="description" Text="Catchphrase" />
             <TextBlock Grid.Column="3" Classes="description" Text="Motto" />
@@ -99,10 +99,9 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vc:TranslationViewModel">
-                <Grid ColumnDefinitions="170,*,*,*" ColumnSpacing="8">
+                <Grid ColumnDefinitions="150,*,*,*" ColumnSpacing="8">
                   <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="{Binding DisplayName}" FontSize="13" />
-                    <TextBlock Text="{Binding Language}" FontSize="11" Foreground="{StaticResource DimText}" />
                   </StackPanel>
                   <TextBox Grid.Column="1" Text="{Binding Name}" />
                   <TextBox Grid.Column="2" Text="{Binding Catchphrase}" />

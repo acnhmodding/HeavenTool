@@ -24,7 +24,7 @@
     </TextBox>
 
     <Border Classes="card" ClipToBounds="True">
-      <ListBox ItemsSource="{Binding Results}" SelectedItem="{Binding Selected}" Background="Transparent">
+      <ListBox Classes="long" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected}" Background="Transparent">
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="villagers:VillagerInfo">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -32,7 +32,7 @@
                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Species}" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource SecondaryText}" />
               </StackPanel>
-              <TextBlock Grid.Column="1" Text="{Binding Label}" FontFamily="Consolas,Menlo,monospace" FontSize="12"
+              <TextBlock Grid.Column="1" Classes="code" Text="{Binding Label}"
                 VerticalAlignment="Center" Foreground="{StaticResource DimText}" />
             </Grid>
           </DataTemplate>

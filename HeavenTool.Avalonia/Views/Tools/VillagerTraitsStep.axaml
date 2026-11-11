@@ -34,7 +34,7 @@
         <icons:PackIconFontAwesome6 Kind="ShirtSolid" />
         <TextBlock Text="Clothing and items" />
       </StackPanel>
-      <TextBlock Classes="intro" FontSize="12" Margin="2,0,0,8" Text="Item IDs, as in ItemParam. Type an ID, or find an item by name with the search button." />
+      <TextBlock Classes="note" Text="Item IDs, as in ItemParam. Type an ID, or find an item by name with the search button." />
       <Border Classes="card">
         <ItemsControl ItemsSource="{Binding Items}" />
       </Border>

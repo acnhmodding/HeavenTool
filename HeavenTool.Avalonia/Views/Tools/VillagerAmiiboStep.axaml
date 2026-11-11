@@ -34,7 +34,7 @@
               </StackPanel>
               <Button Grid.Column="1" Command="{Binding PickOtherCommand}" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <icons:PackIconFontAwesome6 Kind="ShuffleSolid" Width="12" Height="12" VerticalAlignment="Center" />
+                  <icons:PackIconFontAwesome6 Kind="ShuffleSolid" />
                   <TextBlock Text="Pick other IDs" />
                 </StackPanel>
               </Button>
@@ -46,7 +46,7 @@
                 <TextBlock Classes="title" Text="Character ID" />
                 <TextBlock Classes="description" Text="AmiiboData's character ID." />
               </StackPanel>
-              <SelectableTextBlock Grid.Column="1" Text="{Binding CharacterId}" FontFamily="Consolas,Menlo,monospace" VerticalAlignment="Center" />
+              <SelectableTextBlock Grid.Column="1" Classes="code" Text="{Binding CharacterId}" VerticalAlignment="Center" />
             </Grid>
           </Border>
           <Border Classes="row" IsEnabled="{Binding IsEnabled}">
@@ -55,7 +55,7 @@
                 <TextBlock Classes="title" Text="Numbering ID" />
                 <TextBlock Classes="description" Text="AmiiboData's numbering ID, and the amiibo's model number." />
               </StackPanel>
-              <SelectableTextBlock Grid.Column="1" Text="{Binding NumberingId}" FontFamily="Consolas,Menlo,monospace" VerticalAlignment="Center" />
+              <SelectableTextBlock Grid.Column="1" Classes="code" Text="{Binding NumberingId}" VerticalAlignment="Center" />
             </Grid>
           </Border>
           <Border Classes="row" IsEnabled="{Binding IsEnabled}">
@@ -64,7 +64,7 @@
                 <TextBlock Classes="title" Text="Game character ID" />
                 <TextBlock Classes="description" Text="The character ID as the amiibo stores it, in emuiibo's amiibo.json." />
               </StackPanel>
-              <SelectableTextBlock Grid.Column="1" Text="{Binding GameCharacterId}" FontFamily="Consolas,Menlo,monospace" VerticalAlignment="Center" />
+              <SelectableTextBlock Grid.Column="1" Classes="code" Text="{Binding GameCharacterId}" VerticalAlignment="Center" />
             </Grid>
           </Border>
         </StackPanel>

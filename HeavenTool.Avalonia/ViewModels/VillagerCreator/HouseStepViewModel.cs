@@ -1,10 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using HeavenTool.ModManager.Villagers;
 using HeavenTool.Rendering.BFRES;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace HeavenTool.Avalonia.ViewModels.VillagerCreator;
 
@@ -78,6 +80,18 @@ public partial class HouseStepViewModel(VillagerCreatorViewModel creator) : Obse
     }
 
     public void ReportRenderFailure(Exception error) => RenderError = error.Message;
+
+    [ObservableProperty]
+    public partial string? ImportError { get; set; }
+
+    [RelayCommand]
+    private async Task Import()
+    {
+        if (project is not { } value) return;
+        if (await creator.ImportByml("Import a house", HouseExterior.Read, error => ImportError = error) is not { } house) return;
+        value.House = house;
+        Load(value);
+    }
 
     internal void Load(VillagerProject value)
     {

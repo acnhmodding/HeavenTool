@@ -38,8 +38,14 @@ public sealed class VillagerProject
     /// <summary>The room's wallpaper, flooring, music and furniture, or null to keep <see cref="RoomFrom"/>'s as they are.</summary>
     public VillagerRoom? Room { get; set; }
 
-    /// <summary>The villager whose Gmo file is copied. It belongs to the model, so a villager of the same species fits best.</summary>
+    /// <summary>
+    /// The villager, or the species (such as <c>cat</c>), whose Gmo file the new one starts from. It belongs to the model, so a
+    /// villager with the same model fits best.
+    /// </summary>
     public string GmoFrom { get; set; } = "";
+
+    /// <summary>How the model fits hats, glasses and held items, or null to keep <see cref="GmoFrom"/>'s as they are.</summary>
+    public VillagerGmo? Gmo { get; set; }
 
     /// <summary>The amiibo IDs, or null to make no amiibo.</summary>
     public AmiiboIds? Amiibo { get; set; }

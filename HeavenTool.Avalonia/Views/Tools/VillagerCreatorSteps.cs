@@ -28,6 +28,11 @@ public partial class VillagerRoomStep : UserControl
     public VillagerRoomStep() => AvaloniaXamlLoader.Load(this);
 }
 
+public partial class VillagerFitStep : UserControl
+{
+    public VillagerFitStep() => AvaloniaXamlLoader.Load(this);
+}
+
 public partial class VillagerAmiiboStep : UserControl
 {
     public VillagerAmiiboStep() => AvaloniaXamlLoader.Load(this);

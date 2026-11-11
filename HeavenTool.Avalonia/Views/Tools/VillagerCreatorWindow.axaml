@@ -60,134 +60,14 @@
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
             <NumericUpDown Value="{Binding Value}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
               Increment="1" FormatString="0" Width="196" />
-            <Button Command="{Binding PickCommand}" Width="36" Height="32" Padding="0" ToolTip.Tip="Find an item by name">
-              <icons:PackIconFontAwesome6 Kind="MagnifyingGlassSolid" Width="13" Height="13" />
+            <Button Classes="icon" Command="{Binding PickCommand}" ToolTip.Tip="Find an item by name">
+              <icons:PackIconFontAwesome6 Kind="MagnifyingGlassSolid" />
             </Button>
           </StackPanel>
         </Grid>
       </Border>
     </DataTemplate>
   </fa:FAAppWindow.DataTemplates>
-
-  <fa:FAAppWindow.Styles>
-    <Style Selector="TextBlock.page">
-      <Setter Property="FontSize" Value="24" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Margin" Value="0,0,0,4" />
-    </Style>
-    <Style Selector="TextBlock.intro">
-      <Setter Property="FontSize" Value="13" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
-    </Style>
-    <!-- A section title: an icon and a name above its card. -->
-    <Style Selector="StackPanel.section">
-      <Setter Property="Orientation" Value="Horizontal" />
-      <Setter Property="Spacing" Value="10" />
-      <Setter Property="Margin" Value="2,22,0,8" />
-    </Style>
-    <Style Selector="StackPanel.section > icons|PackIconFontAwesome6">
-      <Setter Property="Width" Value="16" />
-      <Setter Property="Height" Value="16" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <Style Selector="StackPanel.section > TextBlock">
-      <Setter Property="FontSize" Value="15" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <!-- A card of rows, split by lines. Rows are direct children of its panel, or the items of one list. -->
-    <Style Selector="Border.card">
-      <Setter Property="Background" Value="{StaticResource CardBackground}" />
-      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="6" />
-    </Style>
-    <Style Selector="Border.row">
-      <Setter Property="Padding" Value="16,12" />
-      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
-      <Setter Property="BorderThickness" Value="0,1,0,0" />
-    </Style>
-    <Style Selector="StackPanel > Border.row:nth-child(1)">
-      <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="ContentPresenter:nth-child(1) > Border.row">
-      <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="Border.row:disabled">
-      <Setter Property="Opacity" Value="0.5" />
-    </Style>
-    <Style Selector="TextBlock.title">
-      <Setter Property="FontSize" Value="14" />
-    </Style>
-    <Style Selector="TextBlock.description">
-      <Setter Property="FontSize" Value="12" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
-      <Setter Property="Margin" Value="0,2,0,0" />
-    </Style>
-    <Style Selector="TextBlock.description.unknown">
-      <Setter Property="Foreground" Value="{StaticResource WarningText}" />
-    </Style>
-    <!-- A small sample of a color, framed so black and white still show on the dark card. -->
-    <Style Selector="Border.swatch">
-      <Setter Property="Width" Value="14" />
-      <Setter Property="Height" Value="14" />
-      <Setter Property="CornerRadius" Value="3" />
-      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <!-- A name plate as conversations draw it: the name in its text color on a rounded plate. -->
-    <Style Selector="Border.icon">
-      <Setter Property="Width" Value="44" />
-      <Setter Property="Height" Value="44" />
-      <Setter Property="Padding" Value="3" />
-      <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="Background" Value="{StaticResource PanelBorder}" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Border.plate">
-      <Setter Property="CornerRadius" Value="10" />
-      <Setter Property="Padding" Value="10,1" />
-      <Setter Property="HorizontalAlignment" Value="Left" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Border.plate > TextBlock">
-      <Setter Property="FontWeight" Value="SemiBold" />
-    </Style>
-    <Style Selector="TextBlock.error">
-      <Setter Property="FontSize" Value="12" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="Foreground" Value="{StaticResource ErrorText}" />
-      <Setter Property="Margin" Value="0,4,0,0" />
-    </Style>
-    <Style Selector="TextBlock.warning">
-      <Setter Property="FontSize" Value="12" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="Foreground" Value="{StaticResource WarningText}" />
-    </Style>
-    <Style Selector="Border.banner">
-      <Setter Property="Padding" Value="12,8" />
-      <Setter Property="Margin" Value="0,0,0,12" />
-      <Setter Property="CornerRadius" Value="4" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="BorderBrush" Value="{StaticResource ErrorText}" />
-    </Style>
-    <Style Selector="ListBox.steps ListBoxItem">
-      <Setter Property="Padding" Value="12,9" />
-      <Setter Property="Margin" Value="0,1" />
-      <Setter Property="CornerRadius" Value="4" />
-    </Style>
-    <Style Selector="ListBox.steps ListBoxItem:disabled">
-      <Setter Property="Opacity" Value="0.45" />
-    </Style>
-    <Style Selector="ListBox.steps icons|PackIconFontAwesome6">
-      <Setter Property="Width" Value="16" />
-      <Setter Property="Height" Value="16" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-  </fa:FAAppWindow.Styles>
 
   <Grid RowDefinitions="32,*">
     <DockPanel Grid.Row="0" Background="{StaticResource TitleBarBackground}" WindowDecorationProperties.ElementRole="TitleBar">
@@ -210,7 +90,7 @@
           Text="The Villager Creator reads villagers, house parts and messages from your extracted romfs. Set its folder in Settings and this window picks it up." />
         <Button Classes="accent" HorizontalAlignment="Center" Margin="0,6,0,0" Command="{Binding OpenSettingsCommand}">
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <icons:PackIconFontAwesome6 Kind="GearSolid" Width="13" Height="13" VerticalAlignment="Center" />
+            <icons:PackIconFontAwesome6 Kind="GearSolid" />
             <TextBlock Text="Open Settings" />
           </StackPanel>
         </Button>
@@ -233,11 +113,11 @@
             <Button DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
               Command="{Binding OpenProjectCommand}" ToolTip.Tip="Open a villager saved by Generate">
               <StackPanel Orientation="Horizontal" Spacing="8">
-                <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="13" Height="13" VerticalAlignment="Center" />
+                <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" />
                 <TextBlock Text="Open villager…" />
               </StackPanel>
             </Button>
-            <ListBox Classes="steps" SelectionMode="AlwaysSelected" Background="Transparent" SelectedIndex="{Binding StepIndex}">
+            <ListBox Classes="nav" SelectionMode="AlwaysSelected" Background="Transparent" SelectedIndex="{Binding StepIndex}">
               <ListBoxItem x:Name="DonorItem">
                 <StackPanel Orientation="Horizontal" Spacing="12">
                   <icons:PackIconFontAwesome6 Kind="UserGroupSolid" />
@@ -268,6 +148,12 @@
                   <TextBlock Text="Room" VerticalAlignment="Center" />
                 </StackPanel>
               </ListBoxItem>
+              <ListBoxItem x:Name="FitItem" IsEnabled="{Binding HasProject}">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <icons:PackIconFontAwesome6 Kind="HatCowboySolid" />
+                  <TextBlock Text="Fit" VerticalAlignment="Center" />
+                </StackPanel>
+              </ListBoxItem>
               <ListBoxItem x:Name="AmiiboItem" IsEnabled="{Binding HasProject}">
                 <StackPanel Orientation="Horizontal" Spacing="12">
                   <icons:PackIconFontAwesome6 Kind="IdBadgeSolid" />
@@ -289,7 +175,7 @@
             <Grid ColumnDefinitions="*,Auto,*">
               <Button Command="{Binding BackCommand}" MinWidth="96" HorizontalAlignment="Left">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                  <icons:PackIconFontAwesome6 Kind="ArrowLeftSolid" Width="12" Height="12" VerticalAlignment="Center" />
+                  <icons:PackIconFontAwesome6 Kind="ArrowLeftSolid" />
                   <TextBlock Text="Back" />
                 </StackPanel>
               </Button>          
@@ -297,7 +183,7 @@
                 IsVisible="{Binding !IsLastStep}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="Next" />
-                  <icons:PackIconFontAwesome6 Kind="ArrowRightSolid" Width="12" Height="12" VerticalAlignment="Center" />
+                  <icons:PackIconFontAwesome6 Kind="ArrowRightSolid" />
                 </StackPanel>
               </Button>
             </Grid>
@@ -310,6 +196,7 @@
             <tools:VillagerTraitsStep DataContext="{Binding Traits}" IsVisible="{Binding #TraitsItem.IsSelected}" />
             <tools:VillagerHouseStep x:Name="HouseStep" DataContext="{Binding House}" IsVisible="{Binding #HouseItem.IsSelected}" />
             <tools:VillagerRoomStep x:Name="RoomStep" DataContext="{Binding Room}" IsVisible="{Binding #RoomItem.IsSelected}" />
+            <tools:VillagerFitStep x:Name="FitStep" DataContext="{Binding Fit}" IsVisible="{Binding #FitItem.IsSelected}" />
             <tools:VillagerAmiiboStep DataContext="{Binding Amiibo}" IsVisible="{Binding #AmiiboItem.IsSelected}" />
             <tools:VillagerGenerateStep DataContext="{Binding Generate}" IsVisible="{Binding #GenerateItem.IsSelected}" />
           </Grid>

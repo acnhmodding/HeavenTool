@@ -1,0 +1,322 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:vc="using:HeavenTool.Avalonia.ViewModels.VillagerCreator"
+  xmlns:villagers="using:HeavenTool.ModManager.Villagers"
+  xmlns:controls="using:HeavenTool.Avalonia.Controls"
+  x:Class="HeavenTool.Avalonia.Views.Tools.VillagerFitStep"
+  x:DataType="vc:FitStepViewModel">
+  <UserControl.Resources>
+    <!-- A section title that folds its section away when clicked. -->
+    <ControlTheme x:Key="FoldHeader" TargetType="ToggleButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
+            Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" />
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="StackPanel.section > icons|PackIconFontAwesome6.chevron">
+      <Setter Property="Width" Value="11" />
+      <Setter Property="Height" Value="11" />
+      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+    </Style>
+    <Style Selector="ToggleButton:unchecked icons|PackIconFontAwesome6.chevron">
+      <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+    </Style>
+    <Style Selector="TextBlock.axis">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="NumericUpDown.value">
+      <Setter Property="Increment" Value="0.1" />
+      <Setter Property="FormatString" Value="0.####" />
+      <Setter Property="ShowButtonSpinner" Value="False" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.DataTemplates>
+    <DataTemplate x:DataType="vc:VectorField">
+      <Border Classes="row">
+        <StackPanel Spacing="6">
+          <StackPanel>
+            <TextBlock Classes="title" Text="{Binding Title}" />
+            <TextBlock Classes="description" Text="{Binding Description}"
+              IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+          <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*" ColumnSpacing="6">
+            <TextBlock Classes="axis" Text="{Binding XLabel}" />
+            <NumericUpDown Grid.Column="1" Classes="value" Value="{Binding X}" />
+            <TextBlock Grid.Column="2" Classes="axis" Text="{Binding YLabel}" Margin="4,0,0,0" />
+            <NumericUpDown Grid.Column="3" Classes="value" Value="{Binding Y}" />
+            <TextBlock Grid.Column="4" Classes="axis" Text="{Binding ZLabel}" Margin="4,0,0,0" />
+            <NumericUpDown Grid.Column="5" Classes="value" Value="{Binding Z}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <Grid ColumnDefinitions="420,*">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="28,0,20,28">
+        <ToggleButton x:Name="FoldStartFrom" Theme="{StaticResource FoldHeader}" IsChecked="True">
+          <StackPanel Classes="section">
+            <icons:PackIconFontAwesome6 Classes="chevron" Kind="ChevronDownSolid" />
+            <icons:PackIconFontAwesome6 Kind="FileImportSolid" />
+            <TextBlock Text="Start from" />
+          </StackPanel>
+        </ToggleButton>
+        <StackPanel IsVisible="{Binding #FoldStartFrom.IsChecked}">
+          <Border Classes="card">
+            <Border Classes="row">
+              <StackPanel Spacing="6">
+                <StackPanel>
+                  <TextBlock Classes="title" Text="Fit of" />
+                  <TextBlock Classes="description"
+                    Text="The villager to copy the fit from. Picking another resets your changes below." />
+                </StackPanel>
+                <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding Source}" HorizontalAlignment="Stretch" MaxDropDownHeight="420" />
+              </StackPanel>
+            </Border>
+          </Border>
+        </StackPanel>
+
+        <ToggleButton x:Name="FoldHatsAndGlasses" Theme="{StaticResource FoldHeader}" IsChecked="True">
+          <StackPanel Classes="section">
+            <icons:PackIconFontAwesome6 Classes="chevron" Kind="ChevronDownSolid" />
+            <icons:PackIconFontAwesome6 Kind="GlassesSolid" />
+            <TextBlock Text="Hats and glasses" />
+          </StackPanel>
+        </ToggleButton>
+        <StackPanel IsVisible="{Binding #FoldHatsAndGlasses.IsChecked}">
+          <TextBlock Classes="note"
+            Text="Where each kind of hat and glasses sits on the head." />
+          <Border Classes="card">
+            <StackPanel>
+              <Border Classes="row">
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="title" Text="Kind" />
+                  <ComboBox ItemsSource="{Binding Accessories}" SelectedItem="{Binding Accessory}" HorizontalAlignment="Stretch" MaxDropDownHeight="420" />
+                </StackPanel>
+              </Border>
+              <ContentControl Content="{Binding AccessoryPosition}" />
+              <ContentControl Content="{Binding AccessoryRotation}" />
+              <ContentControl Content="{Binding AccessoryScale}" />
+              <Border Classes="row">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Classes="title" Text="Ears" />
+                    <TextBlock Classes="description" Text="Whether the ears poke out of the hat, and whether they sway." />
+                  </StackPanel>
+                  <ComboBox Grid.Column="1" ItemsSource="{Binding EarSets}" SelectedIndex="{Binding EarSet}" Width="170" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <ToggleButton x:Name="FoldFootprintsAndSize" Theme="{StaticResource FoldHeader}" IsChecked="True">
+          <StackPanel Classes="section">
+            <icons:PackIconFontAwesome6 Classes="chevron" Kind="ChevronDownSolid" />
+            <icons:PackIconFontAwesome6 Kind="ShoePrintsSolid" />
+            <TextBlock Text="Footprints and size" />
+          </StackPanel>
+        </ToggleButton>
+        <StackPanel IsVisible="{Binding #FoldFootprintsAndSize.IsChecked}">
+          <Border Classes="card">
+            <StackPanel>
+              <Border Classes="row">
+                <StackPanel Spacing="6">
+                  <StackPanel>
+                    <TextBlock Classes="title" Text="Footprints" />
+                    <TextBlock Classes="description" Text="What the villager leaves on sand and snow." />
+                  </StackPanel>
+                  <ComboBox ItemsSource="{Binding FootPrints}" SelectedItem="{Binding FootPrint}" HorizontalAlignment="Stretch" />
+                </StackPanel>
+              </Border>
+              <Border Classes="row">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                  <TextBlock Classes="title" Text="Footprint size" VerticalAlignment="Center" />
+                  <NumericUpDown Grid.Column="1" Value="{Binding FootScale}" Minimum="0.01" Maximum="10" Increment="0.1" FormatString="0.####"
+                    Width="130" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+              <Border Classes="row">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                  <TextBlock Classes="title" Text="Size" VerticalAlignment="Center" />
+                  <ComboBox Grid.Column="1" ItemsSource="{Binding Sizes}" SelectedItem="{Binding Size}" Width="130" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <ToggleButton x:Name="FoldBody" Theme="{StaticResource FoldHeader}" IsChecked="True">
+          <StackPanel Classes="section">
+            <icons:PackIconFontAwesome6 Classes="chevron" Kind="ChevronDownSolid" />
+            <icons:PackIconFontAwesome6 Kind="ChairSolid" />
+            <TextBlock Text="Body" />
+          </StackPanel>
+        </ToggleButton>
+        <StackPanel IsVisible="{Binding #FoldBody.IsChecked}">
+          <TextBlock Classes="note" Text="Pick a pose on the preview to see it." />
+          <Border Classes="card">
+            <StackPanel>
+              <ContentControl Content="{Binding HandItemOffset}" />
+              <ContentControl Content="{Binding SitOffset}" />
+              <ContentControl Content="{Binding SitSbOffset}" />
+              <ContentControl Content="{Binding BedOffset}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <ToggleButton x:Name="FoldEyes" Theme="{StaticResource FoldHeader}" IsChecked="True">
+          <StackPanel Classes="section">
+            <icons:PackIconFontAwesome6 Classes="chevron" Kind="ChevronDownSolid" />
+            <icons:PackIconFontAwesome6 Kind="EyeSolid" />
+            <TextBlock Text="Eyes" />
+          </StackPanel>
+        </ToggleButton>
+        <StackPanel IsVisible="{Binding #FoldEyes.IsChecked}">
+          <TextBlock Classes="note" Text="Where the villager looks when it looks at the player." />
+          <Border Classes="card">
+            <StackPanel>
+              <ContentControl Content="{Binding EyeOffset}" />
+              <Border Classes="row">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Classes="title" Text="Look turn" />
+                    <TextBlock Classes="description" Text="How far the look is turned from straight ahead." />
+                  </StackPanel>
+                  <NumericUpDown Grid.Column="1" Classes="value" Value="{Binding EyeRotateOffset}" Minimum="-180" Maximum="180" Width="90" />
+                </Grid>
+              </Border>
+              <ContentControl Content="{Binding EyeHorizon}" />
+              <ContentControl Content="{Binding EyeVertical}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <ToggleButton x:Name="FoldEmotions" Theme="{StaticResource FoldHeader}" IsChecked="True">
+          <StackPanel Classes="section">
+            <icons:PackIconFontAwesome6 Classes="chevron" Kind="ChevronDownSolid" />
+            <icons:PackIconFontAwesome6 Kind="FaceSmileSolid" />
+            <TextBlock Text="Emotions" />
+          </StackPanel>
+        </ToggleButton>
+        <StackPanel IsVisible="{Binding #FoldEmotions.IsChecked}">
+          <TextBlock Classes="note" Text="Where effects such as sweat drops and sparkles show on the face. Tick Emotion points on the preview to see them: left eye blue, right eye green, mouth orange." />
+          <Border Classes="card">
+            <StackPanel>
+              <ContentControl Content="{Binding LeftEye}" />
+              <ContentControl Content="{Binding RightEye}" />
+              <ContentControl Content="{Binding Mouth}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <ToggleButton x:Name="FoldHeldItems" Theme="{StaticResource FoldHeader}" IsChecked="True">
+          <StackPanel Classes="section">
+            <icons:PackIconFontAwesome6 Classes="chevron" Kind="ChevronDownSolid" />
+            <icons:PackIconFontAwesome6 Kind="HandSolid" />
+            <TextBlock Text="Held items" />
+          </StackPanel>
+        </ToggleButton>
+        <StackPanel IsVisible="{Binding #FoldHeldItems.IsChecked}">
+          <TextBlock Classes="note" Text="How big each held item is, 1 being its normal size." />
+          <Border Classes="card" Padding="16,8">
+            <ItemsControl ItemsSource="{Binding Tools}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <UniformGrid Columns="2" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vc:ToolScaleEntry">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,4,12,4">
+                    <TextBlock Text="{Binding Text}" ToolTip.Tip="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Classes="value" Value="{Binding Scale}" Minimum="0" Maximum="10" Width="64" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </StackPanel>
+
+        <DockPanel Margin="2,12,0,0" IsVisible="{Binding PreviewWarning, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="13" Height="13" Margin="0,1,8,0" VerticalAlignment="Top"
+            Foreground="{StaticResource WarningText}" />
+          <TextBlock Classes="warning" Text="{Binding PreviewWarning}" />
+        </DockPanel>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border Grid.Column="1" Margin="0,20,28,20" CornerRadius="6" ClipToBounds="True" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
+      <DockPanel>
+        <!-- What the preview shows; none of it is saved. -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource PreviewToolbarBackground}" BorderBrush="{StaticResource PanelBorder}" BorderThickness="0,0,0,1" Padding="12,8">
+          <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+            <TextBlock Classes="axis" Text="Wearing" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding TryOns}" SelectedItem="{Binding TryOn}" HorizontalAlignment="Stretch" MaxDropDownHeight="420">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="villagers:ItemInfo">
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Grid.Column="2" Classes="axis" Text="Holding" Margin="8,0,0,0" />
+            <ComboBox Grid.Column="3" ItemsSource="{Binding HeldChoices}" SelectedItem="{Binding Held}" HorizontalAlignment="Stretch" MaxDropDownHeight="420">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vc:HeldChoice">
+                  <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Grid.Column="4" Classes="axis" Text="Pose" Margin="8,0,0,0" />
+            <ComboBox Grid.Column="5" ItemsSource="{Binding Stances}" SelectedItem="{Binding Stance}" Width="130">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vc:StanceChoice">
+                  <TextBlock Text="{Binding Text}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <CheckBox Grid.Column="6" Content="Emotion points" IsChecked="{Binding ShowEmotionPoints}" Margin="8,0,0,0" VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+        <Grid Background="{StaticResource PreviewBackground}">
+          <controls:BfresViewport x:Name="Viewport" />
+          <Border IsVisible="{Binding IsPreviewLoading}" Background="{StaticResource PreviewOverlayBackground}" CornerRadius="4" Padding="12,8" Margin="12"
+            HorizontalAlignment="Left" VerticalAlignment="Top">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <ProgressBar IsIndeterminate="True" Width="60" MinWidth="0" VerticalAlignment="Center" />
+              <TextBlock Text="Loading the villager…" FontSize="12" VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
+          <Border IsVisible="{Binding RenderError, Converter={x:Static ObjectConverters.IsNotNull}}" Background="{StaticResource PreviewOverlayStrongBackground}"
+            BorderBrush="{StaticResource PanelBorder}" BorderThickness="1" CornerRadius="6" Padding="16,12" MaxWidth="420" Margin="16"
+            HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="14" Height="14" Foreground="{StaticResource ErrorText}" />
+                <TextBlock Text="3D view unavailable" FontWeight="SemiBold" />
+              </StackPanel>
+              <SelectableTextBlock Text="{Binding RenderError}" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource SecondaryText}" />
+            </StackPanel>
+          </Border>
+        </Grid>
+      </DockPanel>
+    </Border>
+  </Grid>
+</UserControl>

@@ -113,6 +113,18 @@ public partial class RoomStepViewModel : ObservableObject, IDisposable
 
     public void ReportRenderFailure(Exception error) => RenderError = error.Message;
 
+    [ObservableProperty]
+    public partial string? ImportError { get; set; }
+
+    [RelayCommand]
+    private async Task Import()
+    {
+        if (project is not { } value) return;
+        if (await creator.ImportByml("Import a room", VillagerRoom.Read, error => ImportError = error) is not { } room) return;
+        value.Room = room;
+        Show(room);
+    }
+
     internal void Load(VillagerProject value)
     {
         project = value;

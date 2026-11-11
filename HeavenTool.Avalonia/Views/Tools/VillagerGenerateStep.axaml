@@ -31,13 +31,13 @@
               <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                 <TextBox Text="{Binding OutputFolder}" />
                 <Button Grid.Column="1" Command="{Binding BrowseCommand}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="12" Height="12" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" />
                     <TextBlock Text="Browse" />
                   </StackPanel>
                 </Button>
-                <Button Grid.Column="2" Height="32" Command="{Binding OpenFolderCommand}" ToolTip.Tip="Open in file manager">
-                  <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
+                <Button Grid.Column="2" Classes="icon" Command="{Binding OpenFolderCommand}" ToolTip.Tip="Open in file manager">
+                  <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" />
                 </Button>
               </Grid>
             </StackPanel>
@@ -46,7 +46,7 @@
             <StackPanel>
               <TextBlock Classes="title" Text="Not generated" />
               <TextBlock Classes="description" Text="The model isn't part of the patches. Add it to the mod yourself:" />
-              <SelectableTextBlock Text="{Binding ModelPath}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Margin="0,6,0,0" />
+              <SelectableTextBlock Classes="code" Text="{Binding ModelPath}" Margin="0,6,0,0" />
             </StackPanel>
           </Border>
         </StackPanel>
@@ -84,7 +84,7 @@
       <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,16,0,0">
         <Button Classes="accent" Command="{Binding GenerateCommand}" MinWidth="140">
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <icons:PackIconFontAwesome6 Kind="WandMagicSparklesSolid" Width="13" Height="13" VerticalAlignment="Center" />
+            <icons:PackIconFontAwesome6 Kind="WandMagicSparklesSolid" />
             <TextBlock Text="Generate" />
           </StackPanel>
         </Button>
@@ -103,7 +103,7 @@
                 <Border Classes="row">
                   <StackPanel>
                     <TextBlock Classes="title" Text="{Binding Description}" />
-                    <SelectableTextBlock Text="{Binding Path}" FontFamily="Consolas,Menlo,monospace" FontSize="12" Margin="0,2,0,0"
+                    <SelectableTextBlock Classes="code" Text="{Binding Path}" Margin="0,2,0,0"
                       Foreground="{StaticResource SecondaryText}" TextWrapping="Wrap" />
                   </StackPanel>
                 </Border>
