@@ -22,62 +22,6 @@
     </DataTemplate>
   </fa:FAAppWindow.Resources>
 
-  <fa:FAAppWindow.Styles>
-    <Style Selector="TextBlock.page">
-      <Setter Property="FontSize" Value="24" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Margin" Value="0,0,0,4" />
-    </Style>
-    <!-- A section title: an icon and a name above its card. -->
-    <Style Selector="StackPanel.section">
-      <Setter Property="Orientation" Value="Horizontal" />
-      <Setter Property="Spacing" Value="10" />
-      <Setter Property="Margin" Value="2,22,0,8" />
-    </Style>
-    <Style Selector="StackPanel.section > icons|PackIconFontAwesome6">
-      <Setter Property="Width" Value="16" />
-      <Setter Property="Height" Value="16" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <Style Selector="StackPanel.section > TextBlock">
-      <Setter Property="FontSize" Value="15" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <!-- A card of rows, split by lines. -->
-    <Style Selector="Border.card">
-      <Setter Property="Background" Value="{StaticResource CardBackground}" />
-      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="6" />
-    </Style>
-    <Style Selector="Border.card > StackPanel > Border">
-      <Setter Property="Padding" Value="16,12" />
-      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
-      <Setter Property="BorderThickness" Value="0,1,0,0" />
-    </Style>
-    <Style Selector="Border.card > StackPanel > Border:nth-child(1)">
-      <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="Border.card > StackPanel > Border:disabled">
-      <Setter Property="Opacity" Value="0.5" />
-    </Style>
-    <Style Selector="TextBlock.title">
-      <Setter Property="FontSize" Value="14" />
-    </Style>
-    <Style Selector="TextBlock.description">
-      <Setter Property="FontSize" Value="12" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
-      <Setter Property="Margin" Value="0,2,0,0" />
-    </Style>
-    <Style Selector="ListBox.categories ListBoxItem">
-      <Setter Property="Padding" Value="12,9" />
-      <Setter Property="Margin" Value="0,1" />
-      <Setter Property="CornerRadius" Value="4" />
-    </Style>
-  </fa:FAAppWindow.Styles>
-
   <Grid RowDefinitions="32,*">
     <DockPanel Grid.Row="0" Background="{StaticResource TitleBarBackground}" WindowDecorationProperties.ElementRole="TitleBar">
       <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16" />
@@ -87,22 +31,22 @@
 
     <Grid Grid.Row="1" ColumnDefinitions="210,*">
       <Border Background="{StaticResource MenuBackground}" BorderBrush="{StaticResource PanelBorder}" BorderThickness="0,0,1,0">
-        <ListBox Classes="categories" SelectionMode="AlwaysSelected" Background="Transparent" Margin="8">
+        <ListBox Classes="nav" SelectionMode="AlwaysSelected" Background="Transparent" Margin="8">
           <ListBoxItem x:Name="ModManagerCategory" IsSelected="True">
             <StackPanel Orientation="Horizontal" Spacing="12">
-              <icons:PackIconFontAwesome6 Kind="CubesSolid" Width="16" Height="16" />
+              <icons:PackIconFontAwesome6 Kind="CubesSolid" />
               <TextBlock Text="Mod Manager" VerticalAlignment="Center" />
             </StackPanel>
           </ListBoxItem>
           <ListBoxItem x:Name="GameCategory">
             <StackPanel Orientation="Horizontal" Spacing="12">
-              <icons:PackIconFontAwesome6 Kind="GamepadSolid" Width="16" Height="16" />
+              <icons:PackIconFontAwesome6 Kind="GamepadSolid" />
               <TextBlock Text="Game Settings" VerticalAlignment="Center" />
             </StackPanel>
           </ListBoxItem>
           <ListBoxItem x:Name="DebugCategory">
             <StackPanel Orientation="Horizontal" Spacing="12">
-              <icons:PackIconFontAwesome6 Kind="BugSolid" Width="16" Height="16" />
+              <icons:PackIconFontAwesome6 Kind="BugSolid" />
               <TextBlock Text="Debug" VerticalAlignment="Center" />
             </StackPanel>
           </ListBoxItem>
@@ -111,8 +55,7 @@
 
       <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="28,20,28,28">
-          <Border IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" Margin="0,0,0,12" Padding="12,8"
-            CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource ErrorText}">
+          <Border Classes="banner" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}">
             <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{StaticResource ErrorText}" />
           </Border>
 
@@ -124,7 +67,7 @@
             </StackPanel>
             <Border Classes="card">
               <StackPanel>
-                <Border>
+                <Border Classes="row">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <StackPanel VerticalAlignment="Center">
                       <TextBlock Classes="title" Text="Deploy to" />
@@ -142,18 +85,18 @@
                     </ComboBox>
                   </Grid>
                 </Border>
-                <Border>
+                <Border Classes="row">
                   <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                       <TextBox Text="{Binding ModFolder}" PlaceholderText="Mod folder for title 01006F8002326000" />
                       <Button Grid.Column="1" Command="{Binding BrowseModFolderCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                          <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="12" Height="12" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" />
                           <TextBlock Text="Browse" />
                         </StackPanel>
                       </Button>
-                      <Button Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding ModFolder}" ToolTip.Tip="Open in file manager">
-                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
+                      <Button Classes="icon" Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding ModFolder}" ToolTip.Tip="Open in file manager">
+                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" />
                       </Button>
                     </Grid>
                     <ContentControl Content="{Binding ModFolderStatus}" ContentTemplate="{StaticResource StatusTemplate}" />
@@ -168,7 +111,7 @@
             </StackPanel>
             <Border Classes="card">
               <StackPanel>
-                <Border>
+                <Border Classes="row">
                   <StackPanel Spacing="10">
                     <StackPanel>
                       <TextBlock Classes="title" Text="Mod library" />
@@ -177,16 +120,16 @@
                     <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                       <TextBox Text="{Binding LibraryFolder}" />
                       <Button Grid.Column="1" Command="{Binding BrowseLibraryFolderCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                          <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="12" Height="12" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" />
                           <TextBlock Text="Browse" />
                         </StackPanel>
                       </Button>
-                      <Button Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding LibraryFolder}" ToolTip.Tip="Open in file manager">
-                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
+                      <Button Classes="icon" Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding LibraryFolder}" ToolTip.Tip="Open in file manager">
+                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" />
                       </Button>
-                      <Button Grid.Column="3" Command="{Binding ResetLibraryFolderCommand}" ToolTip.Tip="Use the default folder">
-                        <icons:PackIconFontAwesome6 Kind="RotateLeftSolid" Width="12" Height="12" />
+                      <Button Classes="icon" Grid.Column="3" Command="{Binding ResetLibraryFolderCommand}" ToolTip.Tip="Use the default folder">
+                        <icons:PackIconFontAwesome6 Kind="RotateLeftSolid" />
                       </Button>
                     </Grid>
                   </StackPanel>
@@ -200,7 +143,7 @@
             </StackPanel>
             <Border Classes="card">
               <StackPanel>
-                <Border>
+                <Border Classes="row">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <StackPanel VerticalAlignment="Center">
                       <TextBlock Classes="title" Text="Show mods with content ratings" />
@@ -218,7 +161,7 @@
             </StackPanel>
             <Border Classes="card">
               <StackPanel>
-                <Border>
+                <Border Classes="row">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <StackPanel VerticalAlignment="Center">
                       <TextBlock Classes="title" Text="Install Skyline" />
@@ -227,7 +170,7 @@
                     <ToggleSwitch Grid.Column="1" IsChecked="{Binding InstallSkyline}" OnContent="On" OffContent="Off" VerticalAlignment="Center" />
                   </Grid>
                 </Border>
-                <Border x:Name="AutoRstbRow" IsEnabled="{Binding InstallSkyline}">
+                <Border Classes="row" x:Name="AutoRstbRow" IsEnabled="{Binding InstallSkyline}">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <StackPanel VerticalAlignment="Center">
                       <TextBlock Classes="title" Text="auto-rstb" />
@@ -250,7 +193,7 @@
             </StackPanel>
             <Border Classes="card">
               <StackPanel>
-                <Border>
+                <Border Classes="row">
                   <StackPanel Spacing="10">
                     <StackPanel>
                       <TextBlock Classes="title" Text="Extracted romfs" />
@@ -259,13 +202,13 @@
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                       <TextBox Text="{Binding RomfsFolder}" PlaceholderText="Folder with the extracted romfs" />
                       <Button Grid.Column="1" Command="{Binding BrowseRomfsFolderCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                          <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="12" Height="12" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" />
                           <TextBlock Text="Browse" />
                         </StackPanel>
                       </Button>
-                      <Button Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding RomfsFolder}" ToolTip.Tip="Open in file manager">
-                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
+                      <Button Classes="icon" Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding RomfsFolder}" ToolTip.Tip="Open in file manager">
+                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" />
                       </Button>
                     </Grid>
                     <ContentControl Content="{Binding RomfsStatus}" ContentTemplate="{StaticResource StatusTemplate}" />
@@ -283,7 +226,7 @@
             </StackPanel>
             <Border Classes="card">
               <StackPanel>
-                <Border>
+                <Border Classes="row">
                   <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                       <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
@@ -291,21 +234,21 @@
                         <TextBlock Classes="description" Text="Compares each enabled library mod with the game files and writes its table rows, messages and pack files as NookKit JSON: NookKit/Bcsv, NookKit/Message and NookKit/Pack, one file per mod. Files a mod adds to a pack are copied out as loose files." />
                       </StackPanel>
                       <Button Grid.Column="1" Command="{Binding GenerateNookKitCommand}" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                          <icons:PackIconFontAwesome6 Kind="WandMagicSparklesSolid" Width="12" Height="12" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <icons:PackIconFontAwesome6 Kind="WandMagicSparklesSolid" />
                           <TextBlock Text="Generate" />
                         </StackPanel>
                       </Button>
-                      <Button Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding NookKitFolder}" VerticalAlignment="Center"
+                      <Button Classes="icon" Grid.Column="2" Command="{Binding OpenFolderCommand}" CommandParameter="{Binding NookKitFolder}" VerticalAlignment="Center"
                         IsEnabled="{Binding NookKitFolder, Converter={x:Static ObjectConverters.IsNotNull}}" ToolTip.Tip="Open the last export in file manager">
-                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" Width="12" Height="12" />
+                        <icons:PackIconFontAwesome6 Kind="ArrowUpRightFromSquareSolid" />
                       </Button>
                     </Grid>
                     <ContentControl Content="{Binding NookKitStatus}" ContentTemplate="{StaticResource StatusTemplate}"
                       IsVisible="{Binding NookKitStatus, Converter={x:Static ObjectConverters.IsNotNull}}" />
                   </StackPanel>
                 </Border>
-                <Border IsVisible="{Binding NookKitResults.Count}">
+                <Border Classes="row" IsVisible="{Binding NookKitResults.Count}">
                   <ItemsControl ItemsSource="{Binding NookKitResults}">
                     <ItemsControl.ItemsPanel>
                       <ItemsPanelTemplate>

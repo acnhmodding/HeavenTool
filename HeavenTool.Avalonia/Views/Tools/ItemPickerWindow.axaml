@@ -8,25 +8,6 @@
   Title="{Binding Title}" Width="560" Height="680" MinWidth="420" MinHeight="420"
   WindowStartupLocation="CenterOwner" Background="{StaticResource WindowBackground}">
 
-  <fa:FAAppWindow.Styles>
-    <Style Selector="Border.card">
-      <Setter Property="Background" Value="{StaticResource CardBackground}" />
-      <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="6" />
-    </Style>
-    <Style Selector="ListBox.items ListBoxItem">
-      <Setter Property="Padding" Value="10,6" />
-    </Style>
-    <Style Selector="Border.icon">
-      <Setter Property="Width" Value="40" />
-      <Setter Property="Height" Value="40" />
-      <Setter Property="Padding" Value="3" />
-      <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="Background" Value="{StaticResource PanelBorder}" />
-    </Style>
-  </fa:FAAppWindow.Styles>
-
   <Grid RowDefinitions="32,*">
     <DockPanel Grid.Row="0" Background="{StaticResource TitleBarBackground}" WindowDecorationProperties.ElementRole="TitleBar">
       <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16" />
@@ -54,7 +35,7 @@
         </TextBox>
 
         <Border Classes="card" ClipToBounds="True">
-          <ListBox x:Name="List" Classes="items" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected}"
+          <ListBox x:Name="List" Classes="items long" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected}"
             Background="Transparent" DoubleTapped="OnItemDoubleTapped">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vc:ItemChoice">
@@ -64,10 +45,10 @@
                   </Border>
                   <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Item.Name}" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Item.Label}" FontFamily="Consolas,Menlo,monospace" FontSize="11"
+                    <TextBlock Classes="code" Text="{Binding Item.Label}"
                       TextTrimming="CharacterEllipsis" Foreground="{StaticResource DimText}" />
                   </StackPanel>
-                  <TextBlock Grid.Column="2" Text="{Binding Item.Id}" FontFamily="Consolas,Menlo,monospace" FontSize="12"
+                  <TextBlock Grid.Column="2" Classes="code" Text="{Binding Item.Id}"
                     VerticalAlignment="Center" Foreground="{StaticResource SecondaryText}" />
                 </Grid>
               </DataTemplate>

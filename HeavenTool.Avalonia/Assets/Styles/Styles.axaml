@@ -1,55 +1,186 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <Design.PreviewWith>
-    <Border Height="2000"
-                Padding="20">
-      <StackPanel Spacing="5">
-        <TextBlock Text="Code Font Family" />
-        <Grid RowDefinitions="*,Auto">
-          <Menu Grid.Row="1"
-                Width="100">
-            <MenuItem Header="File">
-              <MenuItem Header="Test 1" />
-              <MenuItem Header="Test 2" />
-              <MenuItem Header="Test 3">
-                <MenuItem.Icon>
-                  <CheckBox Margin="0" />
-                </MenuItem.Icon>
-              </MenuItem>
-            </MenuItem>
-          </Menu>
-          <StackPanel Orientation="Horizontal">
-            <ToggleButton
-                Name="btnAdd"
-                Height="28"
-                HorizontalAlignment="Right"
-                Content="Addy" />
-            <Button
-                Name="btnRem"
-                HorizontalAlignment="Right"
-                Content="Add" />
-            <TextBox
-                Width="100"
-                VerticalAlignment="Center"
-                Text="Rrrrr"
-                UseFloatingPlaceholder="True"
-                PlaceholderText="Hello" />
-            <CheckBox>Test Check</CheckBox>
-          </StackPanel>
-        </Grid>
-      </StackPanel>
-    </Border>
-  </Design.PreviewWith>
-  <Style Selector="DropDownButton">
-    <Setter Property="FontSize"
-            Value="12" />
-  </Style>
-  <Style Selector="Border.small">
-    <Setter Property="Width"
-            Value="100" />
-  </Style>
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia">
   <Style Selector="TextBox">
       <Setter Property="BorderBrush" Value="Transparent"/>
   </Style>
-  <!-- Add Styles Here -->
+
+  <!-- A page's title and the text under it. -->
+  <Style Selector="TextBlock.page">
+    <Setter Property="FontSize" Value="24" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+  </Style>
+  <Style Selector="TextBlock.intro">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+  </Style>
+  <!-- A section title: an icon and a name above its card. -->
+  <Style Selector="StackPanel.section">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="10" />
+    <Setter Property="Margin" Value="2,22,0,8" />
+  </Style>
+  <Style Selector="StackPanel.section > icons|PackIconFontAwesome6">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="StackPanel.section > TextBlock">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <!-- A short note between a section title and its card. -->
+  <Style Selector="TextBlock.note">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+    <Setter Property="Margin" Value="2,0,0,8" />
+  </Style>
+
+  <!-- A card of rows, split by lines. Rows are direct children of its panel, or the items of one list. -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{StaticResource CardBackground}" />
+    <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Border.row">
+    <Setter Property="Padding" Value="16,12" />
+    <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="StackPanel > Border.row:nth-child(1)">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ContentPresenter:nth-child(1) > Border.row">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Border.row:disabled">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+  <Style Selector="TextBlock.title">
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector="TextBlock.description">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+    <Setter Property="Margin" Value="0,2,0,0" />
+  </Style>
+  <Style Selector="TextBlock.description.unknown">
+    <Setter Property="Foreground" Value="{StaticResource WarningText}" />
+  </Style>
+
+  <!-- A small sample of a color, framed so black and white still show on the dark card. -->
+  <Style Selector="Border.swatch">
+    <Setter Property="Width" Value="14" />
+    <Setter Property="Height" Value="14" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="BorderBrush" Value="{StaticResource PanelBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <!-- An item's icon on a rounded tile. -->
+  <Style Selector="Border.icon">
+    <Setter Property="Width" Value="44" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="Padding" Value="3" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="{StaticResource PanelBorder}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.icon.small">
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="2" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <!-- A name plate as conversations draw it: the name in its text color on a rounded plate. -->
+  <Style Selector="Border.plate">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="10,1" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.plate > TextBlock">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <!-- Errors and warnings under a field, and an error banner over a page. -->
+  <Style Selector="TextBlock.error">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource ErrorText}" />
+    <Setter Property="Margin" Value="0,4,0,0" />
+  </Style>
+  <Style Selector="TextBlock.warning">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Foreground" Value="{StaticResource WarningText}" />
+  </Style>
+  <Style Selector="Border.banner">
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="Margin" Value="0,0,0,12" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{StaticResource ErrorText}" />
+  </Style>
+
+  <!-- IDs, labels and paths. -->
+  <Style Selector="TextBlock.code, SelectableTextBlock.code">
+    <Setter Property="FontFamily" Value="{StaticResource CodeFont}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <!-- A window's side list of pages. -->
+  <Style Selector="ListBox.nav ListBoxItem">
+    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="Margin" Value="0,1" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem:disabled">
+    <Setter Property="Opacity" Value="0.45" />
+  </Style>
+  <Style Selector="ListBox.nav icons|PackIconFontAwesome6">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <!-- A list of items inside a card. -->
+  <Style Selector="ListBox.items ListBoxItem">
+    <Setter Property="Padding" Value="10,6" />
+  </Style>
+  <!-- A long list keeps clear of its scrollbar, which sits over the content. -->
+  <Style Selector="ListBox.long">
+    <Setter Property="Padding" Value="0,0,16,0" />
+  </Style>
+
+  <!-- Square icon-only buttons. -->
+  <Style Selector="Button.icon">
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <!-- The same height with room for the dropdown arrow. -->
+  <Style Selector="DropDownButton.icon">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <!-- An icon next to a button's text. -->
+  <Style Selector="Button:not(.tool) icons|PackIconFontAwesome6, DropDownButton icons|PackIconFontAwesome6">
+    <Setter Property="Width" Value="12" />
+    <Setter Property="Height" Value="12" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <!-- The icon of an icon-only button. -->
+  <Style Selector="Button.icon icons|PackIconFontAwesome6, DropDownButton.icon icons|PackIconFontAwesome6">
+    <Setter Property="Width" Value="14" />
+    <Setter Property="Height" Value="14" />
+  </Style>
 </Styles>

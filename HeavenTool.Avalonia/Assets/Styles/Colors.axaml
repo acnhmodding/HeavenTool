@@ -34,4 +34,13 @@
 
   <!-- BFRES material grid -->
   <SolidColorBrush x:Key="ChangedValueBackground">#4B401C</SolidColorBrush>
+
+  <!-- 3D previews -->
+  <SolidColorBrush x:Key="PreviewBackground">#1c1e23</SolidColorBrush>
+  <SolidColorBrush x:Key="PreviewOverlayBackground">#C0202226</SolidColorBrush>
+  <SolidColorBrush x:Key="PreviewOverlayStrongBackground">#E6202226</SolidColorBrush>
+  <SolidColorBrush x:Key="PreviewToolbarBackground">#24262b</SolidColorBrush>
+
+  <!-- IDs, labels and paths -->
+  <FontFamily x:Key="CodeFont">Consolas,Menlo,monospace</FontFamily>
 </ResourceDictionary>

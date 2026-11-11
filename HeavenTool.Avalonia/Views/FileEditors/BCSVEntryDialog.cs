@@ -117,7 +117,7 @@ public sealed class BCSVEntryDialog : Window
             var button = new DropDownButton
             {
                 Content = column.FormatValue(editor.Value), HorizontalAlignment = HorizontalAlignment.Stretch,
-                HorizontalContentAlignment = HorizontalAlignment.Left, Flyout = new Flyout { Content = editor }
+                HorizontalContentAlignment = HorizontalAlignment.Left, Flyout = new Flyout { Content = editor }, FontSize = 12
             };
             editor.ValueChanged += (_, _) =>
             {
@@ -169,7 +169,7 @@ public sealed class BCSVEntryDialog : Window
         var picker = new ColorPicker
         {
             Color = Current(), IsAlphaEnabled = false, IsAlphaVisible = false, IsAccentColorsVisible = false,
-            HorizontalAlignment = HorizontalAlignment.Left
+            HorizontalAlignment = HorizontalAlignment.Left, FontSize = 12
         };
         picker.ColorChanged += (_, e) =>
         {

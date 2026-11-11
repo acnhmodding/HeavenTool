@@ -26,18 +26,6 @@
       <Setter Property="Padding" Value="8" />
       <Setter Property="Margin" Value="0 0 0 6" />
     </Style>
-    <!-- Small square icon buttons on a card. -->
-    <Style Selector="Button.icon">
-      <Setter Property="Width" Value="34" />
-      <Setter Property="Height" Value="34" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="HorizontalContentAlignment" Value="Center" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.icon icons|PackIconFontAwesome6">
-      <Setter Property="Width" Value="14" />
-      <Setter Property="Height" Value="14" />
-    </Style>
     <Style Selector="Button.deploy">
       <Setter Property="Background" Value="{StaticResource ACNHGreen}" />
       <Setter Property="Foreground" Value="White" />
@@ -175,7 +163,7 @@
             <Button Classes="deploy" HorizontalAlignment="Stretch" Command="{Binding DeployCommand}"
                     ToolTip.Tip="Copy the turned on mods into the emulator's mod folder, merging the files they share">
               <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                <icons:PackIconFontAwesome6 Kind="RocketSolid" Width="14" Height="14" VerticalAlignment="Center" />
+                <icons:PackIconFontAwesome6 Kind="RocketSolid" />
                 <TextBlock Text="Deploy" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
@@ -271,21 +259,21 @@
             <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="10" Margin="0 10 10 10" IsVisible="{Binding IsInstalledPage}">
               <Button Background="{StaticResource ACNHGreenDark}" Command="{Binding UpdateAllCommand}" IsVisible="{Binding HasUpdates}"
                       ToolTip.Tip="Install every update found, keeping each mod's place in the list and whether it's on">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <icons:PackIconFontAwesome6 Kind="CircleArrowUpSolid" Width="12" Height="12" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <icons:PackIconFontAwesome6 Kind="CircleArrowUpSolid" />
                   <TextBlock Text="Update all" />
                 </StackPanel>
               </Button>
               <Button Background="{StaticResource ACNHGreenDark}" Command="{Binding CheckForUpdatesCommand}"
                       ToolTip.Tip="Ask GameBanana for newer files of the mods installed from it">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <icons:PackIconFontAwesome6 Kind="RotateSolid" Width="12" Height="12" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <icons:PackIconFontAwesome6 Kind="RotateSolid" />
                   <TextBlock Text="Check for updates" />
                 </StackPanel>
               </Button>
               <Button Background="{StaticResource ACNHGreenDark}" Command="{Binding InstallFromFileCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <icons:PackIconFontAwesome6 Kind="FileZipperSolid" Width="12" Height="12" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <icons:PackIconFontAwesome6 Kind="FileZipperSolid" />
                   <TextBlock Text="Install from file..." />
                 </StackPanel>
               </Button>
