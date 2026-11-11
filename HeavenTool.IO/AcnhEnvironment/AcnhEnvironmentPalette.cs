@@ -17,6 +17,7 @@ public sealed record AcnhEnvironmentPalette(
     public float SkyLightIntensity { get; init; }
     public float RayleighIntensity { get; init; }
     public float MieIntensity { get; init; }
+    public float WaterSaturation { get; init; }
     // The bloom threshold and the four compose colors the palette sets on agl's bloom.
     public float BloomThreshold { get; init; }
     public Vector4 BloomBlendColor0 { get; init; }

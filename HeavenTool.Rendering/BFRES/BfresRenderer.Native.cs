@@ -3,6 +3,7 @@ using HeavenTool.Shaders;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using System.Buffers.Binary;
+using System.Text.RegularExpressions;
 using NMatrix = System.Numerics.Matrix4x4;
 
 namespace HeavenTool.Rendering.BFRES;
@@ -12,7 +13,7 @@ public sealed partial class BfresRenderer
     private sealed record NativeProgramGpu(int Program, TranslatedShader Source, int VertexConstants, int FragmentConstants, List<(int Binding, string Name)> Blocks);
     // Buffers holds the blocks this mesh owns; Bindings resolves every block binding, shared ones included.
     private sealed record NativeMeshGpu(int Vao, int Vbo, NativeProgramGpu Program, Dictionary<string, int> Buffers,
-        (int Binding, int Buffer)[] Bindings, List<(int Unit, int Texture, int Sampler)> Samplers);
+        (int Binding, int Buffer)[] Bindings, List<(int Unit, int Texture, int Sampler, TextureTarget Target)> Samplers);
     // Constants and binding metadata belong to the archive program, even when two programs have identical code.
     private readonly Dictionary<(SwitchShadingModel Model, int Index), NativeProgramGpu> nativePrograms = [];
     // Archive programs with the same code share one GL program, as compiling is most of a scene's load time. Its block
@@ -37,7 +38,7 @@ public sealed partial class BfresRenderer
     private readonly Dictionary<string, int> studioBuffers = [];
     private IReadOnlyDictionary<BfresMesh, BfresMeshShaders> nativePending = new Dictionary<BfresMesh, BfresMeshShaders>();
     private bool nativeDirty;
-    private int nativeContext, whiteTexture, blackTexture, shadowTexture, environmentTexture, projectionTexture;
+    private int nativeContext, whiteTexture, blackTexture, shadowTexture, environmentTexture, projectionTexture, lightPrepassTexture;
     private AcnhLightingPreset lighting = AcnhLightingPreset.Day;
     private bool lightingDirty;
     public void SetLighting(AcnhLightingPreset value)
@@ -214,7 +215,7 @@ public sealed partial class BfresRenderer
         var gpu = CreateNativeProgram(translated);
         int vao = GL.GenVertexArray(), vbo = GL.GenBuffer();
         var buffers = new Dictionary<string, int>();
-        var samplers = new List<(int, int, int)>();
+        var samplers = new List<(int, int, int, TextureTarget)>();
         try
         {
             var attrs = translated.Model.Attributes.Where(x => x.Location >= 0).ToArray();
@@ -270,10 +271,17 @@ public sealed partial class BfresRenderer
                     if (slot < 0 || GL.GetUniformLocation(gpu.Program, TextureName(prefix, slot)) < 0) continue;
                     int unit = NativeTextureUnit(prefix, slot);
                     if (slot >= TextureSlots || unit >= maxUnits) throw new NotSupportedException("Native shader needs more texture units than this GPU supports.");
-                    int texture = materialSampler?.Texture != null ? UploadTexture(materialSampler.Texture) : 0;
-                    if (texture == 0) texture = DefaultNativeTexture(resource.Name);
+                    var target = SamplerTarget(prefix == "vp" ? translated.Vertex : translated.Fragment, TextureName(prefix, slot));
+                    int texture = 0;
+                    if (target == TextureTarget.Texture2DArray)
+                        texture = DefaultNativeArrayTexture(resource.Name);
+                    else
+                    {
+                        if (materialSampler?.Texture != null) texture = UploadTexture(materialSampler.Texture);
+                        if (texture == 0) texture = DefaultNativeTexture(resource.Name);
+                    }
                     int sampler = materialSampler != null ? CreateSampler(materialSampler) : 0;
-                    samplers.Add((unit, texture, sampler));
+                    samplers.Add((unit, texture, sampler, target));
                 }
             }
             return new(vao, vbo, gpu, buffers, [.. bindings], samplers);
@@ -283,7 +291,7 @@ public sealed partial class BfresRenderer
             GL.DeleteVertexArray(vao);
             GL.DeleteBuffer(vbo);
             foreach (int buffer in buffers.Values) GL.DeleteBuffer(buffer);
-            foreach (var (_, _, sampler) in samplers) if (sampler != 0) GL.DeleteSampler(sampler);
+            foreach (var (_, _, sampler, _) in samplers) if (sampler != 0) GL.DeleteSampler(sampler);
             throw;
         }
     }
@@ -343,8 +351,15 @@ public sealed partial class BfresRenderer
         GL.UseProgram(native.Program.Program);
         foreach (var (binding, buffer) in native.Bindings)
             GL.BindBufferBase(BufferRangeTarget.UniformBuffer, binding, passContext != 0 && buffer == nativeContext ? passContext : buffer);
-        foreach (var (unit, bound, sampler) in native.Samplers)
+        foreach (var (unit, bound, sampler, target) in native.Samplers)
         {
+            if (target != TextureTarget.Texture2D)
+            {
+                GL.ActiveTexture(TextureUnit.Texture0 + unit);
+                GL.BindTexture(target, bound);
+                GL.BindSampler(unit, sampler);
+                continue;
+            }
             // The environment probe's capture reads the shadow map, but not the camera's screen-space occlusion.
             int texture = passContext == shadowContext && bound == shadowMap ? DefaultNativeTexture("shadow")
                 : passContext != 0 && passContext == probeContext && bound != 0 && bound == ssaoMaps[1] ? DefaultNativeTexture("white")
@@ -358,8 +373,37 @@ public sealed partial class BfresRenderer
         GL.DrawElements(PrimitiveType.Triangles, mesh.Count, DrawElementsType.UnsignedInt, 0);
     }
 
+    // The translator declares each texture with the type the Maxwell code samples it as.
+    private static TextureTarget SamplerTarget(string glsl, string name) =>
+        Regex.Match(glsl, $@"uniform\s+(\w+)\s+{name}\s*;").Groups[1].Value switch
+        {
+            "sampler2DArray" or "sampler2DArrayShadow" or "isampler2DArray" or "usampler2DArray" => TextureTarget.Texture2DArray,
+            "samplerCube" or "samplerCubeShadow" => TextureTarget.TextureCubeMap,
+            "sampler3D" => TextureTarget.Texture3D,
+            _ => TextureTarget.Texture2D,
+        };
+
+    // gsys_light_prepass is the half-size, two-layer target ExtendsGBufferWaterDepth and ExtendsGBuffer draw into after
+    // clearing it to 0. The studio has no field models drawn in those passes, so it holds only the clear.
+    private int DefaultNativeArrayTexture(string name)
+    {
+        if (name != "gsys_light_prepass") return 0;
+        if (lightPrepassTexture == 0)
+        {
+            lightPrepassTexture = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2DArray, lightPrepassTexture);
+            GL.TexImage3D(TextureTarget.Texture2DArray, 0, PixelInternalFormat.Rgba16f, 1, 1, 2, 0, PixelFormat.Rgba, PixelType.Float, new float[8]);
+            GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+            GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+        }
+        return lightPrepassTexture;
+    }
+
     private int DefaultNativeTexture(string name)
     {
+        if (name == "gsys_color_buffer") return SceneColorMap();
         if (name == "gsys_normalized_linear_depth") return NormalizedLinearDepthMap();
         if (name == "gsys_cube_map")
         {
@@ -453,7 +497,7 @@ public sealed partial class BfresRenderer
             GL.DeleteVertexArray(mesh.Vao);
             GL.DeleteBuffer(mesh.Vbo);
             foreach (int buffer in mesh.Buffers.Values) GL.DeleteBuffer(buffer);
-            foreach (var (_, _, sampler) in mesh.Samplers) if (sampler != 0) GL.DeleteSampler(sampler);
+            foreach (var (_, _, sampler, _) in mesh.Samplers) if (sampler != 0) GL.DeleteSampler(sampler);
         }
         nativeMeshes.Clear();
         nativeDepthMeshes.Clear();
@@ -465,11 +509,12 @@ public sealed partial class BfresRenderer
         nativePrograms.Clear();
         if (nativeContext != 0) GL.DeleteBuffer(nativeContext);
         nativeContext = 0;
-        foreach (int texture in new[] { whiteTexture, blackTexture, shadowTexture, environmentTexture, projectionTexture }) if (texture != 0) GL.DeleteTexture(texture);
+        foreach (int texture in new[] { whiteTexture, blackTexture, shadowTexture, environmentTexture, projectionTexture, lightPrepassTexture }) if (texture != 0) GL.DeleteTexture(texture);
         ReleaseShadows();
         ReleaseOcclusion();
         ReleaseNormalizedLinearDepth();
-        whiteTexture = blackTexture = shadowTexture = environmentTexture = projectionTexture = 0;
+        ReleaseSceneColor();
+        whiteTexture = blackTexture = shadowTexture = environmentTexture = projectionTexture = lightPrepassTexture = 0;
         nativeDirty = nativePending.Count > 0;
     }
 

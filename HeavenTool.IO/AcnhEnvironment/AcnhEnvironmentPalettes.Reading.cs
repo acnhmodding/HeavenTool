@@ -112,6 +112,7 @@ public sealed partial class AcnhEnvironmentPalettes
             SkyLightIntensity = Number(p, "mSkyLightIntensity"),
             RayleighIntensity = Number(p, "mRayleighIntensity"),
             MieIntensity = Number(p, "mMieIntensity"),
+            WaterSaturation = NumberAtKey(p, "afa09190"),
             BloomThreshold = Number(p, "mBloomThreshold"),
             BloomBlendColor0 = Color(p, "mBloomBlendColor0"),
             BloomBlendColor1 = Color(p, "mBloomBlendColor1"),

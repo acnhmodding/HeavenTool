@@ -84,6 +84,7 @@ public sealed partial class AcnhEnvironmentPalettes
         SkyLightIntensity = Lerp(a.SkyLightIntensity, b.SkyLightIntensity, t),
         RayleighIntensity = Lerp(a.RayleighIntensity, b.RayleighIntensity, t),
         MieIntensity = Lerp(a.MieIntensity, b.MieIntensity, t),
+        WaterSaturation = Lerp(a.WaterSaturation, b.WaterSaturation, t),
         BloomThreshold = Lerp(a.BloomThreshold, b.BloomThreshold, t),
         BloomBlendColor0 = Lerp(a.BloomBlendColor0, b.BloomBlendColor0, t),
         BloomBlendColor1 = Lerp(a.BloomBlendColor1, b.BloomBlendColor1, t),

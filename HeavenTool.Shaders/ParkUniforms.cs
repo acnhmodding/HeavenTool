@@ -17,7 +17,7 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
         {
             [10] = new(.030124f, -.88006f, -.4739f, 0), [17] = new(0, 2.5f, .6f, .94837f), [18] = new(.39891f, 0, .5f, 14),
             [21] = new(.10977f, .25271f, .99457f, .1f), [52] = new(.19891f, 0, 0, 0), [55] = new(0, .33836f, 0, 0),
-            [61] = new(.96258f, 0, .27099f, 1.4436f), [72] = new(.021719f, .021696f, .021602f, .021719f),
+            [61] = new(.96258f, 0, .27099f, 1.4436f), [69] = new(.75f, 0, 0, 0), [72] = new(.021719f, .021696f, .021602f, .021719f),
             [73] = new(.30109f, .30109f, .30109f, 1), [75] = new(-.0011585f, .37181f, -.92831f, 0), [76] = new(1, 9, 12, 6),
         },
         Environment = new Dictionary<int, Vector4>
@@ -30,7 +30,7 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
         {
             [10] = new(-.42079f, -.11845f, .89939f, 0), [17] = new(0, 2.5f, .6f, .43906f), [18] = new(.6f, 0, .5f, 8.5105f),
             [21] = new(.19034f, .26423f, .35622f, .1f), [52] = new(.2f, 0, 0, 0), [55] = new(0, .3137f, 0, 0),
-            [61] = new(-.88268f, 0, .46998f, .96774f), [72] = new(1.2464f, 1.8764f, 3.4511f, 0),
+            [61] = new(-.88268f, 0, .46998f, .96774f), [69] = new(.6f, 0, 0, 0), [72] = new(1.2464f, 1.8764f, 3.4511f, 0),
             [73] = new(.05f, .05f, .1823f, 1), [75] = new(.25946f, -.38414f, -.88607f, 0), [76] = new(1, 9, 200, 6),
         },
         Environment = new Dictionary<int, Vector4>
@@ -49,7 +49,7 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
         {
             [4] = new(.6f, 0, 0, 0), [5] = new(1, .3f, 0, 0), [10] = new(.81884f, -.57403f, -.00006f, 0), [17] = new(0, 1, 1, .97731f),
             [18] = new(.6f, 1, .5f, 20), [21] = default, [52] = new(.35126f, 0, 0, 0), [55] = new(1, .34932f, 0, 0),
-            [61] = new(.90428f, 0, .42693f, 0), [72] = default, [73] = new(1, 1, 1, 1), [75] = new(0, 0, -1, 0), [76] = new(1, 1, 250, 0),
+            [61] = new(.90428f, 0, .42693f, 0), [69] = new(1, 0, 0, 0), [72] = default, [73] = new(1, 1, 1, 1), [75] = new(0, 0, -1, 0), [76] = new(1, 1, 250, 0),
         },
         Environment = new Dictionary<int, Vector4> { [10] = default, [11] = new(0, 0, -1, -1), [12] = new(.01f, 1, 0, 0) },
         LocalLights =
@@ -63,6 +63,7 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     // Evaluated sky rows: [6] atmosphere, [8] sun radiance, [9] scattered sun RGB, [10] sky direction, [24].xy sun controls.
     // Other time-of-day gsys_user0 rows: [17].w shadow strength, [21] fog colour, and
     // the rim light's colour [72], direction [75] and exponents/intensity [76], and field GI override colour [73].
+    // [69].x is the water's saturation, the palette's at the preset's hour: Afternoon, Night and every indoor palette.
     public IReadOnlyDictionary<int, Vector4> User0 { get; init; } = new Dictionary<int, Vector4>();
     // Time-of-day gsys_environment rows that only the vertex programs read.
     public IReadOnlyDictionary<int, Vector4> Environment { get; init; } = new Dictionary<int, Vector4>();
@@ -193,6 +194,9 @@ public static class ParkUniforms
             // y scales the final additive atmosphere term, which needs game scene/depth inputs.
             Vector(result, 23 * 16, new(.3f, 0, 1, 4));
             Vector(result, 29 * 16, new(250, 0, .025f, .025f));
+            // w: how far the water's refraction moves the scene color, in pixels; the same in every capture. The water
+            // programs don't read the animated xyz.
+            Vector(result, 30 * 16, new(0, 0, 0, 7));
             Vector(result, 33 * 16, new(-.37461f, -.92718f, .016667f, .015385f));
             Vector(result, 34 * 16, new(7.5219f, 22.233f, .065622f, 3.5f));
             Vector(result, 35 * 16, new(-.25882f, -.96593f, .02f, .014286f));

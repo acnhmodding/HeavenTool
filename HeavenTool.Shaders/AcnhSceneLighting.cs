@@ -53,6 +53,8 @@ public static class AcnhSceneLighting
         user0[18] = new(palette.EnvironmentMapTintIntensity, stage.AoIntensity, stage.DirectionalAoIntensity, palette.DirectIntensity);
         // SceneEnvMgr -> RuntimeUBO +0x6a4 -> declaration 84 at GPU byte 0x490.
         user0[73] = palette.FieldGIOverrideColor;
+        // Only the water programs read row 69, and only its x.
+        user0[69] = new(palette.WaterSaturation, 0, 0, 0);
         return user0;
     }
 

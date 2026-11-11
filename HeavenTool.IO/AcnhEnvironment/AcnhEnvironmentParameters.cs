@@ -47,6 +47,13 @@ internal static class AcnhEnvironmentParameters
         throw new InvalidDataException($"Invalid numeric environment parameter {name}.");
     }
 
+    /// <summary>A number whose name isn't recovered, by its key's CRC32.</summary>
+    public static float NumberAtKey(BymlDictionary p, string key)
+    {
+        if (p.TryGetValue(key, out var node) && node is BymlSingleValue number && float.IsFinite(number.Value)) return number.Value;
+        throw new InvalidDataException($"Invalid numeric environment parameter {key}.");
+    }
+
     public static Vector4 Color(BymlDictionary p, string name)
     {
         float[] c = Components(p, name, "C4f", 4);

@@ -18,6 +18,7 @@ public sealed partial class BfresRenderer
     private readonly Dictionary<BntxTexture, int> textures = [];
     private readonly Dictionary<BfresMaterial, MaterialGpu> materials = [];
     private readonly List<GpuMesh> transparent = [];
+    private readonly List<GpuMesh> water = [];
     private readonly System.Comparison<GpuMesh> transparentOrder;
     private Vector3 cameraPosition;
     private PreparedScene pending = new([], Vector3.Zero, 1);
@@ -196,15 +197,21 @@ public sealed partial class BfresRenderer
             RenderSsao(projection, near, far);
             SetFrameUniforms(matrix);
             transparent.Clear();
+            water.Clear();
             NativeDrawCount = 0;
             FallbackDrawCount = 0;
             foreach (var mesh in meshes)
             {
                 if (!Shown(mesh.Source) || mesh.Source.Material.IsShadowOnly) continue;
-                if (mesh.Material.Profile.Translucent) transparent.Add(mesh);
+                // The game draws xlu_water materials in Model(XluWater), between the opaque stage and Model(Xlu).
+                if (mesh.Source.Material.Info("gsys_pass", "") == "xlu_water") water.Add(mesh);
+                else if (mesh.Material.Profile.Translucent) transparent.Add(mesh);
                 else DrawSceneMesh(mesh);
             }
             RenderNormalizedLinearDepth(projection, near, far);
+            // UpdateIndirect(Water) snapshots the scene color for gsys_color_buffer before the water and translucent models.
+            CopySceneColor();
+            foreach (var mesh in water) DrawSceneMesh(mesh);
             transparent.Sort(transparentOrder);
             foreach (var mesh in transparent) DrawSceneMesh(mesh);
             // Checked once per frame: querying after every draw stalls the driver.
