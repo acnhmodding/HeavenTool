@@ -55,8 +55,8 @@ public sealed class AcnhEnvironmentResources
     /// <summary>Reads StaticParam through <paramref name="read"/>, and the files outside it from <paramref name="romfs"/>.</summary>
     public static AcnhEnvironmentResources Read(Func<string, IBymlNode?> read, string romfs)
     {
-        var body = Dictionary(HashedField(Dictionary(read("Param/Gfx/RoomLightParamSet_RVer_20000.byml")), "3ba9f63d"));
-        AcnhRoomLightParameters[] roomLights = [.. Array(HashedField(body, "f0492a22")).Select(ReadRoomLight)];
+        var body = Dictionary(Field(Dictionary(read("Param/Gfx/RoomLightParamSet_RVer_20000.byml")), "RoomLightParamSet"));
+        AcnhRoomLightParameters[] roomLights = [.. Array(Field(body, "mRoomLightParamArray[]")).Select(ReadRoomLight)];
         if (roomLights.Length < 2) throw new InvalidDataException("Missing room light parameters.");
 
         return new(AcnhEnvironmentPalettes.Read(read), AcnhSunOrbit.Load(romfs), ReadStage(read, "Stage"), ReadStage(read, "Stage_Inside"),
@@ -80,7 +80,7 @@ public sealed class AcnhEnvironmentResources
 
     private static AcnhStageEnvironment ReadStage(Func<string, IBymlNode?> read, string stage)
     {
-        var p = Dictionary(HashedField(Dictionary(read($"Param/Gfx/{stage}/SceneEnvMgr_0.byml")), "d837d8ea"));
+        var p = Dictionary(Field(Dictionary(read($"Param/Gfx/{stage}/SceneEnvMgr_0.byml")), "SceneEnvParam"));
         return new(
             MinimumLightAngle: Number(p, "mLimitLightAngle"),
             IndirectSkyIntensity: Number(p, "mIndirectSkyLightIntensity"),

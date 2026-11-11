@@ -1,0 +1,5 @@
+High
+Highest
+Low
+Middle
+NoSelect

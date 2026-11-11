@@ -25,6 +25,7 @@ public class BinaryCSV
             "TVProgramName.hshCstringRef", // TVProgramMonday
             "GroundAttributeUniqueID u16", // FieldLandMakingRoadKindParam
             "NpcRoleSetID u16", // WherearenRollSet
+            "TextKey stringMurmurHash" // MessageCardSelectDesign, MessageCardSelectDesignSp, MessageCardSelectPresent and MessageCardSelectPresentSp
 
            // Don't have anything we can do, need a specific way of handling
                 // FishAppearRiverParam.bcsv,
@@ -40,16 +41,12 @@ public class BinaryCSV
                 // NpcMoveRoomTemplate.bcsv
         ];
 
-    private static readonly uint[] _unknownUniqueHashes = [
-        0x37571146, // MessageCardSelectDesign, MessageCardSelectDesignSp, MessageCardSelectPresent and MessageCardSelectPresentSp
-    ];
-
     private static uint[]? _uniqueHashes;
     public static uint[] UniqueHashes
     {
         get
         {
-            _uniqueHashes ??= [.. _uniqueFieldNames.Select(x => x.ToCRC32()), .. _unknownUniqueHashes];
+            _uniqueHashes ??= [.. _uniqueFieldNames.Select(x => x.ToCRC32())];
             return _uniqueHashes;
         }
     }
@@ -152,6 +149,7 @@ public class BinaryCSV
         (" u32", DataType.UInt32, size => size == 4),
         (" f32", DataType.Float32, size => size == 4),
         (".hshCstringRef", DataType.CRC32, size => size == 4),
+        (" stringMurmurHash", DataType.MMH3, size => size == 4),
 
         // Can be either a BitField or a u8 that end up as last column which is aligned to 4
         // HashManager.KnownTypes should be able to care of that

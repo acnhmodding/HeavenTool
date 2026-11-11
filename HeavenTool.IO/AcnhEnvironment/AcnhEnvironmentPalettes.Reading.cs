@@ -17,17 +17,17 @@ public sealed partial class AcnhEnvironmentPalettes
         return new(palettes, ReadSets(read));
     }
 
-    // Container hashes are verified in the 3.0.3 resources; leaf hashes use the game's typed-name CRC32 schema.
-    private static BymlArray Entries(IBymlNode? root, string rootHash)
+    // Keys are the CRC32 of the param name, with its type after a dot for a leaf.
+    private static BymlArray Entries(IBymlNode? root, string rootName)
     {
-        var body = Dictionary(HashedField(Dictionary(root), rootHash));
-        return Array(HashedField(body, "eb658d9a"));
+        var body = Dictionary(Field(Dictionary(root), rootName));
+        return Array(Field(body, "mPaletteList[]"));
     }
 
     private static Dictionary<string, BymlDictionary> ReadParameters(Func<string, IBymlNode?> read)
     {
         var parameters = new Dictionary<string, BymlDictionary>(StringComparer.Ordinal);
-        foreach (var node in Entries(read("Param/Gfx/EnvPaletteList.byml"), "53fcb74c"))
+        foreach (var node in Entries(read("Param/Gfx/EnvPaletteList.byml"), "EnvPaletteList"))
         {
             var entry = Dictionary(node);
             parameters.Add(Text(entry, "mPaletteName"), Clone(entry));
@@ -38,13 +38,13 @@ public sealed partial class AcnhEnvironmentPalettes
     // A false per-leaf flag inherits the base; true retains the authored child value. A missing base falls back to self.
     private static void ApplyOverrides(Dictionary<string, BymlDictionary> parameters, Func<string, IBymlNode?> read)
     {
-        foreach (var node in Entries(read("Param/Gfx/OverrideEnvPaletteList.byml"), "a898aa5a"))
+        foreach (var node in Entries(read("Param/Gfx/OverrideEnvPaletteList.byml"), "OverrideEnvPaletteList"))
         {
             var entry = Dictionary(node);
             if (!parameters.TryGetValue(Text(entry, "mPaletteName"), out var child)
                 || !parameters.TryGetValue(Text(entry, "mOverridePaletteName"), out var parent)) continue;
 
-            foreach (var item in Array(HashedField(entry, "2c75a2a8")))
+            foreach (var item in Array(Field(entry, "mOverrideData[]")))
             {
                 var flag = Dictionary(item);
                 if (Field(flag, "mFlag", "bool") is not BymlBoolValue keepsChild) throw new InvalidDataException("Invalid palette override flag.");
@@ -132,10 +132,10 @@ public sealed partial class AcnhEnvironmentPalettes
     private static Dictionary<string, string[][]> ReadSets(Func<string, IBymlNode?> read)
     {
         var sets = new Dictionary<string, string[][]>(StringComparer.Ordinal);
-        foreach (var node in Entries(read("Param/Gfx/EnvPaletteSetList.byml"), "ecd96410"))
+        foreach (var node in Entries(read("Param/Gfx/EnvPaletteSetList.byml"), "EnvPaletteSetList"))
         {
             var entry = Dictionary(node);
-            string[][] rows = [.. Array(HashedField(entry, "3279c433")).Select(ReadTimetable)];
+            string[][] rows = [.. Array(Field(entry, "mEnvTimeTableArray[]")).Select(ReadTimetable)];
             if (rows.Length == 0) throw new InvalidDataException("An environment set has no timetables.");
             sets.Add(Text(entry, "mPaletteSetName"), rows);
         }
@@ -144,7 +144,7 @@ public sealed partial class AcnhEnvironmentPalettes
 
     private static string[] ReadTimetable(IBymlNode row)
     {
-        var hours = Array(HashedField(Dictionary(row), "4fe43bb1"));
+        var hours = Array(Field(Dictionary(row), "mTimeTableName[]", "Str"));
         if (hours.Count != HoursPerDay) throw new InvalidDataException("An environment timetable must have 24 hours.");
         return [.. hours.Select(hour => hour is BymlStringValue palette ? palette.Value : throw new InvalidDataException("Invalid palette reference."))];
     }

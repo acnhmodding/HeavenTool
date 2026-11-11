@@ -1,6 +1,7 @@
 #nullable enable
 
 using AeonSake.NintendoTools.FileFormats.Byml;
+using HeavenTool.IO;
 using HeavenTool.IO.FileFormats.BCSV;
 using System.Numerics;
 
@@ -20,13 +21,11 @@ public sealed class HouseCatalog
 {
     private const string ModelColumn = "ModelName string32";
     private const string ShapeColumn = "HouseShapeUniqueID u16";
-    // The door's top, square or round. Its name isn't known.
-    private const uint DoorTopColumn = 0x0aa76edd;
+    private const string DoorTopColumn = "HouseDoorShape.hshCstringRef";
 
     public const string StructureParamsPath = "Param/Structure/StructureParams.byml";
-    // The param names hash to these keys: the Structure object, and its mNpcHouseCurtainColorArray.
-    private const string StructureKey = "5f4e8251";
-    private const string CurtainColorsKey = "7f0e002d";
+    private static readonly string StructureKey = "StructureParams".ToCRC32().ToString("x");
+    private static readonly string CurtainColorsKey = "mNpcHouseCurtainColorArray[].C4f".ToCRC32().ToString("x");
 
     /// <summary>The house shapes vanilla villagers use. Other shapes are player houses and buildings.</summary>
     public required IReadOnlyList<int> Shapes { get; init; }

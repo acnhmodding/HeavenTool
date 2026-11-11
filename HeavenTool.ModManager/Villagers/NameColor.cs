@@ -1,6 +1,7 @@
 #nullable enable
 
 using AeonSake.NintendoTools.FileFormats.Byml;
+using HeavenTool.IO;
 using System.Numerics;
 
 namespace HeavenTool.ModManager.Villagers;
@@ -14,9 +15,11 @@ public sealed record NameColor(Vector4 Plate, Vector4 Text)
     public const string ParamPath = "Param/Npc/NpcColor.byml";
 
     // The param names hash to these keys. Plate colors vary from entry to entry, while the text is nearly always a light cream.
-    private const string ListKey = "23be9c62";
-    private const string PlateKey = "5b63eea9";
-    private const string TextKey = "776c8886";
+    private static readonly string ListKey = Key("mParamsBuffer[]");
+    private static readonly string PlateKey = Key("mNameBgColor.C4f");
+    private static readonly string TextKey = Key("mNameStrColor.C4f");
+
+    private static string Key(string name) => name.ToCRC32().ToString("x");
 
     /// <summary>Reads the colors in a NpcColor file's root node, by index.</summary>
     public static IReadOnlyList<NameColor> ReadAll(IBymlNode root) =>

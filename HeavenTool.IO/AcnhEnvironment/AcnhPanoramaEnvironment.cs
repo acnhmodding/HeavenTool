@@ -15,10 +15,10 @@ public sealed record AcnhPanoramaEnvironment(int Width, int Height, int Levels, 
 {
     internal static AcnhPanoramaEnvironment Read(Func<string, IBymlNode?> read, string romfs)
     {
-        var p = Dictionary(HashedField(Dictionary(read("Param/Gfx/PanoramaEnvMap.byml")), "de5808cb"));
+        var p = Dictionary(Field(Dictionary(read("Param/Gfx/PanoramaEnvMap.byml")), "PanoramaEnv"));
         var size = Position2(p, "mFbSize");
         // The mip count is only known by its hash; 71015224b0 reads it from +0x684.
-        int levels = HashedField(p, "6df92e09") switch
+        int levels = Field(p, "mMaxMipLevel", "u32") switch
         {
             BymlInt32Value value => value.Value,
             BymlUInt32Value value => (int)value.Value,

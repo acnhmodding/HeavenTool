@@ -15,14 +15,16 @@ public sealed record HouseExterior(int Shape, int Wall, int Roof, int Door, int 
     /// <summary>The deco item value vanilla houses use for "no deco".</summary>
     public const int NoDeco = 65534;
 
-    // The param names hash to these keys. Found by matching the values of all 417 vanilla houses against the part tables.
-    private const string ShapeKey = "e343733b";
-    private const string WallKey = "1c37a23";
-    private const string RoofKey = "d5386515";
-    private const string DoorKey = "fa8c6cfb";
-    private const string CurtainKey = "5ba5def0";
-    private const string DecoKey = "6e37c6ed";
-    private const string ItemKey = "5bc12308";
+    // Keys are the CRC32 of the param name, with its type after a dot for a number.
+    private static readonly string ShapeKey = Key("mShape.u16");
+    private static readonly string WallKey = Key("mWall.u16");
+    private static readonly string RoofKey = Key("mRoof.u16");
+    private static readonly string DoorKey = Key("mDoor.u16");
+    private static readonly string CurtainKey = Key("mCurtain.u16");
+    private static readonly string DecoKey = Key("mDeco");
+    private static readonly string ItemKey = Key("mItemNameParam.u64");
+
+    private static string Key(string name) => name.ToCRC32().ToString("x");
 
     public static string PathFor(string label) => $"Param/NpcHouse/{label}.byml";
 

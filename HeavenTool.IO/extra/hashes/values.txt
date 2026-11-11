@@ -529,6 +529,7 @@ Heavy
 LoopOnOffFade
 ShopLargeGoods
 High
+Highest
 Low
 2_0x2_0
 ShopLv1

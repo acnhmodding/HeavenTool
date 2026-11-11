@@ -30,10 +30,6 @@ internal static class AcnhEnvironmentParameters
     public static BymlArray Array(IBymlNode node) =>
         node as BymlArray ?? throw new InvalidDataException("Expected an environment parameter array.");
 
-    /// <summary>A container field, whose name is only known by its hash.</summary>
-    public static IBymlNode HashedField(BymlDictionary p, string hash) =>
-        p.TryGetValue(hash, out var node) ? node : throw new InvalidDataException($"Missing environment parameter {hash}.");
-
     public static IBymlNode Field(BymlDictionary p, string name, string? type = null)
     {
         if (p.TryGetValue(Hash(type == null ? name : $"{name}.{type}"), out var node)) return node;

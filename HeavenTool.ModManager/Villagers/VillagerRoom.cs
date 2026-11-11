@@ -1,6 +1,7 @@
 #nullable enable
 
 using AeonSake.NintendoTools.FileFormats.Byml;
+using HeavenTool.IO;
 using HeavenTool.ModManager.NookKit;
 using System.Text.Json.Serialization;
 
@@ -94,22 +95,24 @@ public sealed record VillagerRoom(int Wallpaper, int Flooring, int Music, IReadO
     public const int TopRow = 22;
 
     // The param names hash to these keys: the CRC32 of the name, with its type after a dot for a number, as in mUnitX.u8.
-    private const string WallpaperKey = "3503db35"; // mWall
-    private const string FlooringKey = "bc0eb310"; // mFloor
-    private const string MusicKey = "cf194774"; // mMusic
-    private const string FloorRotateKey = "e954c311"; // mFloorRotate
-    private const string ItemsKey = "b3a97a50"; // mFtrList
-    private const string ZKey = "42ea11db"; // mUnitZ
-    private const string XKey = "e8e3d950"; // mUnitX
-    private const string LayerKey = "ec86704a";
-    private const string PlacedItemKey = "d1541039";
-    private const string ItemKey = "5bc12308";
+    private static readonly string WallpaperKey = Key("mWall");
+    private static readonly string FlooringKey = Key("mFloor");
+    private static readonly string MusicKey = Key("mMusic");
+    private static readonly string FloorRotateKey = Key("mFloorRotate.u8");
+    private static readonly string ItemsKey = Key("mFtrList[]");
+    private static readonly string ZKey = Key("mUnitZ.u8");
+    private static readonly string XKey = Key("mUnitX.u8");
+    private static readonly string LayerKey = Key("mLayer.u8");
+    private static readonly string PlacedItemKey = Key("mItemSaveParam");
+    private static readonly string ItemKey = Key("mItemNameParam.u64");
 
     // An activity's item, and its area's first cells across and deep, width and depth.
-    private static readonly ActivityKeys CraftingKeys =
-        new("3b0c4ece", "ed83df67", "478a17ec", "f2925a13", "3f811252"); // mDIYWorkbench, mDIYRangeLUX, LUZ, Width, Height
-    private static readonly ActivityKeys CookingKeys =
-        new("96be42d5", "8549484e", "2f4080c5", "d8bfabd5", "4dac5826"); // mKitchen, mCookingRangeLUX, LUZ, Width, Height
+    private static readonly ActivityKeys CraftingKeys = new(Key("mDIYWorkbench"),
+        Key("mDIYRangeLUX.u8"), Key("mDIYRangeLUZ.u8"), Key("mDIYRangeWidth.u8"), Key("mDIYRangeHeight.u8"));
+    private static readonly ActivityKeys CookingKeys = new(Key("mKitchen"),
+        Key("mCookingRangeLUX.u8"), Key("mCookingRangeLUZ.u8"), Key("mCookingRangeWidth.u8"), Key("mCookingRangeHeight.u8"));
+
+    private static string Key(string name) => name.ToCRC32().ToString("x");
 
     private sealed record ActivityKeys(string Item, string X, string Z, string Width, string Depth);
 

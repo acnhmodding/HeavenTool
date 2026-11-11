@@ -1555,8 +1555,6 @@ Snow u8
 Grade u16
 NewBuild u16
 Rank u16
-Preincorporation string30
-mStarhead string20
 WeatherPattern u16
 ItemPlacementKind u8
 PlayerFlagKeyAfterSelect string32
@@ -1613,3 +1611,46 @@ SharedNPCLabel string8
 TargetNPCLabel string8
 TalkingNpcLabel string8
 NpcCreateType.hshCstringRef
+HouseDoorShape.hshCstringRef
+Stage10Hash stringMurmurHash
+Stage12Hash stringMurmurHash
+Stage14Hash stringMurmurHash
+Stage16Hash stringMurmurHash
+Stage9Hash stringMurmurHash
+CalendarEventKeyHash stringMurmurHash
+Stage1Hash stringMurmurHash
+Stage3Hash stringMurmurHash
+Stage5Hash stringMurmurHash
+Stage7Hash stringMurmurHash
+Stage8Hash stringMurmurHash
+Stage6Hash stringMurmurHash
+Stage4Hash stringMurmurHash
+Stage2Hash stringMurmurHash
+Stage0Hash stringMurmurHash
+StageNameHash stringMurmurHash
+Stage15Hash stringMurmurHash
+Stage13Hash stringMurmurHash
+Stage11Hash stringMurmurHash
+BridgeTypeHash stringMurmurHash
+TextKey stringMurmurHash
+RoadRemoveType.hshCstringRef
+DoorAnimTypeHash stringMurmurHash
+ApproachReward f32
+KappeiTourIslandKind.hshCstringRef
+NpcRoleSelectMethod.hshCstringRef
+ApproachIncreaseRate u16
+MainRoleID s8
+UIIconFrame s16
+FloorColAttribute u16
+MovePatternSet s32
+GroupSortId s16
+WherearenFieldActionTool u16
+FurniturePosAngle u32
+FurniturePosAngleSub1 u32
+FurniturePosAngleSub2 u32
+FieldPresetFile string64
+NpcGroupActivityKeyHash stringMurmurHash
+MainCatalogOpenItem u16
+BuiltNpcRoleID u16
+ObjectActorType u8
+ReBodyPatternRejectNum s8

@@ -11,7 +11,7 @@ public sealed record AcnhSkyScatterParameters(Vector2 FramebufferSize, uint Maxi
 {
     internal static AcnhSkyScatterParameters Read(Func<string, IBymlNode?> read)
     {
-        var p = Dictionary(HashedField(Dictionary(read("Param/Gfx/SkyScatter.byml")), "f5ab6869"));
+        var p = Dictionary(Field(Dictionary(read("Param/Gfx/SkyScatter.byml")), "SkyScatter"));
         // StaticParam stores this u32-named parameter in a signed BYML integer node.
         uint levels = Field(p, "mMaxMipLevel", "u32") switch
         {
