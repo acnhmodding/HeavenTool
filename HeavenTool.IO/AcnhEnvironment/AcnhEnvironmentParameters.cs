@@ -9,14 +9,15 @@ namespace HeavenTool.IO.AcnhEnvironment;
 /// <summary>Typed access to the BYML parameter files of StaticParam, which fail loudly on anything unexpected.</summary>
 internal static class AcnhEnvironmentParameters
 {
+    /// <summary>Reads StaticParam's files by path; a missing file reads as null, as some stages and scenes leave theirs out.</summary>
     public static Func<string, IBymlNode?> OpenStaticParam(string romfs)
     {
         using var stream = File.OpenRead(Path.Combine(romfs, "Pack", "StaticParam.pack"));
         var archive = new SarcFileReader().Read(stream);
         return path =>
         {
-            var file = archive.Files.SingleOrDefault(file => file.Name == path)
-                ?? throw new InvalidDataException($"StaticParam.pack is missing {path}.");
+            var file = archive.Files.SingleOrDefault(file => file.Name == path);
+            if (file == null) return null;
             using var data = new MemoryStream(file.Data, false);
             return AcnhByml.Read(data).RootNode;
         };
@@ -40,6 +41,9 @@ internal static class AcnhEnvironmentParameters
 
     public static string Text(BymlDictionary p, string name) =>
         Field(p, name, "Str") is BymlStringValue text ? text.Value : throw new InvalidDataException($"Invalid {name}.");
+
+    public static bool Flag(BymlDictionary p, string name) =>
+        Field(p, name, "bool") is BymlBoolValue flag ? flag.Value : throw new InvalidDataException($"Invalid {name}.");
 
     public static float Number(BymlDictionary p, string name)
     {

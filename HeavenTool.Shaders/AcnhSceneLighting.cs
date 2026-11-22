@@ -25,6 +25,8 @@ public static class AcnhSceneLighting
             User0 = User0(baseline, palette, stage, resources.SkyScatter, resources.SunOrbit.SkyDirection(hour, inside)),
             Environment = baseline.Environment,
             LocalLights = inside ? RoomLights(resources.VillagerRoomLight, palette) : [],
+            // Stage_Inside has no DynamicLightMgr file, so the room keeps the constructor's grid.
+            LightGrid = inside ? new(resources.RoomLightGrid, Vector2.Zero) : null,
             // The villager room's EnvRoom grading; the outdoor Env grading is disabled.
             ColorGrading = inside && resources.RoomColorCorrection.Filters is { } filters ? new(resources.ColorCorrectionMap, filters) : null,
             // envinside.baglcube's capture height and clip range. CubeMapMgr (71014e5f0c) moves the capture at run time, so
@@ -33,6 +35,43 @@ public static class AcnhSceneLighting
             ProjectionShadow = inside ? resources.InsideProjectionShadow : null,
             Bloom = resources.Bloom?.WithPalette(palette),
             ScreenOcclusion = new(resources.AmbientOcclusion, inside ? resources.AmbientOcclusion.Inside : resources.AmbientOcclusion.Outside),
+        };
+    }
+
+    /// <summary>
+    /// A building interior (Idr), lit by its EnvPaletteIdrSelector entry <paramref name="idrName"/> the way 710153a9e4 picks it:
+    /// the entry's palette set, or else IdrInside with the entry's fixed palette, or plain IdrInside when it has neither.
+    /// </summary>
+    public static AcnhLightingPreset EvaluateIdr(AcnhEnvironmentResources resources, float clockHour, string idrName)
+    {
+        float hour = AcnhEnvironmentTime.EffectiveHour(clockHour, AcnhEnvironmentTime.SeasonalOffset(PreviewDate));
+        var palettes = resources.Palettes;
+        var entry = resources.Idr.Find(idrName);
+        var sample = entry switch
+        {
+            { UsesPaletteSet: true } when palettes.HasSet(entry.PaletteSetName) => palettes.Evaluate(entry.PaletteSetName, hour),
+            { UsesPaletteSet: false } when palettes.HasPalette(entry.PaletteName) => palettes.EvaluatePalette(AcnhIdrEnvironment.DefaultSet, entry.PaletteName),
+            _ => palettes.Evaluate(AcnhIdrEnvironment.DefaultSet, hour),
+        };
+        var palette = sample.Values;
+        var stage = resources.IdrStage;
+        var baseline = AcnhLightingPreset.Room;
+        var direction = resources.SunOrbit.DirectDirection(hour, true, stage.MinimumLightAngle);
+        // Without an entry the lookup leaves mColorCorrectType at cDefault, the Env grading.
+        var grading = resources.ColorCorrection(entry?.ColorCorrection ?? "env");
+
+        return new(sample.Set, palette.DirectColor, palette.DirectIntensity, direction, palette.SkyColor, palette.GroundColor, palette.HemisphereIntensity, stage.IndirectIntensity)
+        {
+            // The building's own capture (its CubeMapMgr) isn't placed yet, so the preview fill stands in for the probe.
+            PreviewIndirectLight = baseline.PreviewIndirectLight,
+            User0 = User0(baseline, palette, stage, resources.SkyScatter, resources.SunOrbit.SkyDirection(hour, true)),
+            Environment = baseline.Environment,
+            LocalLights = SceneLights(resources.SceneLights(idrName), resources.DayNight.IndoorLightBlend(hour)),
+            // The game centres Stage_Idr's grid on the scene's focus as it moves; the preview's focus is the building's origin.
+            LightGrid = new(resources.IdrLightGrid, Vector2.Zero),
+            ColorGrading = grading.Filters is { } filters ? new(resources.ColorCorrectionMap, filters) : null,
+            Bloom = resources.Bloom?.WithPalette(palette),
+            ScreenOcclusion = new(resources.AmbientOcclusion, resources.AmbientOcclusion.Inside),
         };
     }
 
@@ -57,6 +96,46 @@ public static class AcnhSceneLighting
         user0[69] = new(palette.WaterSaturation, 0, 0, 0);
         return user0;
     }
+
+    // A building interior's PBC is laid 32 collision cells of 5 units past its own offset (71008471c0), so the model's origin
+    // is the stage's (160, 0, 160), like the villager room's. The scene's light files are in stage space.
+    private static readonly Vector3 SceneOrigin = new(160, 0, 160);
+
+    /// <summary>
+    /// A scene's lights as 71014eb250 packs them, points before spots. DynamicLightMgr adds its enabled scene lights (71014edd30);
+    /// one bound to a model follows that model's bone instead, which the preview has no model for, so it is left out.
+    /// IdrLightMgr makes every dual light from its first setting and switches it on (710148d4d8, 710148d818), whatever the
+    /// file's mIsEnable, and blends it towards the second by <paramref name="blend"/> each frame (710148cfe0).
+    /// </summary>
+    private static List<AcnhLocalLight> SceneLights(AcnhSceneLights scene, float blend)
+    {
+        // Which manager adds its lights first isn't recovered; DynamicLightMgr's are put first.
+        var points = scene.Points.Where(light => light.Enabled && !IsBound(light.BindModel))
+            .Concat(scene.DualPoints.Select(light => AcnhPointLightParameters.Blend(light.Day, light.Night, blend)));
+        var spots = scene.Spots.Where(light => light.Enabled && !IsBound(light.BindModel))
+            .Concat(scene.DualSpots.Select(light => AcnhSpotLightParameters.Blend(light.Day, light.Night, blend)));
+        static Vector3 Rgb(Vector4 color) => new(color.X, color.Y, color.Z);
+
+        // Some files give a radius or far no larger than the size, such as night-only lights that are all zero by day;
+        // 71014eb250 packs their falloff inverse as it comes out, infinite or negative.
+        var lights = new List<AcnhLocalLight>();
+        foreach (var light in points)
+        {
+            lights.Add(new(light.Position - SceneOrigin, Rgb(light.Color) * light.Intensity, light.Size, light.Radius - light.Size));
+        }
+        foreach (var light in spots)
+        {
+            lights.Add(new(light.Position - SceneOrigin, Rgb(light.Color) * (light.Intensity / (light.Fovy / (2 * MathF.PI))), light.Size, light.Far - light.Size)
+            {
+                Direction = light.Direction,
+                Cone = light.Fovy * .5f
+            });
+        }
+        return lights;
+    }
+
+    // 71014edd30 only checks the name's first character.
+    private static bool IsBound(string model) => model.Length > 0 && model[0] != '\0';
 
     private static List<AcnhLocalLight> RoomLights(AcnhRoomLightParameters room, AcnhEnvironmentPalette palette)
     {

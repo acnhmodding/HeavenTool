@@ -43,6 +43,15 @@ public sealed partial class AcnhEnvironmentPalettes
         return new(set, hours[previous], hours[next], weight, Blend(palettes[hours[previous]], palettes[hours[next]], weight));
     }
 
+    public bool HasSet(string set) => sets.ContainsKey(set);
+
+    public bool HasPalette(string palette) => palettes.ContainsKey(palette);
+
+    /// <summary>One palette as it is, the way 710150bd30 copies an override palette in place of the set's blend.</summary>
+    public AcnhPaletteSample EvaluatePalette(string set, string palette) => palettes.TryGetValue(palette, out var values)
+        ? new(set, palette, palette, 0, values)
+        : throw new ArgumentException($"Unknown environment palette {palette}.", nameof(palette));
+
     public static string IndoorSet(bool leftWindow, bool rightWindow, bool leftCurtainClosed = false, bool rightCurtainClosed = false) =>
         (leftWindow, rightWindow) switch
         {

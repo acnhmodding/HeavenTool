@@ -74,6 +74,13 @@ public sealed class AcnhColorCorrection
                     filters.AsSpan((HeaderRows + row + 7) * 16, 16).CopyTo(filters.AsSpan((HeaderRows + row + 8) * 16));
                     row += 9;
                     break;
+                // A parameter vector and three groups of three, each group packed only when its flag is set. Both 710382aa50 and
+                // 710382db10 set all three flags (0xf) on a type 7 filter, so all ten follow in order.
+                case 7:
+                    for (int k = 0; k < 10; k++)
+                        Row(filters, row + k, file.Vector4(main, $"param{(parameter + k < Rows ? parameter + k : 0)}"));
+                    row += 10;
+                    break;
                 default:
                     throw new NotSupportedException($"Color-correction filter type {type} is not recovered.");
             }

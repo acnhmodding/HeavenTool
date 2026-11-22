@@ -67,8 +67,10 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     public IReadOnlyDictionary<int, Vector4> User0 { get; init; } = new Dictionary<int, Vector4>();
     // Time-of-day gsys_environment rows that only the vertex programs read.
     public IReadOnlyDictionary<int, Vector4> Environment { get; init; } = new Dictionary<int, Vector4>();
-    // The gsys_user1 light list, at most seven lights, all within the light grid around the origin.
+    // The gsys_user1 light list, in the game's order: point lights, then spotlights.
     public IReadOnlyList<AcnhLocalLight> LocalLights { get; init; } = [];
+    // The grid the lights are sorted into; the room's, around the origin, when not given.
+    public AcnhLightGrid? LightGrid { get; init; }
     // The color-grading volume ToneMapping samples; none leaves the tone-mapped color as is.
     public AcnhColorGrading? ColorGrading { get; init; }
     // The environment cube the game captures and turns into gsys_cube_map's panorama; none keeps the studio panorama.
@@ -90,6 +92,20 @@ public sealed record AcnhLocalLight(Vector3 Position, Vector3 Color, float Start
     // A spot light's direction, and the half-angle of its cone in radians. A light with no cone shines all round.
     public Vector3 Direction { get; init; }
     public float Cone { get; init; }
+}
+
+/// <summary>
+/// The light grid 71014eec50 lays out: <see cref="Parameters"/>' cells, centred on <paramref name="Center"/> in x and z. An indoor
+/// stage (SceneEnvMgr +0xd0, set by 71015357e0 for stage names holding "Inside" or "Idr") starts it at y = -1.
+/// </summary>
+/// <param name="Center">The scene's focus point in x and z, which the game follows at run time and the previews keep still.</param>
+public sealed record AcnhLightGrid(AcnhLightGridParameters Parameters, Vector2 Center)
+{
+    public static AcnhLightGrid Room { get; } = new(AcnhLightGridParameters.Default, Vector2.Zero);
+
+    public const float Bottom = -1;
+    public Vector3 Min => new(Center.X - Parameters.CellSize.X * Parameters.CountX * .5f, Bottom, Center.Y - Parameters.CellSize.Z * Parameters.CountZ * .5f);
+    public Vector3 Max => Min + Parameters.CellSize * new Vector3(Parameters.CountX, Parameters.CountY, Parameters.CountZ);
 }
 
 /// <summary>Where the environment cube is captured from, its clip range, and the panorama it is filtered into.</summary>
@@ -221,16 +237,19 @@ public static class ParkUniforms
             foreach (var (row, value) in (lighting ?? AcnhLightingPreset.Day).User0) Vector(result, row * 16, value);
             if (lighting?.LocalLights.Count > 0)
             {
-                // The light grid: its first corner, far corner and middle, then the cell size and the cell counts, as integers.
-                Vector(result, 11 * 16, new(-LightGridHalf, -1, -LightGridHalf, 0));
-                Vector(result, 12 * 16, new(LightGridHalf, 99, LightGridHalf, 0));
-                Vector(result, 13 * 16, new(0, -1, 0, 0));
-                Vector(result, 14 * 16, new(LightGridCell, 100, LightGridCell, 0));
-                foreach (var (at, count) in new[] { (0, LightGridCells), (4, 1), (8, LightGridCells), (12, LightGridCells) })
+                // The light grid as 71014eb250 uploads it: its first corner, far corner, and middle with the grid's bottom, then
+                // the cell size and the cell counts, as integers. It doesn't write the fourth count; the room capture's is kept.
+                var grid = lighting.LightGrid ?? AcnhLightGrid.Room;
+                var cells = grid.Parameters;
+                Vector(result, 11 * 16, new(grid.Min, 0));
+                Vector(result, 12 * 16, new(grid.Max, 0));
+                Vector(result, 13 * 16, new(grid.Center.X, AcnhLightGrid.Bottom, grid.Center.Y, 0));
+                Vector(result, 14 * 16, new(cells.CellSize, 0));
+                foreach (var (at, count) in new[] { (0, cells.CountX), (4, cells.CountY), (8, cells.CountZ), (12, cells.CountX) })
                     Integer(result, 15 * 16 + at, count);
             }
         }
-        if (name == "gsys_user1" && lighting?.LocalLights is { Count: > 0 } lights) LocalLights(result, lights);
+        if (name == "gsys_user1" && lighting?.LocalLights is { Count: > 0 } lights) LocalLights(result, lights, lighting.LightGrid ?? AcnhLightGrid.Room);
         if (name == "gsys_environment")
         {
             Vector(result, 16, new(.2f, .22f, .26f, 1));
@@ -252,29 +271,145 @@ public static class ParkUniforms
         return result;
     }
 
-    // The game's local light grid: 16 by 16 cells of one tile, as it lays it out around a house's room.
-    private const int LightGridCells = 16;
-    private const float LightGridCell = 10, LightGridHalf = LightGridCells * LightGridCell / 2;
+    // The most lights 71014eb250 adds to the list, and the most one cell lists (71014f8e54).
+    private const int MaxLights = 0x200, CellLights = 7;
 
-    // gsys_user1: each grid cell's light count and up to seven light indices, then, per light, its color, its position,
-    // its spot direction and its falloff start, each in a table of its own.
-    private static void LocalLights(byte[] target, IReadOnlyList<AcnhLocalLight> lights)
+    // gsys_user1, as 71014eb250 fills it: each grid cell's light count and up to seven light indices, then, per light, its
+    // color, its position, its spot direction and its falloff start, each in a table of its own.
+    private static void LocalLights(byte[] target, IReadOnlyList<AcnhLocalLight> lights, AcnhLightGrid grid)
     {
-        int count = Math.Min(lights.Count, 7);
-        // The lights fade out by themselves, so every cell lists them all.
-        for (int cell = 0; cell < LightGridCells * LightGridCells; cell++)
+        var cells = grid.Parameters;
+        Vector3 gridMin = grid.Min, gridMax = grid.Max;
+        var counts = new int[cells.CountX * cells.CountY * cells.CountZ];
+        var listed = new int[counts.Length, CellLights];
+        var starts = new List<float>();
+        foreach (var light in lights)
         {
-            Integer(target, cell * 32, count);
-            for (int i = 0; i < count; i++) Integer(target, cell * 32 + 4 + i * 4, i);
+            if (starts.Count == MaxLights) break;
+            // A point light's radius, or a spotlight's far distance.
+            float reach = light.Start + light.Length;
+            var direction = light.Direction;
+            SpotFrustum? frustum = null;
+            if (light.Cone > 0)
+            {
+                // 710155d15c normalizes a spotlight's direction before it is packed, and points a zero one straight down.
+                direction = direction.LengthSquared() > 0 ? Vector3.Normalize(direction) : -Vector3.UnitY;
+                frustum = new(light.Position, direction, light.Cone, reach);
+            }
+            // A point light whose sphere misses the whole grid, or a spotlight whose frustum does, is left out.
+            if (frustum == null ? !Touches(light.Position, reach, gridMin, gridMax) : !frustum.Touches(gridMin, gridMax)) continue;
+            int index = starts.Count;
+            Vector(target, 0x2000 + index * 16, new(light.Color, light.Cone > 0 ? 1 : 0));
+            Vector(target, 0x4000 + index * 16, new(light.Position, 1 / light.Length));
+            Vector(target, 0x6000 + index * 16, new(direction, light.Cone));
+            Vector(target, 0x8000 + index * 16, new(light.Start));
+            starts.Add(light.Start);
+            for (int x = 0; x < cells.CountX; x++)
+            for (int y = 0; y < cells.CountY; y++)
+            for (int z = 0; z < cells.CountZ; z++)
+            {
+                Vector3 min = gridMin + cells.CellSize * new Vector3(x, y, z), max = min + cells.CellSize;
+                if ((frustum == null || frustum.Touches(min, max)) && Touches(light.Position, reach, min, max))
+                    AddToCell(target, counts, listed, starts, x + cells.CountX * (z + cells.CountZ * y), index);
+            }
         }
-        for (int i = 0; i < count; i++)
+        for (int cell = 0; cell < counts.Length; cell++)
         {
-            var light = lights[i];
-            Vector(target, 0x2000 + i * 16, new(light.Color, light.Cone > 0 ? 1 : 0));
-            Vector(target, 0x4000 + i * 16, new(light.Position, 1 / light.Length));
-            Vector(target, 0x6000 + i * 16, new(light.Direction, light.Cone));
-            Vector(target, 0x8000 + i * 16, new(light.Start));
+            Integer(target, cell * 32, counts[cell]);
+            for (int i = 0; i < counts[cell]; i++) Integer(target, cell * 32 + 4 + i * 4, listed[cell, i]);
         }
+    }
+
+    // The sphere test 71014eb250 makes against a cell or the whole grid, at the box's point nearest the light.
+    private static bool Touches(Vector3 position, float radius, Vector3 min, Vector3 max) =>
+        Vector3.DistanceSquared(position, Vector3.Clamp(position, min, max)) <= radius * radius;
+
+    /// <summary>
+    /// The view volume 710155d15c gives a spotlight: a sead perspective projection of the light's full cone angle, aspect 1,
+    /// near .01 and far at the light's far distance, looking down its direction. 7103882fb0 unprojects the eight clip-space
+    /// corners into the volume's bounds and planes, which 71014f0b58 tests boxes against.
+    /// </summary>
+    private sealed class SpotFrustum
+    {
+        private const float Near = .01f, Epsilon = 1.1920929e-07f;
+        private readonly Vector3 min, max;
+        private readonly (Vector3 Normal, float Distance)[] planes;
+
+        public SpotFrustum(Vector3 position, Vector3 direction, float halfAngle, float far)
+        {
+            // Up is d × (d × h), with h straight up, or -z for a light pointing straight up or down.
+            bool vertical = MathF.Abs(direction.Z) <= Epsilon && MathF.Abs(direction.X) <= Epsilon;
+            var helper = vertical ? -Vector3.UnitZ : Vector3.UnitY;
+            var up = Vector3.Cross(direction, Vector3.Cross(direction, helper));
+            if (up.LengthSquared() > 0) up = Vector3.Normalize(up);
+            // 71037e4634's look-at from the light towards position + direction.
+            var back = -direction;
+            var right = Vector3.Cross(up, back);
+            if (right.LengthSquared() > 0) right = Vector3.Normalize(right);
+            var top = Vector3.Cross(back, right);
+            // The clip-space corners at the near and far planes. A cone of half a turn or more makes the tangent negative,
+            // which mirrors the corners in both axes and leaves the same volume.
+            float tangent = MathF.Tan(halfAngle);
+            var corners = new Vector3[8];
+            int corner = 0;
+            foreach (float depth in new[] { Near, far })
+            foreach (float sx in new[] { -1f, 1f })
+            foreach (float sy in new[] { -1f, 1f })
+                corners[corner++] = position + direction * depth + (right * sx + top * sy) * (depth * tangent);
+            min = corners.Aggregate(Vector3.Min);
+            max = corners.Aggregate(Vector3.Max);
+            // Near, far, then the four sides, each through three corners, facing out of the volume.
+            int[][] faces = [[0, 1, 2], [4, 5, 6], [0, 1, 4], [2, 3, 6], [0, 2, 4], [1, 3, 5]];
+            var middle = corners.Aggregate(Vector3.Add) / 8;
+            planes = [.. faces.Select(face =>
+            {
+                var normal = Vector3.Cross(corners[face[1]] - corners[face[0]], corners[face[2]] - corners[face[0]]);
+                if (normal.LengthSquared() > 0) normal = Vector3.Normalize(normal);
+                float distance = -Vector3.Dot(normal, corners[face[0]]);
+                return Vector3.Dot(normal, middle) + distance > 0 ? (-normal, -distance) : (normal, distance);
+            })];
+        }
+
+        // 71014f0b58: the box must overlap the volume's bounds and reach inside every plane at its innermost corner.
+        public bool Touches(Vector3 boxMin, Vector3 boxMax)
+        {
+            if (boxMin.X > max.X || boxMax.X < min.X || boxMin.Y > max.Y || boxMax.Y < min.Y || boxMin.Z > max.Z || boxMax.Z < min.Z)
+                return false;
+            foreach (var (normal, distance) in planes)
+            {
+                var inner = new Vector3(normal.X > 0 ? boxMin.X : boxMax.X, normal.Y > 0 ? boxMin.Y : boxMax.Y, normal.Z > 0 ? boxMin.Z : boxMax.Z);
+                if (Vector3.Dot(normal, inner) + distance > 0) return false;
+            }
+            return true;
+        }
+    }
+
+    // 71014f8e54: a full cell finds the smallest falloff start among the new light and its seven, keeping the earlier on
+    // ties, and swaps the new light in for that one. If the new light or the cell's first entry is the smallest, the new light
+    // is the one left out. The light left out is blacked out everywhere, with the new light's spot flag in its w.
+    private static void AddToCell(byte[] target, int[] counts, int[,] listed, List<float> starts, int cell, int light)
+    {
+        if (counts[cell] < CellLights)
+        {
+            listed[cell, counts[cell]++] = light;
+            return;
+        }
+        float smallest = Math.Min(starts[light], starts[listed[cell, 0]]);
+        int slot = 0;
+        for (int i = 1; i < CellLights; i++)
+        {
+            if (smallest <= starts[listed[cell, i]]) continue;
+            smallest = starts[listed[cell, i]];
+            slot = i;
+        }
+        int dropped = light;
+        if (slot >= 1)
+        {
+            dropped = listed[cell, slot];
+            listed[cell, slot] = light;
+        }
+        float flag = BinaryPrimitives.ReadSingleLittleEndian(target.AsSpan(0x2000 + light * 16 + 12, 4));
+        Vector(target, 0x2000 + dropped * 16, new(0, 0, 0, flag));
     }
 
     public static void Float(byte[] target, int at, float value) => BinaryPrimitives.WriteSingleLittleEndian(target.AsSpan(at, 4), value);
