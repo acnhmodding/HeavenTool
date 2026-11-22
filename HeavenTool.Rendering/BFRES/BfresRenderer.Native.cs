@@ -439,8 +439,9 @@ public sealed partial class BfresRenderer
             }
             return shadowTexture;
         }
-        // The game's shared context defaults the ground-color sampler to Black2D until FieldUnitMapDrawer supplies it.
-        bool black = name == "gsys_user0" || name.Contains("color_buffer");
+        // The game resets both user samplers to Black2D: the ground color until FieldUnitMapDrawer supplies it, and the water's
+        // wave map until WaveSimulation publishes it.
+        bool black = name is "gsys_user0" or "gsys_user1" || name.Contains("color_buffer");
         int id = black ? blackTexture : whiteTexture;
         if (id == 0)
         {
