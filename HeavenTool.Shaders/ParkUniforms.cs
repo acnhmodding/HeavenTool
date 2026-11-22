@@ -40,14 +40,13 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     // Captured from the running game inside a villager's house at 4:51 PM, with the room's middle moved to the origin. The
     // room is lit by a light over its middle and the sun coming in from the side, both local lights. The house shades the
     // sun itself out, at the room's shadow strength in [17].w, which the viewer has no house to do. Without an environment
-    // probe, the fill stands in for the room's indirect light. The world AO strength in [4].x is the game's .27563 raised
-    // to .6, as the fill brightens the room past what the game's .28 darkens enough to show.
+    // probe, the fill stands in for the room's indirect light.
     public static AcnhLightingPreset Room { get; } = new("Room", new(1, .37058f, .19748f, 1), 20 * (1 - .97731f), new(.81884f, -.57403f, -.00006f), new(.92689f, .52184f, .35713f, 1), new(.36345f, .1f, .087814f, 1), 1.75632f, 1)
     {
         PreviewIndirectLight = new(3, 3, 3),
         User0 = new Dictionary<int, Vector4>
         {
-            [4] = new(.6f, 0, 0, 0), [5] = new(1, .3f, 0, 0), [10] = new(.81884f, -.57403f, -.00006f, 0), [17] = new(0, 1, 1, .97731f),
+            [4] = new(.27563f, 0, 0, 0), [5] = new(1, .3f, 0, 0), [10] = new(.81884f, -.57403f, -.00006f, 0), [17] = new(0, 1, 1, .97731f),
             [18] = new(.6f, 1, .5f, 20), [21] = default, [52] = new(.35126f, 0, 0, 0), [55] = new(1, .34932f, 0, 0),
             [61] = new(.90428f, 0, .42693f, 0), [69] = new(1, 0, 0, 0), [72] = default, [73] = new(1, 1, 1, 1), [75] = new(0, 0, -1, 0), [76] = new(1, 1, 250, 0),
         },
@@ -60,10 +59,8 @@ public sealed record AcnhLightingPreset(string Name, Vector4 DirectColor, float 
     };
     // Viewer approximation for missing sky-derived indirect illumination; not a game uniform value.
     public Vector3 PreviewIndirectLight { get; init; }
-    // Evaluated sky rows: [6] atmosphere, [8] sun radiance, [9] scattered sun RGB, [10] sky direction, [24].xy sun controls.
-    // Other time-of-day gsys_user0 rows: [17].w shadow strength, [21] fog colour, and
-    // the rim light's colour [72], direction [75] and exponents/intensity [76], and field GI override colour [73].
-    // [69].x is the water's saturation, the palette's at the preset's hour: Afternoon, Night and every indoor palette.
+    // Time-of-day gsys_user0 rows: [6], [8]–[10] and [24].xy the sky, [17].w shadow strength, [21] fog colour, the rim
+    // light's colour [72], direction [75] and exponents/intensity [76], and the field GI override colour [73].
     public IReadOnlyDictionary<int, Vector4> User0 { get; init; } = new Dictionary<int, Vector4>();
     // Time-of-day gsys_environment rows that only the vertex programs read.
     public IReadOnlyDictionary<int, Vector4> Environment { get; init; } = new Dictionary<int, Vector4>();
@@ -95,8 +92,8 @@ public sealed record AcnhLocalLight(Vector3 Position, Vector3 Color, float Start
 }
 
 /// <summary>
-/// The light grid 71014eec50 lays out: <see cref="Parameters"/>' cells, centred on <paramref name="Center"/> in x and z. An indoor
-/// stage (SceneEnvMgr +0xd0, set by 71015357e0 for stage names holding "Inside" or "Idr") starts it at y = -1.
+/// The light grid the game lays out: <see cref="Parameters"/>' cells, centred on <paramref name="Center"/> in x and z. An indoor
+/// stage (one whose name holds "Inside" or "Idr") starts it at y = -1.
 /// </summary>
 /// <param name="Center">The scene's focus point in x and z, which the game follows at run time and the previews keep still.</param>
 public sealed record AcnhLightGrid(AcnhLightGridParameters Parameters, Vector2 Center)
@@ -228,16 +225,15 @@ public static class ParkUniforms
             Vector(result, 51 * 16, new(7.2f, 1.05f, 1, 1.4e8f));
             Vector(result, 60 * 16, new(.02f, .02f, 1, 0));
             Vector(result, 65 * 16, new(0, 1, 0, 0));
-            // x: where local lights start fading out across the light grid, the game's 32 in a room, past its walls.
-            // y/z: start and length of the shadow distance fade around [87]; start it out of reach.
-            Vector(result, 66 * 16, new(32, 100000, 1, 0));
+            Vector(result, 66 * 16, LightFade(32));
+            // The outdoor stage's moonlight cloud settings.
             Vector(result, 77 * 16, new(.75f, .3f, 240, .15f));
             Vector(result, 81 * 16, new(1, .8f, 0, 0));
             Vector(result, 89 * 16, new(1, 0, 0, 0));
             foreach (var (row, value) in (lighting ?? AcnhLightingPreset.Day).User0) Vector(result, row * 16, value);
             if (lighting?.LocalLights.Count > 0)
             {
-                // The light grid as 71014eb250 uploads it: its first corner, far corner, and middle with the grid's bottom, then
+                // The light grid as the game uploads it: its first corner, far corner, and middle with the grid's bottom, then
                 // the cell size and the cell counts, as integers. It doesn't write the fourth count; the room capture's is kept.
                 var grid = lighting.LightGrid ?? AcnhLightGrid.Room;
                 var cells = grid.Parameters;
@@ -260,7 +256,7 @@ public static class ParkUniforms
         }
         if (lighting != null && name == "gsys_environment")
         {
-            // Isolated models have no scene sky/GI. Keep this separately switchable preview fill.
+            // The preview fill stands in for the scene's sky and GI probes, and can be switched off on its own.
             var fill = new Vector4(lighting.PreviewIndirectLight, 0);
             Vector(result, 16, lighting.SkyColor * lighting.HemisphereIntensity + fill);
             Vector(result, 32, lighting.GroundColor * lighting.HemisphereIntensity + fill);
@@ -271,10 +267,17 @@ public static class ParkUniforms
         return result;
     }
 
-    // The most lights 71014eb250 adds to the list, and the most one cell lists (71014f8e54).
+    /// <summary>
+    /// gsys_user0 row 66: x is where local lights fade out across the light grid (the stage's mLightAttenuationDistance). The
+    /// game's y and z are the stage's mShadowAttenuationDistance and mShadowAttenuationLerpDistance, measured around the
+    /// point in row 87, which the preview has no value for; the fade is put out of reach instead.
+    /// </summary>
+    public static Vector4 LightFade(float lightDistance) => new(lightDistance, 100000, 1, 0);
+
+    // The most lights the game adds to the list, and the most one cell lists.
     private const int MaxLights = 0x200, CellLights = 7;
 
-    // gsys_user1, as 71014eb250 fills it: each grid cell's light count and up to seven light indices, then, per light, its
+    // gsys_user1, as the game fills it: each grid cell's light count and up to seven light indices, then, per light, its
     // color, its position, its spot direction and its falloff start, each in a table of its own.
     private static void LocalLights(byte[] target, IReadOnlyList<AcnhLocalLight> lights, AcnhLightGrid grid)
     {
@@ -292,7 +295,7 @@ public static class ParkUniforms
             SpotFrustum? frustum = null;
             if (light.Cone > 0)
             {
-                // 710155d15c normalizes a spotlight's direction before it is packed, and points a zero one straight down.
+                // The game normalizes a spotlight's direction before it is packed, and points a zero one straight down.
                 direction = direction.LengthSquared() > 0 ? Vector3.Normalize(direction) : -Vector3.UnitY;
                 frustum = new(light.Position, direction, light.Cone, reach);
             }
@@ -320,14 +323,14 @@ public static class ParkUniforms
         }
     }
 
-    // The sphere test 71014eb250 makes against a cell or the whole grid, at the box's point nearest the light.
+    // The sphere test the game makes against a cell or the whole grid, at the box's point nearest the light.
     private static bool Touches(Vector3 position, float radius, Vector3 min, Vector3 max) =>
         Vector3.DistanceSquared(position, Vector3.Clamp(position, min, max)) <= radius * radius;
 
     /// <summary>
-    /// The view volume 710155d15c gives a spotlight: a sead perspective projection of the light's full cone angle, aspect 1,
-    /// near .01 and far at the light's far distance, looking down its direction. 7103882fb0 unprojects the eight clip-space
-    /// corners into the volume's bounds and planes, which 71014f0b58 tests boxes against.
+    /// The view volume the game gives a spotlight: a sead perspective projection of the light's full cone angle, aspect 1,
+    /// near .01 and far at the light's far distance, looking down its direction. The eight clip-space corners, unprojected,
+    /// give the volume's bounds and planes, which boxes are tested against.
     /// </summary>
     private sealed class SpotFrustum
     {
@@ -342,7 +345,7 @@ public static class ParkUniforms
             var helper = vertical ? -Vector3.UnitZ : Vector3.UnitY;
             var up = Vector3.Cross(direction, Vector3.Cross(direction, helper));
             if (up.LengthSquared() > 0) up = Vector3.Normalize(up);
-            // 71037e4634's look-at from the light towards position + direction.
+            // sead's look-at from the light towards position + direction.
             var back = -direction;
             var right = Vector3.Cross(up, back);
             if (right.LengthSquared() > 0) right = Vector3.Normalize(right);
@@ -370,7 +373,7 @@ public static class ParkUniforms
             })];
         }
 
-        // 71014f0b58: the box must overlap the volume's bounds and reach inside every plane at its innermost corner.
+        // The box must overlap the volume's bounds and reach inside every plane at its innermost corner.
         public bool Touches(Vector3 boxMin, Vector3 boxMax)
         {
             if (boxMin.X > max.X || boxMax.X < min.X || boxMin.Y > max.Y || boxMax.Y < min.Y || boxMin.Z > max.Z || boxMax.Z < min.Z)
@@ -384,7 +387,7 @@ public static class ParkUniforms
         }
     }
 
-    // 71014f8e54: a full cell finds the smallest falloff start among the new light and its seven, keeping the earlier on
+    // A full cell finds the smallest falloff start among the new light and its seven, keeping the earlier on
     // ties, and swaps the new light in for that one. If the new light or the cell's first entry is the smallest, the new light
     // is the one left out. The light left out is blacked out everywhere, with the new light's spot flag in its w.
     private static void AddToCell(byte[] target, int[] counts, int[,] listed, List<float> starts, int cell, int light)

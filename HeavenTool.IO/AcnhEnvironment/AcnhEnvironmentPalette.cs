@@ -17,7 +17,11 @@ public sealed record AcnhEnvironmentPalette(
     public float SkyLightIntensity { get; init; }
     public float RayleighIntensity { get; init; }
     public float MieIntensity { get; init; }
-    public float WaterSaturation { get; init; }
+    // mEnvMapTintIntensityLow and mEnvMapTintIntensityHigh; only the water programs read High.
+    public float EnvironmentMapTintIntensityLow { get; init; }
+    public float EnvironmentMapTintIntensityHigh { get; init; }
+    // mMoonLightEdgeParamMoon, the rim light's falloff exponent towards the moon.
+    public float EdgeMoonParameter { get; init; }
     // The bloom threshold and the four compose colors the palette sets on agl's bloom.
     public float BloomThreshold { get; init; }
     public Vector4 BloomBlendColor0 { get; init; }

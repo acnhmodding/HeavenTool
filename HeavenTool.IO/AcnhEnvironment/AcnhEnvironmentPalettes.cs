@@ -47,7 +47,7 @@ public sealed partial class AcnhEnvironmentPalettes
 
     public bool HasPalette(string palette) => palettes.ContainsKey(palette);
 
-    /// <summary>One palette as it is, the way 710150bd30 copies an override palette in place of the set's blend.</summary>
+    /// <summary>One palette as it is, the way the game copies an override palette in place of the set's blend.</summary>
     public AcnhPaletteSample EvaluatePalette(string set, string palette) => palettes.TryGetValue(palette, out var values)
         ? new(set, palette, palette, 0, values)
         : throw new ArgumentException($"Unknown environment palette {palette}.", nameof(palette));
@@ -93,7 +93,9 @@ public sealed partial class AcnhEnvironmentPalettes
         SkyLightIntensity = Lerp(a.SkyLightIntensity, b.SkyLightIntensity, t),
         RayleighIntensity = Lerp(a.RayleighIntensity, b.RayleighIntensity, t),
         MieIntensity = Lerp(a.MieIntensity, b.MieIntensity, t),
-        WaterSaturation = Lerp(a.WaterSaturation, b.WaterSaturation, t),
+        EnvironmentMapTintIntensityLow = Lerp(a.EnvironmentMapTintIntensityLow, b.EnvironmentMapTintIntensityLow, t),
+        EnvironmentMapTintIntensityHigh = Lerp(a.EnvironmentMapTintIntensityHigh, b.EnvironmentMapTintIntensityHigh, t),
+        EdgeMoonParameter = Lerp(a.EdgeMoonParameter, b.EdgeMoonParameter, t),
         BloomThreshold = Lerp(a.BloomThreshold, b.BloomThreshold, t),
         BloomBlendColor0 = Lerp(a.BloomBlendColor0, b.BloomBlendColor0, t),
         BloomBlendColor1 = Lerp(a.BloomBlendColor1, b.BloomBlendColor1, t),

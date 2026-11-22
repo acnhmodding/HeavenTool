@@ -10,7 +10,22 @@ public sealed record AcnhRoomLightParameters(Vector3 Position, float Size, float
     Vector4 WarmColor, Vector4 WhiteColor, float WarmIntensity, float WhiteIntensity);
 
 public sealed record AcnhStageEnvironment(float MinimumLightAngle, float IndirectSkyIntensity,
-    float IndirectGroundIntensity, float IndirectIntensity, float AoIntensity, float DirectionalAoIntensity);
+    float IndirectGroundIntensity, float IndirectIntensity, float AoIntensity, float DirectionalAoIntensity)
+{
+    public float EnvironmentMapShadowIntensity { get; init; }
+    // How far local lights reach across the light grid, and where shadows start fading and over what distance.
+    public float LightAttenuationDistance { get; init; }
+    public float ShadowAttenuationDistance { get; init; }
+    public float ShadowAttenuationLerpDistance { get; init; }
+    // The moonlight rim light's settings: mMoonLightEdgeParamModel, mMoonLightIntensity, mMoonLightModelEdgeSqueeze,
+    // mMoonLightCloudIntensity, mMoonLightCloudEdgeParamMoon and mMoonLightSpecialCloudIntensity.
+    public float MoonLightEdgeModelParameter { get; init; }
+    public float MoonLightIntensity { get; init; }
+    public float MoonLightModelEdgeSqueeze { get; init; }
+    public float MoonLightCloudIntensity { get; init; }
+    public float MoonLightCloudEdgeParameter { get; init; }
+    public float MoonLightSpecialCloudIntensity { get; init; }
+}
 
 /// <summary>Immutable scene inputs, loaded once from the user's game resources.</summary>
 public sealed class AcnhEnvironmentResources
@@ -43,6 +58,7 @@ public sealed class AcnhEnvironmentResources
     private readonly Func<string, IBymlNode?> read;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, AcnhColorCorrection> colorCorrections = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, AcnhSceneLights> sceneLights = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Vector3?> capturePositions = new();
 
     private AcnhEnvironmentResources(AcnhEnvironmentPalettes palettes, AcnhSunOrbit sunOrbit, AcnhStageEnvironment outdoorStage,
         AcnhStageEnvironment roomStage, AcnhStageEnvironment idrStage, AcnhIdrEnvironment idr, string romfs, AcnhRoomLightParameters villagerRoomLight, AcnhSkyScatterParameters skyScatter,
@@ -94,6 +110,10 @@ public sealed class AcnhEnvironmentResources
     /// <summary>A scene's own lights from Param/Gfx/&lt;scene&gt;/, such as IdrTailor's, read once.</summary>
     public AcnhSceneLights SceneLights(string scene) => sceneLights.GetOrAdd(scene, name => AcnhSceneLights.Read(read, name));
 
+    /// <summary>The environment capture position a scene pins in its CubeMapMgr file, read once; null when it has none.</summary>
+    public Vector3? CapturePosition(string scene) =>
+        capturePositions.GetOrAdd(scene, name => AcnhCubeMapStage.CapturePosition(read, name));
+
     private static AcnhRoomLightParameters ReadRoomLight(IBymlNode entry)
     {
         var p = Dictionary(entry);
@@ -117,6 +137,18 @@ public sealed class AcnhEnvironmentResources
             IndirectGroundIntensity: Number(p, "mIndirectGroundLightIntensity"),
             IndirectIntensity: Number(p, "mIndirectLightIntensity"),
             AoIntensity: Number(p, "mAoIntensity"),
-            DirectionalAoIntensity: Number(p, "mAoDirectionalIntensity"));
+            DirectionalAoIntensity: Number(p, "mAoDirectionalIntensity"))
+        {
+            EnvironmentMapShadowIntensity = Number(p, "mEnvMapShadowIntensity"),
+            LightAttenuationDistance = Number(p, "mLightAttenuationDistance"),
+            ShadowAttenuationDistance = Number(p, "mShadowAttenuationDistance"),
+            ShadowAttenuationLerpDistance = Number(p, "mShadowAttenuationLerpDistance"),
+            MoonLightEdgeModelParameter = Number(p, "mMoonLightEdgeParamModel"),
+            MoonLightIntensity = Number(p, "mMoonLightIntensity"),
+            MoonLightModelEdgeSqueeze = Number(p, "mMoonLightModelEdgeSqueeze"),
+            MoonLightCloudIntensity = Number(p, "mMoonLightCloudIntensity"),
+            MoonLightCloudEdgeParameter = Number(p, "mMoonLightCloudEdgeParamMoon"),
+            MoonLightSpecialCloudIntensity = Number(p, "mMoonLightSpecialCloudIntensity"),
+        };
     }
 }

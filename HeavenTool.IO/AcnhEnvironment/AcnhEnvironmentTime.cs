@@ -23,6 +23,16 @@ public static class AcnhEnvironmentTime
         return southernHemisphere ? -value : value;
     }
 
+    /// <summary>
+    /// How far through the year the date is, (day − 1) / 365 on a non-leap calendar; the southern hemisphere is half a year
+    /// ahead.
+    /// </summary>
+    public static float YearFraction(DateTime date, bool southernHemisphere = false)
+    {
+        float value = (new DateOnly(2001, date.Month, date.Month == 2 ? Math.Min(date.Day, 28) : date.Day).DayOfYear - 1) / 365f;
+        return southernHemisphere ? value < .5f ? value + .5f : value - .5f : value;
+    }
+
     /// <summary>The palette hour of a clock hour: the season moves dawn and dusk, while noon stays put.</summary>
     public static float EffectiveHour(float clockHour, float seasonalOffset)
     {
