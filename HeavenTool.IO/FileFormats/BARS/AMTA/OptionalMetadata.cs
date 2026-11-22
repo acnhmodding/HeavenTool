@@ -54,24 +54,24 @@ public sealed class OptionalMetadata
 
     internal void Write(BinaryWriter writer)
     {
-        writer.Write((uint)Flags);
-        if (MaxAmplitude.HasValue) writer.Write(MaxAmplitude.Value);
-        if (Unknown01.HasValue) writer.Write(Unknown01.Value);
-        if (MaxMomentaryLufs.HasValue) writer.Write(MaxMomentaryLufs.Value);
-        if (IntegratedLufs.HasValue) writer.Write(IntegratedLufs.Value);
-        if (TailLength.HasValue) writer.Write(TailLength.Value);
+        writer.WriteUInt32((uint)Flags);
+        if (MaxAmplitude.HasValue) writer.WriteSingle(MaxAmplitude.Value);
+        if (Unknown01.HasValue) writer.WriteSingle(Unknown01.Value);
+        if (MaxMomentaryLufs.HasValue) writer.WriteSingle(MaxMomentaryLufs.Value);
+        if (IntegratedLufs.HasValue) writer.WriteSingle(IntegratedLufs.Value);
+        if (TailLength.HasValue) writer.WriteUInt32(TailLength.Value);
         if (Points != null)
         {
-            writer.Write(checked((ushort)Points.Length));
-            writer.Write(PointUnknown);
+            writer.WriteUInt16(checked((ushort)Points.Length));
+            writer.WriteUInt16(PointUnknown);
         }
-        if (Unknown06.HasValue) writer.Write(Unknown06.Value);
-        if (Unknown07.HasValue) writer.Write(Unknown07.Value);
+        if (Unknown06.HasValue) writer.WriteSingle(Unknown06.Value);
+        if (Unknown07.HasValue) writer.WriteUInt32(Unknown07.Value);
         if (Points != null)
             foreach (var point in Points)
             {
-                writer.Write(point.SamplePosition);
-                writer.Write(point.Value);
+                writer.WriteUInt32(point.SamplePosition);
+                writer.WriteSingle(point.Value);
             }
     }
 }

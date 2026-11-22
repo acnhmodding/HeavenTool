@@ -10,13 +10,13 @@ public class BeatMap(BinaryReader reader, long offset) : SectionBase<BeatMap.Bea
     {
         ArgumentNullException.ThrowIfNull(writer);
 
-        writer.Write(Count);
-        writer.Write(LoopIndex);
+        writer.WriteUInt16(Count);
+        writer.WriteInt16(LoopIndex);
 
         foreach (var entry in Entries)
         {
-            writer.Write(entry.SamplePosition);
-            writer.Write(entry.BeatNumber);
+            writer.WriteUInt32(entry.SamplePosition);
+            writer.WriteInt32(entry.BeatNumber);
         }
     }
 

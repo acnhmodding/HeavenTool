@@ -29,7 +29,7 @@ public sealed class WriterScopePointer(BinaryWriter writer, long position)
     public void Resolve(uint pos)
     {
         using (writer.CreateScope())
-            writer.WriteAt(Position, pos);
+            writer.WriteUInt32At(Position, pos);
     }
 
     public void Resolve(Action<BinaryWriter> action, long? relativePosition = null)
@@ -42,6 +42,6 @@ public sealed class WriterScopePointer(BinaryWriter writer, long position)
         action(writer);
 
         using (writer.CreateScope())
-            writer.WriteAt(Position, pos);
+            writer.WriteUInt32At(Position, pos);
     }
 }

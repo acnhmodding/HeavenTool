@@ -30,16 +30,16 @@ public sealed class InstrumentTrack
 
     public void Write(BinaryWriter writer)
     {
-        writer.Write(checked((uint)Events.Length));
+        writer.WriteUInt32(checked((uint)Events.Length));
         foreach (var item in Events)
         {
-            if (Tagged) writer.Write(item.Tag ?? throw new InvalidDataException("Tagged instrument event is missing its tag."));
-            writer.Write(item.SamplePosition);
-            writer.Write(item.Duration);
-            writer.Write(item.Pitch);
-            writer.Write(item.Velocity);
-            writer.Write(item.Unknown0);
-            writer.Write(item.Unknown1);
+            if (Tagged) writer.WriteUInt32(item.Tag ?? throw new InvalidDataException("Tagged instrument event is missing its tag."));
+            writer.WriteInt32(item.SamplePosition);
+            writer.WriteInt32(item.Duration);
+            writer.WriteByte(item.Pitch);
+            writer.WriteByte(item.Velocity);
+            writer.WriteByte(item.Unknown0);
+            writer.WriteByte(item.Unknown1);
         }
     }
 }

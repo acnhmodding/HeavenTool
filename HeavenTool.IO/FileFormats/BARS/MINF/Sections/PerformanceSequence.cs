@@ -88,7 +88,7 @@ public class PerformanceSequence
     {
         if (writer.BigEndian != bigEndian)
             throw new NotSupportedException("Opaque performance data cannot be converted to a different byte order.");
-        writer.Write(ToBytes());
+        writer.WriteByteArray(ToBytes());
     }
 
     public byte[] ToBytes()
@@ -96,7 +96,7 @@ public class PerformanceSequence
         ValidateTypedTracks();
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream) { BigEndian = bigEndian };
-        writer.Write(RawData.ToArray());
+        writer.WriteByteArray(RawData.ToArray());
         foreach (var (slot, write) in GetTrackWriters())
         {
             var data = SerializeTrack(write);
@@ -132,9 +132,9 @@ public class PerformanceSequence
         {
             writer.Align(4);
             relative = checked((uint)(writer.Position - field));
-            writer.Write(data);
+            writer.WriteByteArray(data);
         }
-        using (writer.CreateScope()) writer.WriteAt(field, relative);
+        using (writer.CreateScope()) writer.WriteUInt32At(field, relative);
     }
 
     private byte[]? SerializeTrack(Action<BinaryWriter>? write)

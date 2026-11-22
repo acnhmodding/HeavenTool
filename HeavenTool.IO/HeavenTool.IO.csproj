@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AeonSake.NintendoTools" Version="3.6.10" />
+    <PackageReference Include="AeonSake.NintendoTools" Version="3.7.1" />
     <PackageReference Include="Crc32.NET" Version="2.1.0" />
     <PackageReference Include="JeremyEspresso.MurmurHash" Version="0.0.1" />
     <PackageReference Include="NAudio" Version="3.3.0" />

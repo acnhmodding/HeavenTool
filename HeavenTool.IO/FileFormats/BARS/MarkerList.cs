@@ -15,10 +15,10 @@ public class MarkerList : IEnumerable<MarkerList.MarkerEntry>
 
         public void Write(BinaryWriter writer, StringPool stringPool)
         {
-            writer.Write(Id);
+            writer.WriteUInt32(Id);
             stringPool.AddString(writer, Name);
-            writer.Write(StartPosition);
-            writer.Write(Length);
+            writer.WriteUInt32(StartPosition);
+            writer.WriteUInt32(Length);
         }
 
         public override string ToString()
@@ -54,7 +54,7 @@ public class MarkerList : IEnumerable<MarkerList.MarkerEntry>
 
     public void Write(BinaryWriter writer, StringPool stringPool)
     {
-        writer.Write(Markers.Count);
+        writer.WriteInt32(Markers.Count);
 
         foreach (var entry in Markers)
             entry.Write(writer, stringPool);

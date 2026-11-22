@@ -13,8 +13,8 @@ public class BinaryWaveChannel : IDisposable
         public static AdpcmContext Read(BinaryReader r) => new(r.ReadUInt16(), r.ReadInt16Array(2));
         public void Write(BinaryWriter writer)
         {
-            writer.Write(PredictorScale);
-            writer.Write(History);
+            writer.WriteUInt16(PredictorScale);
+            writer.WriteInt16Array(History);
         }
     }
 
@@ -23,9 +23,9 @@ public class BinaryWaveChannel : IDisposable
         public static BinaryWaveLoopInfo Read(BinaryReader r) => new(r.ReadUInt32(), AdpcmContext.Read(r), r.ReadUInt16());
         public void Write(BinaryWriter writer)
         {
-            writer.Write(LoopStart);
+            writer.WriteUInt32(LoopStart);
             AdpcmContext.Write(writer);
-            writer.Write(Padding);
+            writer.WriteUInt16(Padding);
         }
     }
 
@@ -253,27 +253,27 @@ public class BinaryWaveChannel : IDisposable
 
     internal void Write(BinaryWriter writer, bool isPrefetched)
     {
-        writer.Write((ushort)Codec);
+        writer.WriteUInt16((ushort)Codec);
 
-        writer.Write((ushort)ChannelPan);
-        writer.Write(SampleRate);
-        writer.Write(TotalSampleCount);
-        writer.Write(LocalSampleCount);
+        writer.WriteUInt16((ushort)ChannelPan);
+        writer.WriteInt32(SampleRate);
+        writer.WriteUInt32(TotalSampleCount);
+        writer.WriteInt32(LocalSampleCount);
 
         if (Codec == CodecType.Adpcm)
-            writer.Write(Coefficients ?? new short[DspAdpcmCodec.CoefficientCount]);
+            writer.WriteInt16Array(Coefficients ?? new short[DspAdpcmCodec.CoefficientCount]);
         else if (Codec == CodecType.PcmInt16)
             writer.Pad(0x20);
 
         writeTotalSamples = null;
         if (isPrefetched)
-            writer.Write(TotalSamplesOffset);
+            writer.WriteUInt32(TotalSamplesOffset);
         else
             writeTotalSamples = writer.CreatePointer();
         writeLocalSamples = writer.CreatePointer();
-        writer.Write(LoopCount);
-        writer.Write(LoopSeekPointIndex);
-        writer.Write(LoopEnd);
+        writer.WriteUInt16(LoopCount);
+        writer.WriteUInt16(LoopSeekPointIndex);
+        writer.WriteInt32(LoopEnd);
         foreach (var point in LoopInfo)
             point.Write(writer);
     }

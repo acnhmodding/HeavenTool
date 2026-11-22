@@ -32,9 +32,9 @@ public partial class PBCFileReader
 
         public void Write(BinaryWriter writer)
         {
-            writer.Write(CenterHeight);
-            writer.Write(Corner1Height);
-            writer.Write(Corner2Height);
+            writer.WriteSingle(CenterHeight);
+            writer.WriteSingle(Corner1Height);
+            writer.WriteSingle(Corner2Height);
         }
     }
 
@@ -88,7 +88,7 @@ public partial class PBCFileReader
         {
             HeightMap.Write(writer);
             foreach (var material in Materials)
-                writer.Write((byte)material);
+                writer.WriteByte((byte)material);
         }
     }
 
@@ -166,13 +166,13 @@ public partial class PBCFileReader
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
 
-        writer.Write("pbc\0"u8);
+        writer.WriteByteSpan("pbc\0"u8);
 
-        writer.Write(Width);
-        writer.Write(Height);
+        writer.WriteInt32(Width);
+        writer.WriteInt32(Height);
 
-        writer.Write(OffsetX);
-        writer.Write(OffsetZ);
+        writer.WriteInt32(OffsetX);
+        writer.WriteInt32(OffsetZ);
 
         for (var h = 0; h < Height; h++)
             for (var w = 0; w < Width; w++)

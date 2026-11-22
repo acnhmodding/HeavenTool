@@ -318,17 +318,17 @@ public class BinaryCSV
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
 
-        writer.Write(Entries.Count);
-        writer.Write(EntrySize);
-        writer.Write((ushort)Fields.Length);
+        writer.WriteInt32(Entries.Count);
+        writer.WriteInt32(EntrySize);
+        writer.WriteUInt16((ushort)Fields.Length);
 
-        writer.Write(HasExtendedHeader);
-        writer.Write(UnknownField);
+        writer.WriteByte(HasExtendedHeader);
+        writer.WriteByte(UnknownField);
 
         if (HasExtendedHeader == 1)
         {
-            writer.Write(MAGIC);
-            writer.Write(HeaderVersion);
+            writer.WriteByteSpan(MAGIC);
+            writer.WriteInt32(HeaderVersion);
 
             // Padding
             writer.Pad(8);
@@ -337,8 +337,8 @@ public class BinaryCSV
 
         foreach (var field in Fields)
         {
-            writer.Write(field.Hash);
-            writer.Write(field.Offset);
+            writer.WriteUInt32(field.Hash);
+            writer.WriteInt32(field.Offset);
         }
 
         // Each field goes to its own offset, so the row keeps its declared size and bytes no field
@@ -351,7 +351,7 @@ public class BinaryCSV
             if (hasRowOffset) BinaryPrimitives.WriteUInt32LittleEndian(row, (uint)writer.Position);
             for (var fieldId = 0; fieldId < Fields.Length; fieldId++)
                 WriteCell(row.AsSpan(Fields[fieldId].Offset, Fields[fieldId].Size), Fields[fieldId].DataType, entry[fieldId]);
-            writer.Write(row);
+            writer.WriteByteArray(row);
         }
 
         writer.Align(4);

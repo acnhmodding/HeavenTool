@@ -187,12 +187,12 @@ public class BinaryWaveFile : IDisposable
         using var writer = new BinaryWriter(stream);
         writer.BigEndian = IsBigEndian;
 
-        writer.Write("BWAV"u8);
-        writer.Write((ushort)0xFEFF);
-        writer.Write(Version);
-        writer.Write(AssetType == AssetType.Prefetch ? Hash : CalculateDataHash());
-        writer.Write((ushort)AssetType);
-        writer.Write((ushort)Channels.Length);
+        writer.WriteByteSpan("BWAV"u8);
+        writer.WriteUInt16((ushort)0xFEFF);
+        writer.WriteUInt16(Version);
+        writer.WriteUInt32(AssetType == AssetType.Prefetch ? Hash : CalculateDataHash());
+        writer.WriteUInt16((ushort)AssetType);
+        writer.WriteUInt16((ushort)Channels.Length);
 
         for (var i = 0; i < Channels.Length; i++)
             Channels[i].Write(writer, AssetType == AssetType.Prefetch);
@@ -208,7 +208,7 @@ public class BinaryWaveFile : IDisposable
             channel.writeTotalSamples?.Resolve(offsetPosition);
             channel.writeLocalSamples?.Resolve(offsetPosition);
 
-            writer.Write(channel.ChannelData);
+            writer.WriteByteArray(channel.ChannelData);
             writer.Align(0x40);
         }
 

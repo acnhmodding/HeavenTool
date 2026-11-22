@@ -133,16 +133,16 @@ public class BARSFileReader : IDisposable
         writer.BigEndian = BigEndian;
         var assets = AudioAssets.OrderBy(a => a.AudioMetadata?.AssetName.ToCRC32() ?? a.Hash).ToArray();
 
-        writer.Write(MAGIC);
+        writer.WriteString(MAGIC);
         var size = writer.CreatePointer();
 
-        writer.Write((ushort)0xFEFF);
-        writer.Write((ushort)((VersionMajor << 8) | VersionMinor));
-        writer.Write(assets.Length);
+        writer.WriteUInt16((ushort)0xFEFF);
+        writer.WriteUInt16((ushort)((VersionMajor << 8) | VersionMinor));
+        writer.WriteInt32(assets.Length);
 
         foreach (var audioAsset in assets)
         {
-            writer.Write(audioAsset.AudioMetadata?.AssetName.ToCRC32() ?? audioAsset.Hash);
+            writer.WriteUInt32(audioAsset.AudioMetadata?.AssetName.ToCRC32() ?? audioAsset.Hash);
         }
 
         var pointers = new (WriterScopePointer metadataPointer, WriterScopePointer assetPointer)[AudioAssets.Length];
@@ -152,12 +152,12 @@ public class BARSFileReader : IDisposable
 
         if (VersionMinor is 2)
         {
-            writer.Write(Hashes?.Length ?? 0);
+            writer.WriteInt32(Hashes?.Length ?? 0);
 
             if (Hashes != null)
             {
                 foreach (var hash in Hashes)
-                    writer.Write(hash);
+                    writer.WriteUInt32(hash);
             }
         }
 
@@ -165,7 +165,7 @@ public class BARSFileReader : IDisposable
         {
             writer.Align(4);
             pointers[i].metadataPointer.Resolve((uint)writer.Position);
-            writer.Write(assets[i].AudioMetadata?.ToBytes()
+            writer.WriteByteArray(assets[i].AudioMetadata?.ToBytes()
                 ?? throw new InvalidDataException("Audio metadata is missing."));
         }
 
@@ -179,7 +179,7 @@ public class BARSFileReader : IDisposable
                 writer.Align(0x40);
                 offset = checked((uint)writer.Position);
                 offsets.Add(wave, offset);
-                writer.Write(wave.ToBytes());
+                writer.WriteByteArray(wave.ToBytes());
             }
             pointers[i].assetPointer.Resolve(offset);
         }

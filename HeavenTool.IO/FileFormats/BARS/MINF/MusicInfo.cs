@@ -126,23 +126,23 @@ public class MusicInfo
         using var writer = new BinaryWriter(stream) { BigEndian = BigEndian };
         if (preserveSection2)
         {
-            writer.Write(originalData);
+            writer.WriteByteArray(originalData);
             writer.Position = 0;
         }
         var strings = new StringPool();
-        writer.Write(MAGIC);
-        writer.Write((ushort)0xFEFF);
-        writer.Write((ushort)((VersionMajor << 8) | VersionMinor));
+        writer.WriteString(MAGIC);
+        writer.WriteUInt16((ushort)0xFEFF);
+        writer.WriteUInt16((ushort)((VersionMajor << 8) | VersionMinor));
         var size = writer.CreatePointer();
         strings.AddString(writer, EnglishName);
         strings.AddString(writer, JapaneseName);
-        writer.Write(SampleRate);
-        writer.Write(LoopStart);
-        writer.Write(LoopEnd);
-        writer.Write(TempoSamplePosition);
-        writer.Write(BeatsPerMinute);
-        writer.Write(TimeSignatureNumerator);
-        writer.Write(TimeSignatureDenominator);
+        writer.WriteUInt32(SampleRate);
+        writer.WriteUInt32(LoopStart);
+        writer.WriteUInt32(LoopEnd);
+        writer.WriteUInt32(TempoSamplePosition);
+        writer.WriteSingle(BeatsPerMinute);
+        writer.WriteUInt16(TimeSignatureNumerator);
+        writer.WriteUInt16(TimeSignatureDenominator);
         var sections = Enumerable.Range(0, 8).Select(_ => writer.CreatePointer()).ToArray();
         if (preserveSection2)
         {

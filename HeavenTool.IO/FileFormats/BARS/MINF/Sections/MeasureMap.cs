@@ -8,11 +8,11 @@ public class MeasureMap(BinaryReader reader, long offset) : SectionBase<uint>(re
 {
     public override void Write(BinaryWriter writer)
     {
-        writer.Write(Count);
-        writer.Write(LoopIndex);
+        writer.WriteUInt16(Count);
+        writer.WriteInt16(LoopIndex);
 
         foreach (var entry in Entries)
-            writer.Write(entry);
+            writer.WriteUInt32(entry);
     }
 
     protected override uint ReadEntry(BinaryReader reader) => reader.ReadUInt32();

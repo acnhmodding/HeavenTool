@@ -40,12 +40,12 @@ public sealed class PitchValueTrack
 
     public void Write(BinaryWriter writer)
     {
-        writer.Write(checked((uint)Points.Length));
-        writer.Write(LoopIndex);
+        writer.WriteUInt32(checked((uint)Points.Length));
+        writer.WriteInt32(LoopIndex);
         foreach (var point in Points)
         {
-            writer.Write(point.SamplePosition);
-            writer.Write(point.Value);
+            writer.WriteUInt32(point.SamplePosition);
+            writer.WriteInt32(point.Value);
         }
     }
 }

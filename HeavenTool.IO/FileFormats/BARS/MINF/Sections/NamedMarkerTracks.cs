@@ -66,11 +66,11 @@ public sealed class NamedMarkerTracks
 
     public void Write(BinaryWriter writer, StringPool strings)
     {
-        writer.Write(checked((uint)Tracks.Count));
+        writer.WriteUInt32(checked((uint)Tracks.Count));
         var pointers = new List<WriterScopePointer>();
         foreach (var track in Tracks)
         {
-            writer.Write(track.NameHash);
+            writer.WriteUInt32(track.NameHash);
             pointers.Add(writer.CreatePointer());
         }
         for (var i = 0; i < Tracks.Count; i++)
@@ -78,9 +78,9 @@ public sealed class NamedMarkerTracks
             {
                 var track = Tracks[i];
                 strings.AddString(w, track.Name);
-                w.Write(checked((ushort)track.SamplePositions.Count));
-                w.Write(checked((ushort)(track.LoopIndex == -1 ? ushort.MaxValue : track.LoopIndex)));
-                foreach (var position in track.SamplePositions) w.Write(position);
+                w.WriteUInt16(checked((ushort)track.SamplePositions.Count));
+                w.WriteUInt16(checked((ushort)(track.LoopIndex == -1 ? ushort.MaxValue : track.LoopIndex)));
+                foreach (var position in track.SamplePositions) w.WriteUInt32(position);
             });
     }
 }

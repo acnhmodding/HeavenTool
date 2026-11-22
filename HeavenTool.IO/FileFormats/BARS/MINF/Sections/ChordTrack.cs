@@ -32,7 +32,7 @@ public class ChordTrack(BinaryReader reader, long offset) : SectionBase<ChordTra
 
         public void Write(BinaryWriter writer)
         {
-            writer.Write(SamplePosition);
+            writer.WriteUInt32(SamplePosition);
             chordPointer = writer.CreatePointer();
         }
 
@@ -40,10 +40,10 @@ public class ChordTrack(BinaryReader reader, long offset) : SectionBase<ChordTra
         {
             chordPointer?.Resolve(writer =>
             {
-                writer.Write(Notes.Count);
+                writer.WriteInt32(Notes.Count);
 
                 foreach (var note in Notes)
-                    writer.Write(note);
+                    writer.WriteByte(note);
 
                 writer.Align(4);
             });
@@ -63,8 +63,8 @@ public class ChordTrack(BinaryReader reader, long offset) : SectionBase<ChordTra
     {
         ArgumentNullException.ThrowIfNull(writer);
 
-        writer.Write(Count);
-        writer.Write(LoopIndex);
+        writer.WriteUInt16(Count);
+        writer.WriteInt16(LoopIndex);
 
         // Write all entry pointers before their chord data.
         foreach (var chord in Entries)

@@ -81,11 +81,11 @@ public sealed class NamedEventTracks
 
     public void Write(BinaryWriter writer, StringPool strings)
     {
-        writer.Write(checked((uint)Tracks.Count));
+        writer.WriteUInt32(checked((uint)Tracks.Count));
         var pointers = new List<WriterScopePointer>();
         foreach (var track in Tracks)
         {
-            writer.Write(track.NameHash);
+            writer.WriteUInt32(track.NameHash);
             pointers.Add(writer.CreatePointer());
         }
         for (var i = 0; i < Tracks.Count; i++)
@@ -101,12 +101,12 @@ public sealed class NamedEventTracks
 
     private static void WritePoints(BinaryWriter writer, int loop, List<Point> points)
     {
-        writer.Write(checked((ushort)points.Count));
-        writer.Write(checked((ushort)(loop == -1 ? ushort.MaxValue : loop)));
+        writer.WriteUInt16(checked((ushort)points.Count));
+        writer.WriteUInt16(checked((ushort)(loop == -1 ? ushort.MaxValue : loop)));
         foreach (var point in points)
         {
-            writer.Write(point.SamplePosition);
-            writer.Write(point.Value);
+            writer.WriteUInt32(point.SamplePosition);
+            writer.WriteInt32(point.Value);
         }
     }
 }

@@ -62,16 +62,16 @@ public class VocalTrack
 
     public void Write(BinaryWriter writer)
     {
-        writer.Write(checked((uint)Events.Count));
-        writer.Write(LoopIndex);
+        writer.WriteUInt32(checked((uint)Events.Count));
+        writer.WriteInt32(LoopIndex);
         foreach (var item in Events)
         {
-            writer.Write(item.SamplePosition);
-            writer.Write(item.Duration);
-            writer.Write((byte)item.VoiceType);
-            writer.Write(item.Pitch);
-            writer.Write(item.Velocity);
-            writer.Write(item.UnknownByte);
+            writer.WriteInt32(item.SamplePosition);
+            writer.WriteInt32(item.Duration);
+            writer.WriteByte((byte)item.VoiceType);
+            writer.WriteByte(item.Pitch);
+            writer.WriteByte(item.Velocity);
+            writer.WriteByte(item.UnknownByte);
         }
     }
 }

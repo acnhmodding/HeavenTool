@@ -206,9 +206,9 @@ public class AudioMetadata
         using var binaryWriter = new BinaryWriter(ms);
         binaryWriter.BigEndian = IsBigEndian;
 
-        binaryWriter.Write(AMTA_MAGIC);
-        binaryWriter.Write((ushort)0xFEFF);
-        binaryWriter.Write((ushort)Version);
+        binaryWriter.WriteString(AMTA_MAGIC);
+        binaryWriter.WriteUInt16((ushort)0xFEFF);
+        binaryWriter.WriteUInt16((ushort)Version);
         var sizePosition = binaryWriter.CreatePointer();
 
         switch (Version)
@@ -230,7 +230,7 @@ public class AudioMetadata
     {
         const long initialPosition = 0;
         var stringPool = new StringPool();
-        writer.Write(ReservedOffset);
+        writer.WriteUInt32(ReservedOffset);
         var dataPointer = writer.CreatePointer();
         var markerPointer = writer.CreatePointer();
         var minfPointer = writer.CreatePointer();
@@ -238,17 +238,17 @@ public class AudioMetadata
         var attrPointer = writer.CreatePointer();
         var assetNamePointer = writer.CreatePointer();
 
-        writer.Write(AssetName.ToCRC32());
-        writer.Write((uint)Flags);
+        writer.WriteUInt32(AssetName.ToCRC32());
+        writer.WriteUInt32((uint)Flags);
 
-        writer.Write(checked((byte)Tracks.Length));
+        writer.WriteByte(checked((byte)Tracks.Length));
         foreach (var track in Tracks)
         {
-            writer.Write(checked((byte)track.Channels.Length));
+            writer.WriteByte(checked((byte)track.Channels.Length));
             foreach (var channel in track.Channels)
             {
-                writer.Write(channel.ChannelIndex);
-                writer.Write((byte)channel.OutputChannel);
+                writer.WriteByte(channel.ChannelIndex);
+                writer.WriteByte((byte)channel.OutputChannel);
             }
         }
 
@@ -265,7 +265,7 @@ public class AudioMetadata
         if (MusicInfo != null)
         {
             writer.Align(4);
-            minfPointer.Resolve(w => w.Write(MusicInfo.ToBytes()), initialPosition);
+            minfPointer.Resolve(w => w.WriteByteArray(MusicInfo.ToBytes()), initialPosition);
         }
 
         if (Identifiers.Count != 0)
@@ -278,11 +278,11 @@ public class AudioMetadata
             writer.Align(4);
             attrPointer.Resolve(w =>
             {
-                w.Write(Attributes.Count);
+                w.WriteInt32(Attributes.Count);
                 foreach (var attribute in Attributes)
                 {
                     stringPool.AddString(w, attribute.Key);
-                    w.Write(attribute.Value);
+                    w.WriteUInt32(attribute.Value);
                 }
             }, initialPosition);
         }
@@ -295,7 +295,7 @@ public class AudioMetadata
 
     private void WriteFileFooter(BinaryWriter writer, StringPool stringPool)
     {
-        writer.Write(Identifiers.Count);
+        writer.WriteInt32(Identifiers.Count);
         foreach (var identifier in Identifiers)
             stringPool.AddString(writer, identifier);
     }

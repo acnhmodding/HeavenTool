@@ -28,15 +28,15 @@ public class TempoMap(BinaryReader reader, long location) : SectionBase<TempoMap
     {
         ArgumentNullException.ThrowIfNull(writer);
 
-        writer.Write(Count);
-        writer.Write(LoopIndex);
+        writer.WriteUInt16(Count);
+        writer.WriteInt16(LoopIndex);
 
         foreach (var entry in Entries)
         {
-            writer.Write(entry.SamplePosition);
-            writer.Write(entry.BeatsPerMinute);
-            writer.Write(entry.TimeSignatureNumerator);
-            writer.Write(entry.TimeSignatureDenominator);
+            writer.WriteUInt32(entry.SamplePosition);
+            writer.WriteSingle(entry.BeatsPerMinute);
+            writer.WriteUInt16(entry.TimeSignatureNumerator);
+            writer.WriteUInt16(entry.TimeSignatureDenominator);
         }
     }
 }
