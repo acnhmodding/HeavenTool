@@ -296,7 +296,6 @@ FlagsFlowAccess.hshCstringRef
 FlagsNetAccess.hshCstringRef
 SendPlayReport u8
 SyncNoCheck u8
-SkinBushA s8
 FlagsNetAccess u8
 FlagLand s32
 FlagPlayer s32
@@ -393,7 +392,7 @@ ItemLayer u8
 StageName string32
 StaticField u8
 ActionRange.hshCstringRef
-MeshEdgeDirType.hshCstringRef
+CornerUpdateType.hshCstringRef
 FallActionType.hshCstringRef
 Layer.hshCstringRef
 PlaneChangeType.hshCstringRef
@@ -712,7 +711,6 @@ NpcFtrActionInterest.hshCstringRef
 NpcFtrActionWeather.hshCstringRef
 NpcFtrActionTool u16
 NpcFtrActionAsName string64
-RadiusBOutdoor s8
 CanPutDisplay u8
 CanPutFish u8
 CanPutFood u8
@@ -1571,9 +1569,7 @@ Amiibo u16
 AnimeTypeCooking string64
 AnimeTypeMaracas string64
 AnimeTypeTrowel string64
-mIsRhizobia int16
 Reverberation u8
-ShellRotate.hshCstringRef
 LookAtType.hshCstringRef
 EntryName string32
 RoomSizeX s8
@@ -1611,7 +1607,6 @@ SharedNPCLabel string8
 TargetNPCLabel string8
 TalkingNpcLabel string8
 NpcCreateType.hshCstringRef
-HouseDoorShape.hshCstringRef
 Stage10Hash stringMurmurHash
 Stage12Hash stringMurmurHash
 Stage14Hash stringMurmurHash
@@ -1654,3 +1649,399 @@ MainCatalogOpenItem u16
 BuiltNpcRoleID u16
 ObjectActorType u8
 ReBodyPatternRejectNum s8
+AttrClearCulling u8
+AttrClearMoving u8
+AttrClearRollback u8
+AttrClearStageChange u8
+AttrClearNAChange u8
+AttrClearSceneChange u8
+SymbolFtr u16
+ArchiveIndex u16
+Action0_Insurance.hshCstringRef
+Action1_Insurance.hshCstringRef
+Action2_Insurance.hshCstringRef
+Action3_Insurance.hshCstringRef
+FurnitureActionCandidate u8
+FacilityInsuranceAction.hshCstringRef
+TradeTicketBasePrice u32
+TradeDifficultyLevel.hshCstringRef
+ChangeHistoryType.hshCstringRef
+NpcSynchroEndTiming.hshCstringRef
+NotWithTitleSan u8
+NpcSynchroDirection.hshCstringRef
+MainIslandItemRemakeFabricKind u8
+SeatSpIndex s8
+BoatLocated u8
+ValidNightExplain u8
+HeightAutoInvalid u8
+StarMark u8
+OutputCSV u8
+IncludeReadyEvent u8
+ProgramHandlingType u16
+NpcSynchroActionAsName string64
+AiEquipTaste2 u32
+AiEquipTaste1 u32
+AiEquipBackSeries1 u32
+AiEquipBackSeries2 u32
+UnlockRoom1SecondEdit u8
+UnlockRoom2SecondEdit u8
+SkipTopsSwap u8
+SingTriggerRatio u8
+UseSWalkNeck u8
+VillageIntervalWaitVar u8
+OpenPlayerFlagId s32
+CloseLandFlagId s32
+ClosePlayerFlagId s32
+OpenLandFlagId s32
+NpcInteractionAsName string64
+SpAllType u8
+EventObjModuleType.hshCstringRef
+EnableChangeSwitchPlayer u8
+ItemCookingFtrEffectType.hshCstringRef
+ItemGardeningEditType.hshCstringRef
+AiEquipTrend.hshCstringRef
+KeepStateToDemo u8
+TimeShcedule.hshCstringRef
+KeepStateInDemoEnd u8
+AcceptSubWarpEx u8
+AttrClearGlowUpTiming.hshCstringRef
+AttrClearGlowUpTiming u8
+HideDodmCap u8
+HideDdmCap u8
+SpNpcAmiiboCallType.hshCstringRef
+GroundHoleColorString string16
+GroundSnowHoleColorString string16
+MuseumBankLimitDeg f32
+HideTmmCap u8
+HideTmbmCap u8
+ItemLivedInFeel.hshCstringRef
+SpKabe u8
+AddPaternNum u8
+ApproachIncreasePerMissedNum u16
+ItemFtrUpperWallDirection.hshCstringRef
+StampRackNameTextLabelForUI string32
+ItemNpcAiEquipTaste1.hshCstringRef
+ItemNpcAiEquipTaste2 u32
+ChestPlantSortId s16
+ItemNpcPriorityTopsModel string64
+ErrorThroughCount s8
+CaptureForceStateON u8
+SwapModelForDive u8
+ItemAdditionalSoundMaterialType u16
+ItemHumanGmoToolType u16
+NoBuryBounce u8
+AllowMultiStopJoy u8
+DisableAtRemoveObjEvent u8
+AchievableNum u16
+Action0_0.hshCstringRef
+Action0_1.hshCstringRef
+Action0_2.hshCstringRef
+Action0_3.hshCstringRef
+Action0_4.hshCstringRef
+Action0_5.hshCstringRef
+Action0_6.hshCstringRef
+Action0_7.hshCstringRef
+Action0_8.hshCstringRef
+Action1_0.hshCstringRef
+Action1_1.hshCstringRef
+Action1_2.hshCstringRef
+Action1_3.hshCstringRef
+Action1_4.hshCstringRef
+Action1_5.hshCstringRef
+Action1_6.hshCstringRef
+Action1_7.hshCstringRef
+Action1_8.hshCstringRef
+Action2_0.hshCstringRef
+Action2_1.hshCstringRef
+Action2_2.hshCstringRef
+Action2_3.hshCstringRef
+Action3_0.hshCstringRef
+Action3_1.hshCstringRef
+Action3_2.hshCstringRef
+Action3_3.hshCstringRef
+ActionAngle u8
+ActionFlags u8
+ActionPattern1 u32
+ActionPattern2 u32
+ActionPattern3 u32
+ActionSet0.hshCstringRef
+ActionSet1.hshCstringRef
+ActionSet2.hshCstringRef
+ActionSetRate0 s8
+ActionSetRate1 s8
+ActionSetRate2 s8
+ApproachRate u16
+AreaUniqueID u16
+ASCommand string65
+AudioMusicCategory.hshCstringRef
+BoatOffsetX s16
+BoatOffsetZ s16
+CanHostAcceptNewVisitorDB u8
+CanUseWherearen u8
+CapOff u8
+CloseItemUniqueId s32
+ClothesFrequencyWear u8
+ClothesPurposeLimit u8
+CountPlayerVisit u8
+DefaultAccessory u16
+DefaultDoor u16
+DefaultRoof u16
+DefaultWall u16
+EditBaseUnitX s16
+EditBaseUnitZ s16
+ElectionRate0 u8
+ElectionRate1 u8
+ElectionRate2 u8
+ElectionRate3 u8
+ElectionRate4 u8
+ElectionRate5 u8
+ElectionRate6 u8
+ElectionRate7 u8
+ElectionRate8 u8
+EnvMapUniqueID u16
+EventNumLimit u16
+FacilityActionType0.hshCstringRef
+FacilityActionType1.hshCstringRef
+FacilityActionType2.hshCstringRef
+FacilityActionType3.hshCstringRef
+FacilityActionType4.hshCstringRef
+FacilityActionType5.hshCstringRef
+FacilityActionType6.hshCstringRef
+FacilityActionType7.hshCstringRef
+FacilityActionType8.hshCstringRef
+FgUniqueID u16
+FishingSeries u8
+ForBuiltNpc u8
+ForFes u8
+ForFesNpc u8
+ForShareHouse u8
+Ftr1OffsetX s16
+Ftr1OffsetZ s16
+Ftr2OffsetX s16
+Ftr2OffsetZ s16
+FtrType0 u8
+FtrType1 u8
+FtrType2 u8
+FtrType3 u8
+GardenEdit u16
+GradeID u16
+HaniwaPartsType.hshCstringRef
+HasDoorLight u8
+InvalidCard u8
+IsBeforeUnlock u8
+KappeiTourCategory.hshCstringRef
+KimeProbability s8
+LimitNum0 s8
+LimitNum1 s8
+LimitNum2 s8
+LimitNum3 s8
+LotGrowUp u8
+MainIslandItemDirection u8
+MainIslandItemLayer u8
+MainIslandItemSwitch u8
+MainIslandObjectKind u8
+MaxAmount s32
+MinAmount s32
+Month2 u8
+Month3 u8
+MoveSpot1 u32
+MoveSpot2 u32
+MoveSpot3 u32
+MoveSpot4 u32
+MoveTool1 u16
+MoveTool2 u16
+MoveTool3 u16
+MustFtr1 u16
+MustFtr2 u16
+MustFtr3 u16
+NearbyInteract u8
+NoteMax u8
+NoteMin u8
+NotWithTitle u8
+NpcActionUniqueID u16
+NpcCanSit u8
+NpcFtrActionTool2 u16
+NpcFtrActionTool3 u16
+NpcReleaseType u32
+NpcRole0.hshCstringRef
+NpcRole1 u8
+NpcRole2 u8
+NpcRole3 u8
+NpcRoleNum0 s8
+NpcRoleNum1 s8
+NpcRoleNum2 s8
+NpcRoleNum3 s8
+NpcRoleSet.hshCstringRef
+NpcRoleSetID u16
+NpcSetType.hshCstringRef
+ObjectUniqueID u16
+OrderID1 u16
+OutdoorFtr1 u16
+OutdoorFtr2 u16
+PatternFirstDay u8
+PlaceConditionTime u8
+PlaceNpcNum s8
+PlanYear.hshCstringRef
+PointList u8
+PrioLevel u8
+PrioMethod u8
+PrioMethod.hshCstringRef
+QuotaNum u16
+QuotaNum u8
+HideSzamCap u8
+RailIndex s16
+RailIndex s8
+RankIncrease u16
+Rate0_0 s8
+Rate0_1 s8
+Rate0_2 s8
+Rate0_3 s8
+Rate0_4 s8
+Rate0_5 s8
+Rate0_6 s8
+Rate0_7 s8
+Rate0_8 s8
+Rate1_0 s8
+Rate1_1 s8
+Rate1_2 s8
+Rate1_3 s8
+Rate1_4 s8
+Rate1_5 s8
+Rate1_6 s8
+Rate1_7 s8
+Rate1_8 s8
+Rate2_0 s8
+Rate2_1 s8
+Rate2_2 s8
+Rate2_3 s8
+Rate3_0 s8
+Rate3_1 s8
+Rate3_2 s8
+Rate3_3 s8
+ReBodyID u16
+RebodyNum1 s8
+RebodyNum2 s8
+RebodyNum3 s8
+RecipeDataType.hshCstringRef
+RecommendPattern u8
+RefabricNum1 s8
+RefabricNum2 s8
+RefabricNum3 s8
+RemakeFabricID s16
+ReplaceTiming u8
+RequestNum0 s8
+RequestNum1 s8
+RequestNum2 s8
+RequestNum3 s8
+RolePriority u8
+SafeRangeType.hshCstringRef
+Seat0 u16
+Seat1 u16
+Seat2 u16
+Seat3 u16
+SeatSP u16
+ShareHouseSelectRate u8
+SmallGenre.hshCstringRef
+SNpcID0 u16
+SNpcID1 u16
+SNpcID2 u16
+SNpcID3 u16
+SortIdCNzh u16
+SortIdEUde u16
+SortIdEUen u16
+SortIdEUes u16
+SortIdEUfr u16
+SortIdEUit u16
+SortIdEUnl u16
+SortIdEUru u16
+SortIdJPja u16
+SortIdKRko u16
+SortIdTWzh u16
+SortIdUSen u16
+SortIdUSes u16
+SortIdUSfr u16
+SpHobby.hshCstringRef
+Stage13 string32
+Stage14 string32
+Stage15 string32
+Stage16 string32
+TargetItems u8
+ToolCategory u8
+TypePriority f32
+UmbrellaWherearen u16
+UnlockActionFlag string33
+UnlockEvent u16
+UnlockEvent1 u16
+UnlockEventBit u8
+UnlockFlag string33
+UnlockLevel u8
+UnlockTheme0 u16
+UnlockTheme1 u16
+UnlockTheme10 u16
+UnlockTheme11 u16
+UnlockTheme12 u16
+UnlockTheme13 u16
+UnlockTheme14 u16
+UnlockTheme15 u16
+UnlockTheme16 u16
+UnlockTheme17 u16
+UnlockTheme18 u16
+UnlockTheme19 u16
+UnlockTheme2 u16
+UnlockTheme20 u16
+UnlockTheme21 u16
+UnlockTheme22 u16
+UnlockTheme23 u16
+UnlockTheme24 u16
+UnlockTheme25 u16
+UnlockTheme26 u16
+UnlockTheme27 u16
+UnlockTheme28 u16
+UnlockTheme29 u16
+UnlockTheme3 u16
+UnlockTheme30 u16
+UnlockTheme31 u16
+UnlockTheme32 u16
+UnlockTheme33 u16
+UnlockTheme34 u16
+UnlockTheme35 u16
+UnlockTheme36 u16
+UnlockTheme37 u16
+UnlockTheme38 u16
+UnlockTheme39 u16
+UnlockTheme4 u16
+UnlockTheme5 u16
+UnlockTheme6 u16
+UnlockTheme7 u16
+UnlockTheme8 u16
+UnlockTheme9 u16
+UnlockTiming u8
+UseCulling u8
+UsePlayer u8
+UserSelect u8
+UseSitOffset u8
+WeatherPattern0 u16
+WeatherPattern1 u16
+WeatherPattern2 u16
+WeatherPattern3 u16
+Wherearen u8
+WherearenCatalogOpenItem u16
+UnlockRoom u8
+MessageLabel string8
+SortID u16
+MaterialID u16
+VIPTheme u8
+TradeBasePrice u16
+BaseItem u16
+RepresentativeItem u16
+IsFurnitureAction u8
+HasRoofLight u8
+NameSeedLings u16
+RecommendedFtrFile string64
+PatternKekeEventDay u8
+HHDFtrType string64
+PHBCResName string32
+LotOnFinishOrder u8
+IsSlowDownInSwingAnim u8
+SlowDownSwingLimitRate f32
+AcceptPartialBone u8

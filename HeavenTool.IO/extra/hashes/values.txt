@@ -3732,3 +3732,6 @@ TailorHallRoom
 Restaurant2F
 Cafe2F
 番組1
+Conditional
+Allowed
+Disallowed

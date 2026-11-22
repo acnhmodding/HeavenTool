@@ -322,15 +322,11 @@ Alignment
 Alumiwood
 America
 Amiibo
-Amiibo u16
 AmiiboStationBG
 AnalyzeType
 Ancient
 Angle
 AngleY
-AnimeTypeCooking string64
-AnimeTypeMaracas string64
-AnimeTypeTrowel string64
 ant05
 appVolumeOnLibraryApplet.f32
 AprilFool
@@ -508,7 +504,6 @@ BbsBirdActorCommuneMgr
 BbsBirdActorMgr
 BbsBirdActorWherearen
 BbsBirdActorWherearenMgr
-BcatLevelReady u8
 BestClothes
 BestFriend
 BgReceiveCount
@@ -595,7 +590,6 @@ Candyfloss
 Cane
 CannedDrink
 CanSelectDaily
-CantTakeOver u8
 Canvas
 CapBangsCinnamoroll
 CapBangsMymelody
@@ -712,10 +706,8 @@ ClockSnapshot
 ClockTimeList
 ClockTrigger
 ClothBuyCount
-ClothesFrequencyWear u8
 ClothesPTarget
 ClothesPTops
-ClothesPurposeLimit u8
 ClothType
 CloudPattern
 cMainField
@@ -735,7 +727,6 @@ CockroachActorMgr
 CockroachStock
 Code
 CodeRecipeUser
-Coef f32
 Cold
 CollectBit
 CollectBitFlag
@@ -874,21 +865,13 @@ DataList
 Date
 DateAchievement
 Day
-Day0 u8
-Day1 u8
-Day2 u8
-Day3 u8
 DayOfTheDead
 DebugLog
 DebugPageLog
-DefaultAccessory u16
 DefaultBottoms
-DefaultDoor u16
 DefaultFloorItem
-DefaultRoof u16
 DefaultRugItem
 DefaultTops
-DefaultWall u16
 DefaultWallItem
 DeleteList
 DeliveryItem
@@ -896,7 +879,6 @@ DeliveryTime
 Depth
 der11
 Desert
-Desert u8
 DesignerID
 DesignId
 DeviceId
@@ -916,7 +898,6 @@ DishStack
 Displayed
 DisplayName
 DistantViewUniqueID
-DistantViewUniqueID u16
 DiveFishCollection
 Divefishzuwaigani[]
 DIYEndHour
@@ -982,7 +963,6 @@ EBa
 EcoBag
 EditData
 EditTime
-EmoticonTool.hshCstringRef
 EnableNum
 EnableOnlyLowerBody_GroundSit
 EnableOnlyLowerBody_SWalk
@@ -992,10 +972,8 @@ Enter
 EntertainmentAppliances
 Entrance
 EntryDaily
-EntryName string32
 Enum
 Environment
-EquipRule u16
 EquipRuleID
 Etc
 Etc10
@@ -1009,13 +987,11 @@ Etc6
 Etc7
 Etc8
 Etc9
-Evening u8
 EveningGlow
 EventData
 EventEasterBuryPlace
 EventEasterTreePlace
 EventFlag
-EventFlag s32
 EventFlagPlayerTemp
 EventFlagPlayerVisit
 EventFlags
@@ -1030,7 +1006,6 @@ EventItem
 EventPlazaLeftUpX
 EventPlazaLeftUpZ
 Events
-EventWeatherArea.hshCstringRef
 EvtobjCarnivalDecorations[]
 EvtobjHarvestLight[]
 EvtobjRazyStallPumpkin[]
@@ -1317,7 +1292,6 @@ FlourWheatwhole
 Flowershower
 FlowerShower
 FlowerVase
-FlowName string32
 Footer
 Forever2021
 ForkAndKnife
@@ -1380,7 +1354,6 @@ GlDr
 Gokigen
 GoodsExit
 GorgeousKimono
-Grade u16
 GreaterChina
 Greeting
 GreetingSetDate
@@ -1413,7 +1386,6 @@ Harvest
 Harvest_RecipeBook
 Harvest_tuk
 HarvestDish
-HarvestFishExchangeIngredients u8
 HarvestFtr
 HarvestKitchen
 Hash
@@ -1480,11 +1452,9 @@ HouseWallPD04SoilA[]
 HouseWallPD04StuccoA[]
 HouseWallPD04WoodA[]
 Hula
-Ice u8
 Icecandy
 IceCream
 Id
-Identifier s8
 IdrMuseumCafe
 IdrMuseumCafe_DemoInterporateParams
 IdrMuseumCafe_DemoParams
@@ -1506,7 +1476,6 @@ InfoU32
 InitializeFlag
 InitializerNameId
 InitSchedule
-Inland u8
 InnerData
 InsectCollection
 InsectFieldActorMgr
@@ -1522,28 +1491,13 @@ Invisible
 Invite
 InvitePlayerID
 IronGarden
-IsAppearNorth u8
-IsAppearSouth u8
 IsBirthdayLive
 IsCreateSnowMan
 IsFind
 IsGetRewardToday
-IsGive u8
-IsHide1 u8
-IsHide2_1 u8
-IsHide2_2 u8
-IsHide3 u8
-IsHide4 u8
 IslandId
 IslandRubyType
 IsMakeVillagePlayer
-IsNecessary1_1 u8
-IsNecessary2_1 u8
-IsNecessary2_2 u8
-IsNecessary3_1 u8
-IsNecessary3_2 u8
-IsNecessary4_1 u8
-IsNecessary4_2 u8
 IsNormalLive
 IsRejected
 IsShuffle
@@ -1551,8 +1505,6 @@ IsTalk
 IsUseCoordinate
 IsUseHint
 IsValid
-IsVariable u8
-IsWant u8
 Italy
 Item
 ItemArray
@@ -1573,8 +1525,6 @@ ItemLayerList
 ItemMarketingRoute
 ItemMaterial
 ItemName
-ItemNpcWherearenFtrActionType.hshCstringRef
-ItemPlacementKind u8
 ItemPocket
 ItemRemakeCollectBit
 ItemSwitch0
@@ -1608,8 +1558,6 @@ LabelId
 Laboratory
 LadderKit
 Land
-LandFlagKeyOFF string32
-LandFlagKeyON string32
 LandId
 LandingUniqueID
 LandMakingAngle
@@ -1677,7 +1625,6 @@ LoanItem
 LoanMoney
 LongSwitch
 Look
-LookAtType.hshCstringRef
 LookPack
 LoopTriggerWaitEndOnKeep
 Loose
@@ -1714,7 +1661,6 @@ ManCatalogSpTab
 mAngle.u8
 mAnimationNameInfoArray[].Str
 MannequinCoodinate
-MannequinUsage.hshCstringRef
 Manpu
 ManpuBit
 MapMini
@@ -1944,12 +1890,9 @@ mOffsetFrame[].f32
 mOffsetFramePerActionNum[].f32
 MoneyBox
 Month
-Month0 u8
-Month1 u8
 MoonViewing_CH
 MoonViewing_JP
 mOriginalLightParamArray[]
-Morning u8
 MorningGlow
 Moroccan
 mOtgAirportPos.V3f
@@ -2109,7 +2052,6 @@ MuseumFossil
 MuseumFossilActorMgr
 MuseumInsect
 MuseumLevel
-Music u16
 MusicBox
 MusicBoxInfo
 MusicBoxMusic
@@ -2233,11 +2175,9 @@ nn::account::Uid
 nn::time::ClockSnapshot
 nn::util::Uuid
 NonVillagerRandom
-Noon u8
 Nordic
 NormalFog
 NormalHolders
-NormalNpc u8
 NormalNpcBitFlag
 NotBack
 NounGenderType
@@ -2258,7 +2198,6 @@ NpcGardenUniqueID
 NpcHouseFlag
 NpcHouseList
 NpcID
-NpcLabel string32
 NpcList
 NpcNormalIDArray
 NpcOrderData
@@ -2387,14 +2326,6 @@ OutdoorGoods
 Outfit
 OutsideField
 Palette
-Param0 u8
-Param0.hshCstringRef
-Param1 u8
-Param1.hshCstringRef
-Param2 u8
-Param2.hshCstringRef
-Param3 u8
-Param3.hshCstringRef
 Parent
 Park
 PartsInfoList
@@ -2402,7 +2333,6 @@ PassTriggerWaitEndOnKeep
 PastDays
 PastDaysFromMade
 Patchwork
-Pattern1 u8
 PatternId
 pauseFadeInSec.f32
 pauseFadeOutSec.f32
@@ -2425,8 +2355,6 @@ Pitc
 Pitcher
 Pkax
 Place
-PlacementRadioGymnastics.hshCstringRef
-PlaceType u8
 PlannerID
 PlantingDay
 PlantItem
@@ -2435,10 +2363,6 @@ PlayerActivity
 PlayerActorMgr
 PlayerBaseId
 PlayerFavoriteData
-PlayerFlagKeyAfterSelect string32
-PlayerFlagKeyOFF string32
-PlayerFlagKeyON string32
-PlayerFlagKeyON2 string32
 PlayerHouseFlag
 PlayerHouseList
 PlayerId
@@ -2583,10 +2507,6 @@ PreviousVillagerIndex
 Price
 PrimaryItem
 PrimaryItemFlag
-Priority u8
-ProbHarvestDaytime u16
-ProbHarvestMorningAndEvening u16
-ProbHarvestNight u16
 ProfileMain
 ProfileReportInfo
 ProHolders
@@ -2617,7 +2537,6 @@ RailData
 RailList
 RainbowFeather
 RainbowPattern
-Rank u16
 Rare
 RareHaniwa
 rbt21
@@ -2646,7 +2565,6 @@ RegisterBitList
 ReleaseItemList
 ReleasePlayerBaseId
 ReleaseType
-RemakeBodyID s16
 RemakeCommonPattern
 RemakeRebodyId
 RemakeRefabricId
@@ -2685,7 +2603,6 @@ RestaurantHallRoom
 RestaurantKitchenRoom
 RestaurantVip_Stock
 ReturnsLoan
-Reverberation u8
 RewardDaily
 Rewards
 rhn05
@@ -2694,19 +2611,12 @@ RoadBuffer
 Role
 RomReleaseVersion
 RoofUniqueID
-Room0.hshCstringRef
-Room1.hshCstringRef
-Room2.hshCstringRef
 RoomBuffer
 RoomFloorWall
 RoomList
 RoomName
 RoomNo
 RoomSetting
-RoomSizeX s16
-RoomSizeX s8
-RoomSizeY s16
-RoomSizeY s8
 RugQuadrilateral
 RugRound
 RugSanrio
@@ -2769,9 +2679,6 @@ SeedingSugercane
 SeedingTomato
 SeedingWheat
 SelectAnswer
-SelectColor u8
-SelectGrowUp u8
-SelectOne u8
 SelectRateList
 SelfUniqueID
 SellKabuValue
@@ -2906,7 +2813,6 @@ SnackBasket
 SnareDrum
 SnBa
 Sneezing
-Snow u8
 SnowManFamily
 SnowManGrade
 SnowManType
@@ -2916,7 +2822,6 @@ SocksTexKikilala
 SocksTexProtector
 SoftCream
 SoldOut
-SortID s8
 SoSe
 SoundAmbient
 SoundMgrParams
@@ -2928,7 +2833,6 @@ SpannerR
 SparklingCider
 SparklingSoda
 SpCdr
-Special u8
 SpecialityFlower
 SpecialityFruit
 SpecialNpcBitFlag
@@ -3229,7 +3133,6 @@ u64
 u8
 UIList
 UIName
-UISortID u16
 UniqId
 UniqueId
 UniqueID
@@ -3241,7 +3144,6 @@ UpdateTime
 UpStairs
 Usage
 Used
-UsePlayer u8
 Using
 UsingIndex
 UsuallyAccessory
@@ -3315,19 +3217,12 @@ WBagOrnament
 WearStockList
 Weather
 WeatherArea
-WeatherChange u8
-WeatherPattern u16
-WeatherPattern0 u16
-WeatherPattern1 u16
-WeatherPattern2 u16
-WeatherPattern3 u16
 Wedding2
 Wedding3
 WeedLight
 WeedStone
 Wheat
 WHEREAREN
-Wherearen u8
 WherearenAuthorID
 WherearenBlockUserList
 WherearenCafe
@@ -3451,24 +3346,6 @@ TopsTexOnepieceKimonoLCrestedWhite
 BottomsTexPantsWideSlacksteacher
 TopsTexOnepieceOverallLColorsuits
 BottomsTexPantsNormalSlackspattern
-PointList u8
-ASCommand string65
-Label string33
-Month2 u8
-Month3 u8
-Seat0 u16
-Seat1 u16
-Seat2 u16
-Seat3 u16
-FacilityActionType0.hshCstringRef
-FacilityActionType1.hshCstringRef
-FacilityActionType2.hshCstringRef
-FacilityActionType3.hshCstringRef
-FacilityActionType4.hshCstringRef
-FacilityActionType5.hshCstringRef
-FacilityActionType6.hshCstringRef
-FacilityActionType7.hshCstringRef
-FacilityActionType8.hshCstringRef
 AprilEvening2
 BenchDrinkingCoffee
 CarnivalReady
@@ -3550,8 +3427,6 @@ MAIL_RND_MsgE_HA
 MAIL_RND_MsgE_KO
 MAIL_RND_MsgE_OT
 MAIL_RND_MsgE_ZK
-GardenEdit u16
-SortID s16
 MAIL_SNpc_man-101
 MAIL_SNpc_man-105
 MAIL_SNpc_rco-113
