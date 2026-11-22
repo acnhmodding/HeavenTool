@@ -6,7 +6,7 @@ namespace HeavenTool.Rendering.BFRES;
 
 public sealed partial class BfresRenderer
 {
-    // agl::pfx::ColorCorrection's volume: 8³ (7101480ab0), sampled at mapped*(1-1/N)+.5/N.
+    // agl::pfx::ColorCorrection's volume: 8³, sampled at mapped*(1-1/N)+.5/N.
     private const int GradingSize = 8;
     private int gradingProgram, gradingTexture;
     private AcnhColorGrading? gradingSource;
@@ -35,7 +35,7 @@ public sealed partial class BfresRenderer
             if (scale >= 0) GL.Uniform1(scale, 1f);
         }
 
-        // fp_c3 (710382c640): [0].z the first slice, [1] the volume size and its texel step.
+        // fp_c3: [0].z the first slice, [1] the volume size and its texel step.
         var slices = new byte[ParkUniforms.BufferSize];
         BinaryPrimitives.WriteSingleLittleEndian(slices.AsSpan(16), GradingSize);
         BinaryPrimitives.WriteSingleLittleEndian(slices.AsSpan(20), 1f / (GradingSize - 1));

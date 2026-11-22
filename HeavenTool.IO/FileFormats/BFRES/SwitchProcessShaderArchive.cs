@@ -34,7 +34,7 @@ public sealed class SwitchProcessShaderProgram
         this.stages = stages;
         stageTypes = [.. Enumerable.Range(0, StageTypeCount).Where(type => (stageMask & (1u << type)) != 0)];
 
-        // The game's loader uses each option's product of later choice counts as its variation stride (71038057b0).
+        // The game's loader uses each option's product of later choice counts as its variation stride.
         VariationCount = 1;
         foreach (var option in options)
             VariationCount = checked(VariationCount * option.Choices.Count);
@@ -157,7 +157,7 @@ public sealed class SwitchProcessShaderArchive
         {
             Within(0, HeaderSize, data.Length);
 
-            // 7103808960 locates the variable-length stage list at header +0x14 +0x150, then the program list after it.
+            // The variable-length stage list starts past the header, at the offset its +0x14 field gives; the program list follows it.
             reader.Position = 4;
             uint version = reader.ReadUInt32();
             uint fileSize = reader.ReadUInt32();

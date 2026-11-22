@@ -6,7 +6,7 @@ using static HeavenTool.IO.AcnhEnvironment.AcnhEnvironmentParameters;
 namespace HeavenTool.IO.AcnhEnvironment;
 
 /// <summary>
-/// The panorama the game turns its environment cube into (71015224b0), with the Park_Proc programs that draw and filter it:
+/// The panorama the game turns its environment cube into, with the Park_Proc programs that draw and filter it:
 /// DrawEnvMap writes level 0 from the cube, DrawEnvBlurLow, DrawEnvBlur and DrawEnvBlurHi blur each coarser level from the
 /// one above it, and DrawEnvBlur then smooths the middle levels back up from the one below.
 /// </summary>
@@ -17,7 +17,7 @@ public sealed record AcnhPanoramaEnvironment(int Width, int Height, int Levels, 
     {
         var p = Dictionary(Field(Dictionary(read("Param/Gfx/PanoramaEnvMap.byml")), "PanoramaEnv"));
         var size = Position2(p, "mFbSize");
-        // The mip count is only known by its hash; 71015224b0 reads it from +0x684.
+        // The shipped file stores this u32 as a signed integer.
         int levels = Field(p, "mMaxMipLevel", "u32") switch
         {
             BymlInt32Value value => value.Value,

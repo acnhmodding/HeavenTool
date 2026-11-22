@@ -6,16 +6,16 @@ using static HeavenTool.IO.AcnhEnvironment.AcnhEnvironmentParameters;
 namespace HeavenTool.IO.AcnhEnvironment;
 
 /// <summary>
-/// A PointLightParam (constructed by 71014ed5a0). 71014eb250 packs it as color × intensity at <see cref="Position"/>, at full
-/// strength out to <see cref="Size"/> and gone at <see cref="Radius"/>.
+/// A PointLightParam. The game packs it as color × intensity at <see cref="Position"/>, at full strength out to
+/// <see cref="Size"/> and gone at <see cref="Radius"/>.
 /// </summary>
-/// <param name="BindModel">mBindModelName; 71014edd30 binds a scene light to that model when its first character isn't 0.</param>
+/// <param name="BindModel">mBindModelName; a scene light follows that model when the name's first character isn't 0.</param>
 public sealed record AcnhPointLightParameters(bool Enabled, Vector4 Color, float Intensity, Vector3 Position, float Size, float Radius,
     string BindModel)
 {
     /// <summary>
-    /// The light 710148cfe0 blends from a dual light's two settings: 7101525a50 interpolates only its f32, vector and color
-    /// fields, so the rest stay as <paramref name="a"/>'s.
+    /// The light a dual light blends to between its two settings. Only its f32, vector and color fields interpolate, so the
+    /// rest stay as <paramref name="a"/>'s.
     /// </summary>
     public static AcnhPointLightParameters Blend(AcnhPointLightParameters a, AcnhPointLightParameters b, float t) => a with
     {
@@ -28,7 +28,7 @@ public sealed record AcnhPointLightParameters(bool Enabled, Vector4 Color, float
 }
 
 /// <summary>
-/// A SpotLightParam. 71014eb250 packs it as color × intensity / (<see cref="Fovy"/> / 2π) at <see cref="Position"/>, with half
+/// A SpotLightParam. The game packs it as color × intensity / (<see cref="Fovy"/> / 2π) at <see cref="Position"/>, with half
 /// of <see cref="Fovy"/> as its cone, at full strength out to <see cref="Size"/> and gone at <see cref="Far"/>.
 /// </summary>
 public sealed record AcnhSpotLightParameters(bool Enabled, Vector4 Color, float Intensity, Vector3 Position, float Size,
@@ -51,9 +51,8 @@ public sealed record AcnhSpotLightParameters(bool Enabled, Vector4 Color, float 
 public sealed record AcnhDualLight<T>(T Day, T Night);
 
 /// <summary>
-/// A scene's own lights, read from Param/Gfx/&lt;scene&gt;/, the folder 71015267c0 names after the scene: DynamicLightMgr_0's
-/// DynamicLightSceneParam (loaded by 71014edd30) and IdrLightMgr_0's IdrLightMgrParam (loaded by 710148c590). Positions are in
-/// the scene's world space.
+/// A scene's own lights, read from the folder Param/Gfx/&lt;scene&gt;/ named after the scene: DynamicLightMgr_0's
+/// DynamicLightSceneParam and IdrLightMgr_0's IdrLightMgrParam. Positions are in the scene's world space.
 /// </summary>
 public sealed class AcnhSceneLights
 {
@@ -106,7 +105,7 @@ public sealed class AcnhSceneLights
         return new(points, spots, dualPoints, dualSpots);
     }
 
-    // A dual light's two settings; 710148cfe0 reads entries 0 and 1.
+    // A dual light blends between entries 0 and 1.
     private static IBymlNode[] Pair(BymlDictionary group)
     {
         var settings = Entries(group, "mParam[]").ToArray();
@@ -133,8 +132,8 @@ public sealed class AcnhSceneLights
 }
 
 /// <summary>
-/// DynamicLightParam (71014ecb00): the light grid's cell counts and cell size. A stage without the file keeps the constructor's
-/// 16 × 1 × 16 cells of 10 × 100 × 10.
+/// DynamicLightParam: the light grid's cell counts and cell size. A stage without the file keeps the default 16 × 1 × 16 cells
+/// of 10 × 100 × 10.
 /// </summary>
 public sealed record AcnhLightGridParameters(int CountX, int CountY, int CountZ, Vector3 CellSize)
 {
@@ -163,8 +162,7 @@ public sealed record AcnhLightGridParameters(int CountX, int CountY, int CountZ,
 }
 
 /// <summary>
-/// SceneEnvMgr.byml's EnvParam sunrise and sunset times (constructed by 71015357e0), from which 710153b670 works out how far
-/// into the night the clock is.
+/// SceneEnvMgr.byml's EnvParam sunrise and sunset times, from which SceneEnvMgr works out how far into the night the clock is.
 /// </summary>
 public sealed record AcnhDayNight(float SunriseStart, float SunriseEnd, float SunsetStart, float SunsetEnd)
 {
@@ -178,8 +176,8 @@ public sealed record AcnhDayNight(float SunriseStart, float SunriseEnd, float Su
     }
 
     /// <summary>
-    /// SceneEnvMgr +0x104 at the effective (seasonally remapped) <paramref name="hour"/>, as 710153b670 computes it: 1 through
-    /// the night, falling to 0 across sunrise and rising back to 1 across sunset.
+    /// SceneEnvMgr's night ratio at the effective (seasonally remapped) <paramref name="hour"/>: 1 through the night, falling
+    /// to 0 across sunrise and rising back to 1 across sunset.
     /// </summary>
     public float NightRatio(float hour)
     {
@@ -190,8 +188,8 @@ public sealed record AcnhDayNight(float SunriseStart, float SunriseEnd, float Su
     }
 
     /// <summary>
-    /// The blend 710148cfe0 moves IdrLightMgr's lights by: clamp(night + 2·max(darkness − .5, 0), 0, 1), where darkness is the
-    /// palette's +0x1c58, which 710153b670 takes from 7103f58980 by weather. That table gives the clear-weather row 0.
+    /// The blend IdrLightMgr moves its lights by: clamp(night + 2·max(darkness − .5, 0), 0, 1), where darkness comes from a
+    /// per-weather table that gives 0 in clear weather.
     /// </summary>
     public float IndoorLightBlend(float hour, float darkness = 0) =>
         Math.Clamp(NightRatio(hour) + Math.Max(darkness - .5f, 0) * 2, 0, 1);

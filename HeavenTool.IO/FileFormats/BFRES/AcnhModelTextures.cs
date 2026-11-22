@@ -6,10 +6,10 @@ namespace HeavenTool.IO.FileFormats.BFRES;
 /// <summary>
 /// Finds the textures a model asks for but doesn't embed, in the files the game binds them from:
 /// <list type="bullet">
-/// <item>Its own <c>&lt;Model&gt;_Tex_&lt;texture&gt;</c> files, which ActorModelResLoader (710064e230) names with "%s_Tex_%s".</item>
+/// <item>Its own <c>&lt;Model&gt;_Tex_&lt;texture&gt;</c> files, which ActorModelResLoader names with "%s_Tex_%s".</item>
 /// <item>Its per-language archive from LocalizeNameConvertParam (<see cref="AcnhLocalizedNames"/>), which holds sign textures.</item>
-/// <item>For field models, FieldUnitModelMgr's shared pool (7101462740): FldUnit and the unit archives in 71048a9080's order.</item>
-/// <item>A ShareTexture file, which each actor type binds by name (e.g. 71010c2bac binds PltShareTexture and FenceShareTexture). The
+/// <item>For field models, FieldUnitModelMgr's shared pool: FldUnit and the unit archives, in the game's order.</item>
+/// <item>A ShareTexture file, which each actor type binds by name (e.g. one binds both PltShareTexture and FenceShareTexture). The
 /// file named like the model's prefix (HouseWall… → HouseWallShareTexture) is taken, else the one file holding the texture.</item>
 /// </list>
 /// </summary>
@@ -20,7 +20,7 @@ public static class AcnhModelTextures
     private static readonly string[] FieldPool = ["FldUnit", "FldProcGrass", "FldUnitCliff", "FldUnitFall", "FldUnitRiver", "FldUnitRoadStone",
         "FldUnitRoadSoil", "FldUnitRoadBrick", "FldUnitRoadDarkSoil", "FldUnitRoadFanPattern", "FldUnitRoadSand", "FldUnitRoadTile",
         "FldUnitRoadWood", "FldUnitRoadMyDesign"];
-    // What 7101462740 adds to the pool on a Happy Home Paradise island (FldUnitWherearen, FldUnitWherearenGardenSand) or a
+    // What FieldUnitModelMgr adds to the pool on a Happy Home Paradise island (FldUnitWherearen, FldUnitWherearenGardenSand) or a
     // Mystery Tour (FldUnitWherearen, FldUnitMileToursSP). Only those islands' models ask for their textures.
     private static readonly string[] IslandFieldPool = ["FldUnitWherearen", "FldUnitWherearenGardenSand", "FldUnitMileToursSP"];
     private const string ShareSuffix = "ShareTexture";

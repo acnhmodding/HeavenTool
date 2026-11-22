@@ -59,7 +59,7 @@ public static class AcnhSkyScattering
         return integral * (hitsEarth ? sky.EarthColorIntensity : 1);
     }
 
-    /// <summary>SceneEnvMgr's sun-facing RGB result. The AArch64 function returns RGB in s0–s2, not just s0.</summary>
+    /// <summary>SceneEnvMgr's sun-facing scattered RGB.</summary>
     public static Vector3 SunScatterColor(AcnhSkyScatterParameters sky, AcnhEnvironmentPalette palette, Vector3 skyDirection)
     {
         var view = -Vector3.Normalize(skyDirection);

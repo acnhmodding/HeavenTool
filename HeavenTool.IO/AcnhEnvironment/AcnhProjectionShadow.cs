@@ -34,7 +34,7 @@ public sealed record AcnhProjectionShadow(Matrix4x4 TextureProjection, BntxTextu
 
         var env = new Aamp(environment);
         int root = 0x30 + env.Int(0x14);
-        // The projector list (0xd968d421) holds one object per projector, matched by name.
+        // The projector list holds one object per projector, matched by name.
         var list = env.Lists(root).GetValueOrDefault(0xd968d421, -1);
         if (list < 0) throw new InvalidDataException("envinside.baglenv has no projectors.");
         var light = env.Objects(list).Values.Select(env.Parameters).FirstOrDefault(o => env.String(o, "name") == projector)
@@ -51,7 +51,7 @@ public sealed record AcnhProjectionShadow(Matrix4x4 TextureProjection, BntxTextu
             var type => throw new NotSupportedException($"Projector type {type} is not recovered."),
         };
 
-        // The texture matrix FUN_71039b6820 builds from bias_scale/rotate/trans, here taking the clip-space
+        // The texture matrix the game builds from bias_scale/rotate/trans, here taking the clip-space
         // position's xy to texture space. The swing animation (a few thousandths of a repeat) is left out.
         var scale = settings.Vector2(p, "bias_scale");
         var trans = settings.Vector2(p, "bias_trans");

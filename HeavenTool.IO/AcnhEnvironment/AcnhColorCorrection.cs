@@ -7,7 +7,7 @@ using System.Buffers.Binary;
 namespace HeavenTool.IO.AcnhEnvironment;
 
 /// <summary>
-/// agl::pfx::ColorCorrection settings (.baglccr) packed the way 710382b4a0 uploads them for the
+/// agl::pfx::ColorCorrection settings (.baglccr) packed the way the game uploads them for the
 /// color_correction_map shader, which bakes them into the 8³ grading volume ToneMapping samples.
 /// </summary>
 public sealed class AcnhColorCorrection
@@ -74,8 +74,8 @@ public sealed class AcnhColorCorrection
                     filters.AsSpan((HeaderRows + row + 7) * 16, 16).CopyTo(filters.AsSpan((HeaderRows + row + 8) * 16));
                     row += 9;
                     break;
-                // A parameter vector and three groups of three, each group packed only when its flag is set. Both 710382aa50 and
-                // 710382db10 set all three flags (0xf) on a type 7 filter, so all ten follow in order.
+                // A parameter vector and three groups of three, each group packed only when its flag is set. The game sets all
+                // three flags on a type 7 filter, so all ten follow in order.
                 case 7:
                     for (int k = 0; k < 10; k++)
                         Row(filters, row + k, file.Vector4(main, $"param{(parameter + k < Rows ? parameter + k : 0)}"));
@@ -126,7 +126,7 @@ public sealed class AcnhColorCorrection
     /// <summary>A sead curve; only the Hermit2D (x, y, tangent) kind is recovered.</summary>
     internal sealed class Curve(int used, int type, float[] values)
     {
-        // sead's Hermit2D (71037e8910): flat outside the keys, unscaled tangents within a segment.
+        // sead's Hermit2D: flat outside the keys, unscaled tangents within a segment.
         public float Evaluate(float x)
         {
             if (type != 7) throw new NotSupportedException($"Color-correction curve type {type} is not recovered.");

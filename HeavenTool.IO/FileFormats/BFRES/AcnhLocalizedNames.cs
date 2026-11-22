@@ -5,14 +5,14 @@ using System.Collections.Concurrent;
 namespace HeavenTool.IO.FileFormats.BFRES;
 
 /// <summary>
-/// Bcsv/LocalizeNameConvertParam: which archive holds a model's per-language resources. 71006dabc0 takes the row whose BaseName
-/// hashes like the model's name (7100639320 looks it up by Murmur3), checks its LocalizeTexture/LocalizeModel/LocalizeAnim flag,
-/// reads the system language's column (the Read_JPja… table at 7104816870) and formats "%s_%s" with BaseName and that column's
-/// <see cref="LanguageCodes"/> entry, so a language can borrow another's files (StrcTailorA00 in USen loads StrcTailorA00_JPja).
+/// Bcsv/LocalizeNameConvertParam: which archive holds a model's per-language resources. The game takes the row whose BaseName
+/// hashes (Murmur3) like the model's name, checks its LocalizeTexture/LocalizeModel/LocalizeAnim flag, reads the system
+/// language's column and formats "%s_%s" with BaseName and that column's <see cref="LanguageCodes"/> entry, so a language can
+/// borrow another's files (StrcTailorA00 in USen loads StrcTailorA00_JPja).
 /// </summary>
 public sealed class AcnhLocalizedNames
 {
-    /// <summary>game::System::sLanguageCodes (7104812310), indexed by the language columns' values.</summary>
+    /// <summary>game::System::sLanguageCodes, indexed by the language columns' values.</summary>
     public static readonly string[] LanguageCodes = ["JPja", "USen", "USes", "USfr", "USpt", "EUen", "EUes", "EUfr", "EUde", "EUit",
         "EUpt", "EUnl", "EUru", "KRko", "CNzh", "TWzh"];
 
@@ -39,7 +39,7 @@ public sealed class AcnhLocalizedNames
         int column = table.ColumnIndex($"{language} u8");
         var row = table.Entries.FirstOrDefault(entry => entry[name] is string baseName && baseName == model);
         if (row == null || Convert.ToInt32(row[flag]) == 0) return null;
-        // 71006dabc0 gives an index past the table a placeholder code (DAT_7103f7ebb1) that names no shipped file.
+        // An index past the table gets a placeholder code that names no shipped file.
         int code = Convert.ToInt32(row[column]);
         return code < LanguageCodes.Length ? $"{model}_{LanguageCodes[code]}" : null;
     }

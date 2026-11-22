@@ -5,7 +5,7 @@ using static HeavenTool.IO.AcnhEnvironment.AcnhColorCorrection;
 namespace HeavenTool.IO.AcnhEnvironment;
 
 /// <summary>
-/// agl::pfx::Bloom settings (GameEnv's one Env.aglblm), as 710392e270 feeds them to the bloom passes:
+/// agl::pfx::Bloom settings (GameEnv's one Env.aglblm), as the game feeds them to the bloom passes:
 /// bloom_mask keeps <c>clamp((L - Threshold) / Range, 0, 1)</c> of each pixel, with L its luminance and the
 /// result limited to <paramref name="ClampedLuminance"/> when set; the reduced levels are blurred and summed
 /// with <paramref name="LevelWeights"/>, and ToneMapping adds the sum to the HDR color before exposure.
@@ -40,7 +40,7 @@ public sealed record AcnhBloom(float Threshold, float Range, float Intensity, fl
     }
 
     /// <summary>
-    /// The compose weights 710392e270 derives from expand: (1, a, b, 0) normalized, with a = min(3·expand, 1)
+    /// The compose weights the game derives from expand: (1, a, b, 0) normalized, with a = min(3·expand, 1)
     /// and b = 3·expand − 1 past a third, so a larger expand moves weight to the wider levels.
     /// </summary>
     public static Vector4 ExpandWeights(float expand)

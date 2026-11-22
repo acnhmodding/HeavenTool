@@ -15,7 +15,7 @@ public sealed partial class BfresRenderer
     private AcnhPanoramaEnvironment? probeSource;
     private bool probeDirty = true, probeActive;
 
-    // Captures the room the way the game's CubeMapMgr does and filters it with the Park_Proc chain of 71015224b0.
+    // Captures the scene the way the game's CubeMapMgr does and filters it into the panorama with the Park_Proc chain.
     private void RenderEnvironmentProbe()
     {
         if (!probeDirty) return;
@@ -108,7 +108,7 @@ public sealed partial class BfresRenderer
                 GL.ClearColor(0, 0, 0, 0);
                 GL.DepthMask(true);
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-                // 710398f890: Model(CubeMap/Opa+AlphaMask), then Model(CubeMap/Xlu).
+                // The game's capture order: Model(CubeMap/Opa+AlphaMask), then Model(CubeMap/Xlu).
                 foreach (bool translucent in new[] { false, true })
                     foreach (var mesh in meshes)
                     {
@@ -153,7 +153,7 @@ public sealed partial class BfresRenderer
                 if (constantBuffer != 0) GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, constantBuffer);
                 GL.BindBufferBase(BufferRangeTarget.UniformBuffer, constantBuffer != 0 ? 1 : 0, sizeBuffer);
                 GL.BindTexture(sourceTarget, sourceTexture);
-                // 7101523750 clamps the source's LOD to its one level; limiting the texture to it also keeps the target level out of reach.
+                // The game clamps the source's LOD to its one level; limiting the texture to it also keeps the target level out of reach.
                 if (sourceTarget == TextureTarget.Texture2D)
                 {
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, source);
