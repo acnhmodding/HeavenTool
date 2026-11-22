@@ -8,7 +8,7 @@ namespace HeavenTool.Rendering.BFRES;
 /// BFRES preview renderer shared by desktop hosts. All methods are called on the host UI thread.
 /// Only Render and ReleaseGraphics use OpenGL; the host must make its context current for them.
 /// </summary>
-public sealed partial class BfresRenderer
+public sealed partial class BfresRenderer : IViewportRenderer
 {
     public sealed record PreparedMesh(BfresMesh Source, float[] Vertices, Vector3 Center);
     /// <summary>A scene ready to upload. <see cref="CaptureOnly"/> meshes are drawn only into the environment probe, and don't count toward framing.</summary>
@@ -30,6 +30,7 @@ public sealed partial class BfresRenderer
     private (float Radius, float MinimumDistance)? pendingFrame;
     private bool wireframe, orthographic, showGround;
     private float roll;
+    private bool externalCamera;
     private BfresMesh? selectedMesh;
     private int width, height, outputFramebuffer, outputColor, outputDepth;
     private float renderScale = 1;
@@ -95,6 +96,23 @@ public sealed partial class BfresRenderer
         this.yaw = yaw;
         this.pitch = pitch;
         Invalidate();
+    }
+
+    /// <summary>
+    /// Places the camera for the next frame from another view's orbit, in this scene's coordinates. The framing and
+    /// navigation of this renderer are skipped from then on, so the caller sets the camera before every render.
+    /// </summary>
+    public void SetCamera(Vector3 target, float cameraDistance, float cameraYaw, float cameraPitch, float cameraRoll, bool ortho)
+    {
+        externalCamera = true;
+        pendingFrame = null;
+        center = target;
+        distance = cameraDistance;
+        yaw = cameraYaw;
+        pitch = cameraPitch;
+        roll = cameraRoll;
+        orthographic = ortho;
+        radius = pending.Radius;
     }
 
     // Whether the camera's passes draw a mesh: neither hidden nor only there for the environment probe.
@@ -179,7 +197,9 @@ public sealed partial class BfresRenderer
             cameraPosition = center + direction * distance;
             var view = Matrix4.LookAt(cameraPosition, center, CameraUp());
             float aspect = width / (float)height;
-            float near = Math.Max(radius * .001f, distance - radius * 1.5f), far = distance + radius * 4;
+            // A camera set from another view orbits its own target, so the clipping range follows the model's distance from the eye.
+            float reach = externalCamera ? (cameraPosition - pending.Center).Length : distance;
+            float near = Math.Max(radius * .001f, reach - radius * 1.5f), far = reach + radius * 4;
             if (showGround)
             {
                 // The model's tight clipping range can cut the ground into horizontal bands.

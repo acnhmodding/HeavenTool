@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:HeavenTool.Avalonia.ViewModels"
+  x:Class="HeavenTool.Avalonia.Views.FileEditors.PBCInspectorPane"
+  x:DataType="vm:PBCViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.header">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Margin" Value="0,4,0,2" />
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{StaticResource SecondaryText}" />
+    </Style>
+    <Style Selector="NumericUpDown">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="MinHeight" Value="28" />
+    </Style>
+  </UserControl.Styles>
+  <ScrollViewer Background="{StaticResource PanelBackground}">
+    <StackPanel Margin="10,8" Spacing="6">
+      <TextBlock Classes="header" Text="Map" />
+      <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="6" IsEnabled="{Binding IsFileLoaded}">
+        <TextBlock Classes="label" Text="Width" />
+        <NumericUpDown Grid.Column="1" Value="{Binding MapWidth}" Minimum="1" Maximum="4096" Increment="1" FormatString="0" />
+        <TextBlock Grid.Row="1" Classes="label" Text="Height" />
+        <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding MapHeight}" Minimum="1" Maximum="4096" Increment="1" FormatString="0" />
+        <TextBlock Grid.Row="2" Classes="label" Text="Offset (X, Z)" />
+        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OffsetText}" FontSize="12" VerticalAlignment="Center" />
+      </Grid>
+
+      <TextBlock Classes="header" Text="Selected triangle" Margin="0,12,0,2" />
+      <TextBlock Text="{Binding SelectionText}" FontSize="12" TextWrapping="Wrap" Foreground="{StaticResource SecondaryText}" />
+      <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6" IsEnabled="{Binding HasSelection}">
+        <TextBlock Classes="label" Text="Material" />
+        <ComboBox Grid.Column="1" ItemsSource="{Binding Materials}" SelectedItem="{Binding TriangleMaterial}"
+          HorizontalAlignment="Stretch" FontSize="12">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:PbcMaterialItem">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Border Width="12" Height="12" CornerRadius="2" Background="{Binding Swatch}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Name}" />
+                <TextBlock Text="{Binding IdText}" Foreground="{StaticResource DimText}" />
+              </StackPanel>
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Grid.Row="1" Classes="label" Text="Center" />
+        <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding CenterHeight}" Increment="0.5" FormatString="0.####" />
+        <TextBlock Grid.Row="2" Classes="label" Text="{Binding Corner1Label}" TextWrapping="Wrap" />
+        <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding Corner1Height}" Increment="0.5" FormatString="0.####" />
+        <TextBlock Grid.Row="3" Classes="label" Text="{Binding Corner2Label}" TextWrapping="Wrap" />
+        <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding Corner2Height}" Increment="0.5" FormatString="0.####" />
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

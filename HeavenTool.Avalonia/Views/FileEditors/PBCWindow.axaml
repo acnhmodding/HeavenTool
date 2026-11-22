@@ -1,0 +1,93 @@
+<fa:FAAppWindow xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:fa="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
+  xmlns:vm="using:HeavenTool.Avalonia.ViewModels"
+  xmlns:app="clr-namespace:HeavenTool.Avalonia;assembly=HeavenTool.Avalonia"
+  x:Class="HeavenTool.Avalonia.Views.FileEditors.PBCWindow"
+  x:DataType="vm:PBCViewModel"
+  Title="{Binding Title}" Width="1280" Height="800" MinWidth="640" MinHeight="420"
+  Background="{StaticResource WindowBackground}" DragDrop.AllowDrop="True">
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <DockPanel Grid.Row="0" Height="32" Background="{StaticResource TitleBarBackground}"
+      WindowDecorationProperties.ElementRole="TitleBar">
+      <Image Source="/Assets/Icons/leaf.ico" Margin="10 0" Height="16"/>
+      <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+      <TextBlock Text="{x:Static app:App.DisplayVersion}" Margin="5 0 0 0" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource DimText}"/>
+    </DockPanel>
+
+    <Menu Grid.Row="1" Padding="0" Background="{StaticResource MenuBackground}" Height="30" Foreground="White" FontSize="11">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open PBC or archive..." Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O">
+          <MenuItem.Icon>
+            <icons:PackIconFontAwesome6 Kind="FolderOpenSolid" Width="14" Height="14" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" InputGesture="Ctrl+S">
+          <MenuItem.Icon>
+            <icons:PackIconFontAwesome6 Kind="FloppyDiskSolid" Width="14" Height="14" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Save _as..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S" />
+        <Separator />
+        <MenuItem Header="Close _file" Command="{Binding CloseFileCommand}" />
+        <MenuItem Header="_Close" Click="CloseClicked">
+          <MenuItem.Icon>
+            <icons:PackIconFontAwesome6 Kind="XmarkSolid" Width="14" Height="14" />
+          </MenuItem.Icon>
+        </MenuItem>
+      </MenuItem>
+      <MenuItem Header="_Edit">
+        <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z">
+          <MenuItem.Icon>
+            <icons:PackIconFontAwesome6 Kind="RotateLeftSolid" Width="14" Height="14" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y">
+          <MenuItem.Icon>
+            <icons:PackIconFontAwesome6 Kind="RotateRightSolid" Width="14" Height="14" />
+          </MenuItem.Icon>
+        </MenuItem>
+      </MenuItem>
+      <MenuItem Header="_View">
+        <MenuItem Header="Show triangle _edges" ToggleType="CheckBox" IsChecked="{Binding Show3DGrid}" />
+        <MenuItem Header="Show _model" ToggleType="CheckBox" IsChecked="{Binding ShowModel}" IsEnabled="{Binding HasModel}" />
+        <MenuItem Header="_Choose model..." Command="{Binding ChooseModelCommand}">
+          <MenuItem.Icon>
+            <icons:PackIconFontAwesome6 Kind="CubeSolid" Width="14" Height="14" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <Separator />
+        <MenuItem Header="_Restore default layout" Click="RestoreLayoutClicked" />
+      </MenuItem>
+    </Menu>
+
+    <Border Grid.Row="2" Background="#4A2626" BorderBrush="{StaticResource ErrorText}" BorderThickness="0,0,0,1"
+      Padding="10,6,4,6" IsVisible="{Binding HasError}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="tool" Height="24" MinWidth="24" Padding="0"
+          Command="{Binding DismissErrorCommand}" ToolTip.Tip="Dismiss">
+          <icons:PackIconFontAwesome6 Kind="XmarkSolid" Width="9" Height="9" />
+        </Button>
+        <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="14" Height="14" Margin="0,0,10,0"
+          Foreground="{StaticResource ErrorText}" />
+        <SelectableTextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+
+    <DockControl x:Name="Workspace" Grid.Row="3" InitializeFactory="True" InitializeLayout="True" />
+
+    <Border Grid.Row="4" Background="{StaticResource MenuBackground}" BorderBrush="{StaticResource PanelBorder}"
+      BorderThickness="0,1,0,0" Height="26" Padding="8,0">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Text="{Binding HoverText}" FontSize="11" VerticalAlignment="Center"
+          Foreground="{StaticResource SecondaryText}" />
+        <ProgressBar DockPanel.Dock="Left" IsVisible="{Binding IsBusy}" IsIndeterminate="True" Width="70" MinWidth="0"
+          Height="3" Margin="0,0,10,0" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding StatusText}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+          Foreground="{StaticResource SecondaryText}" />
+      </DockPanel>
+    </Border>
+  </Grid>
+</fa:FAAppWindow>

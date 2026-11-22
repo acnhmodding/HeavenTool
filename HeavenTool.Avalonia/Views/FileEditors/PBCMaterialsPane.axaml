@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:HeavenTool.Avalonia.ViewModels"
+  x:Class="HeavenTool.Avalonia.Views.FileEditors.PBCMaterialsPane"
+  x:DataType="vm:PBCViewModel">
+  <DockPanel Background="{StaticResource PanelBackground}">
+    <TextBlock DockPanel.Dock="Top" Text="Brush material (paint and fill tools)" FontSize="11" Margin="8,6"
+      Foreground="{StaticResource SecondaryText}" />
+    <ListBox ItemsSource="{Binding Materials}" SelectedItem="{Binding SelectedMaterial}" Background="Transparent">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:PbcMaterialItem">
+          <DockPanel>
+            <Border DockPanel.Dock="Left" Width="14" Height="14" CornerRadius="2" Background="{Binding Swatch}"
+              BorderBrush="#40FFFFFF" BorderThickness="1" Margin="0,0,8,0" VerticalAlignment="Center" />
+            <TextBlock DockPanel.Dock="Right" Text="{Binding IdText}" FontSize="11" VerticalAlignment="Center"
+              Foreground="{StaticResource DimText}" Margin="8,0,0,0" />
+            <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          </DockPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+      <ListBox.Styles>
+        <Style Selector="ListBoxItem">
+          <Setter Property="Padding" Value="8,4" />
+          <Setter Property="MinHeight" Value="0" />
+        </Style>
+      </ListBox.Styles>
+    </ListBox>
+  </DockPanel>
+</UserControl>

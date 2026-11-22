@@ -321,6 +321,9 @@ public partial class MainWindowViewModel : ObservableObject
     private static void OpenBFRES() => new BFRESWindow().Show();
 
     [RelayCommand]
+    private static void OpenPBC() => new PBCWindow().Show();
+
+    [RelayCommand]
     private static void OpenVillagerCreator() => new VillagerCreatorWindow().Show();
 
     [RelayCommand]

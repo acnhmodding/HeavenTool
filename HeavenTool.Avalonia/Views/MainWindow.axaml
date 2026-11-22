@@ -176,6 +176,7 @@
             <TextBlock HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold">Modding Tools</TextBlock>
             <Button HorizontalAlignment="Stretch" Command="{Binding OpenBCSVCommand}">BCSV Editor</Button>
             <Button HorizontalAlignment="Stretch" Command="{Binding OpenBFRESCommand}">BFRES Viewer</Button>
+            <Button HorizontalAlignment="Stretch" Command="{Binding OpenPBCCommand}">PBC Editor</Button>
             <Button HorizontalAlignment="Stretch" Command="{Binding OpenVillagerCreatorCommand}">Villager Creator</Button>
           </StackPanel>
 

@@ -181,6 +181,14 @@ public partial class PBCFileReader
         return stream.ToArray();
     }
 
+    /// <summary>Replaces the whole grid, taking its size from the array; lets a resize be undone without losing tiles.</summary>
+    public void SetTiles(Tile[,] tiles)
+    {
+        Tiles = tiles;
+        _height = tiles.GetLength(0);
+        _width = tiles.GetLength(1);
+    }
+
     private void ResizeTiles()
     {
         if (_width <= 0 || _height <= 0)

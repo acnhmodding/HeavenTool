@@ -1,0 +1,104 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:icons="https://github.com/MahApps/IconPacks.Avalonia"
+  xmlns:vm="using:HeavenTool.Avalonia.ViewModels"
+  xmlns:controls="using:HeavenTool.Avalonia.Controls"
+  x:Class="HeavenTool.Avalonia.Views.FileEditors.PBCViewportPane"
+  x:DataType="vm:PBCViewModel">
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Background="{StaticResource PanelBackground}" BorderBrush="{StaticResource PanelBorder}"
+      BorderThickness="0,0,0,1" Padding="6,5">
+      <WrapPanel Orientation="Horizontal">
+        <StackPanel Orientation="Horizontal" IsVisible="{Binding HasMultipleEntries}">
+          <ComboBox ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry}" MinWidth="180" Height="28"
+            FontSize="12" VerticalAlignment="Center" ToolTip.Tip="PBC file in this archive">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:PbcEntry">
+                <TextBlock Text="{Binding Name}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <Rectangle Classes="divider" />
+        </StackPanel>
+        <ToggleButton Classes="tool" IsChecked="{Binding IsSelectTool}" ToolTip.Tip="Select a triangle">
+          <icons:PackIconFontAwesome6 Kind="ArrowPointerSolid" />
+        </ToggleButton>
+        <Rectangle Classes="divider" />
+        <ToggleButton Classes="tool" IsChecked="{Binding IsPaintTool}" ToolTip.Tip="Paint the brush material">
+          <icons:PackIconFontAwesome6 Kind="PaintbrushSolid" />
+        </ToggleButton>
+        <ToggleButton Classes="tool" IsChecked="{Binding IsFillTool}" ToolTip.Tip="Fill connected triangles of one material with the brush material">
+          <icons:PackIconFontAwesome6 Kind="FillDripSolid" />
+        </ToggleButton>
+        <Rectangle Classes="divider" />
+        <ToggleButton Classes="tool" IsChecked="{Binding IsRaiseTool}" ToolTip.Tip="Raise heights by the step (once per stroke)">
+          <icons:PackIconFontAwesome6 Kind="ArrowUpSolid" />
+        </ToggleButton>
+        <ToggleButton Classes="tool" IsChecked="{Binding IsLowerTool}" ToolTip.Tip="Lower heights by the step (once per stroke)">
+          <icons:PackIconFontAwesome6 Kind="ArrowDownSolid" />
+        </ToggleButton>
+        <ToggleButton Classes="tool" IsChecked="{Binding IsFlattenTool}" ToolTip.Tip="Flatten to the height of the point you press on">
+          <icons:PackIconFontAwesome6 Kind="RulerHorizontalSolid" />
+        </ToggleButton>
+        <Rectangle Classes="divider" />
+        <Button Classes="tool" Click="FrameAllClicked" ToolTip.Tip="Frame all (Home)">
+          <icons:PackIconFontAwesome6 Kind="ExpandSolid" />
+        </Button>
+        <Button Classes="tool" Click="FrameSelectionClicked" ToolTip.Tip="Frame selection (F)">
+          <icons:PackIconFontAwesome6 Kind="CrosshairsSolid" />
+        </Button>
+        <ToggleButton Classes="tool" IsChecked="{Binding Show3DGrid}" ToolTip.Tip="Show triangle edges">
+          <icons:PackIconFontAwesome6 Kind="TableCellsSolid" />
+        </ToggleButton>
+        <ToggleButton Classes="tool" IsChecked="{Binding ShowModel}" IsEnabled="{Binding HasModel}" ToolTip.Tip="{Binding ModelTip}">
+          <icons:PackIconFontAwesome6 Kind="CubeSolid" />
+        </ToggleButton>
+        <StackPanel Orientation="Horizontal" Height="28" Spacing="6" Margin="6,0,0,0" IsVisible="{Binding HasModel}">
+          <TextBlock Text="PBC" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource SecondaryText}" />
+          <Slider Value="{Binding SurfaceOpacity}" Minimum="0" Maximum="100" Width="90" VerticalAlignment="Center" Margin="0,-6"
+            IsEnabled="{Binding ShowModel}" ToolTip.Tip="PBC surface opacity over the model" />
+        </StackPanel>
+        <!-- Tool options sit last in a slot as tall as the buttons, so showing them moves nothing else. -->
+        <StackPanel Orientation="Horizontal" Height="28" Spacing="6" Margin="6,0,0,0">
+          <StackPanel Orientation="Horizontal" IsVisible="{Binding UsesHeightMode}">
+            <Rectangle Classes="divider" Margin="0,0,6,0" />
+            <ToggleButton Classes="tool" IsChecked="{Binding IsPointMode}" ToolTip.Tip="Move map points: triangles meeting at a point move together">
+              <icons:PackIconFontAwesome6 Kind="CircleDotSolid" />
+            </ToggleButton>
+            <ToggleButton Classes="tool" IsChecked="{Binding IsFaceMode}" ToolTip.Tip="Move whole triangles: faces under the brush move on their own">
+              <icons:PackIconFontAwesome6 Kind="SquareSolid" />
+            </ToggleButton>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding UsesBrushSize}">
+            <Rectangle Classes="divider" Margin="0,0,0,0" />
+            <TextBlock Text="Size" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource SecondaryText}" />
+            <Slider Value="{Binding BrushSize}" Minimum="1" Maximum="16" TickFrequency="1" IsSnapToTickEnabled="True"
+              Width="110" VerticalAlignment="Center" Margin="0,-6" ToolTip.Tip="Brush size: 1 edits one triangle or point" />
+            <TextBlock Text="{Binding BrushSize}" Width="18" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource SecondaryText}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding UsesHeightStep}">
+            <TextBlock Text="Step" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource SecondaryText}" />
+            <NumericUpDown Value="{Binding HeightStep}" Minimum="0" Maximum="1000" Increment="0.5" FormatString="0.###"
+              Width="100" Height="28" MinHeight="0" FontSize="12" VerticalAlignment="Center" ToolTip.Tip="Height added or removed per stroke" />
+          </StackPanel>
+        </StackPanel>
+      </WrapPanel>
+    </Border>
+    <Grid Background="#1c1e23" ClipToBounds="True">
+      <controls:PbcViewport x:Name="Viewport" />
+      <TextBlock Text="Open or drop a .pbc file or a *_pbc.Nin_NX_NVN.zs archive" IsVisible="{Binding !IsFileLoaded}" IsHitTestVisible="False"
+        HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource DimText}" />
+      <Border IsVisible="{Binding RenderError, Converter={x:Static ObjectConverters.IsNotNull}}" Background="#E6202226"
+        BorderBrush="{StaticResource PanelBorder}" BorderThickness="1" CornerRadius="6" Padding="16,12" MaxWidth="460" Margin="16"
+        HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="6">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <icons:PackIconFontAwesome6 Kind="TriangleExclamationSolid" Width="14" Height="14" Foreground="{StaticResource ErrorText}" />
+            <TextBlock Text="3D view unavailable" FontWeight="SemiBold" />
+          </StackPanel>
+          <SelectableTextBlock Text="{Binding RenderError}" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource SecondaryText}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </DockPanel>
+</UserControl>
